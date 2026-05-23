@@ -185,7 +185,7 @@ const doc = new Document({
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { after: 40 },
-          children: [new TextRun({ text: "Professional Data Analysis  |  Excel Reports  |  POS Systems  |  CV Writing", size: 20, color: P.secondary, font: { ascii: "Calibri" }, italics: true })]
+          children: [new TextRun({ text: "Professional Data Analysis  |  Excel Reports  |  POS Systems  |  CV & Digital Cards", size: 20, color: P.secondary, font: { ascii: "Calibri" }, italics: true })]
         }),
         new Paragraph({
           alignment: AlignmentType.CENTER,
@@ -271,16 +271,16 @@ const doc = new Document({
         ),
 
         // ── Section 4: CV Writing ──
-        sectionHeading("CV & RESUME WRITING"),
+        sectionHeading("CV, RESUME & DIGITAL CARDS"),
         new Paragraph({
           spacing: { after: 120 },
-          children: [new TextRun({ text: "Stand out from the crowd with a professionally designed CV. ATS-friendly formatting, impactful language, and tailored to your target role.", size: 19, color: P.secondary, font: { ascii: "Calibri" } })]
+          children: [new TextRun({ text: "Stand out from the crowd with a professionally designed CV, or go further with your own digital resume website. Share a link instead of a file — one tap and employers reach you.", size: 19, color: P.secondary, font: { ascii: "Calibri" } })]
         }),
         makeTable(
           ["Service", "What You Get", "Price"],
           [
             ["Professional CV / Resume", "ATS-optimized layout + powerful wording + cover letter + 2 revisions included", { type: "price", before: 100, after: 50 }],
-            ["CV + LinkedIn Profile", "Professional CV + LinkedIn profile optimization for job hunting", { type: "price", before: 200, after: 100 }],
+            ["Digital Resume Card (Website)", "Your own personal website as an interactive resume + shareable link + mobile-friendly + one-tap contact", { type: "price", before: 300, after: 150 }],
           ],
           [25, 50, 25]
         ),
@@ -306,7 +306,7 @@ const doc = new Document({
         ]}),
         new Paragraph({ spacing: { after: 80 }, children: [
           new TextRun({ text: "Step 2:  ", bold: true, size: 20, color: P.primary, font: { ascii: "Calibri" } }),
-          new TextRun({ text: "I build your custom report, POS system, or CV within the agreed timeframe.", size: 20, color: P.body, font: { ascii: "Calibri" } }),
+          new TextRun({ text: "I build your custom report, POS system, CV, or digital card within the agreed timeframe.", size: 20, color: P.body, font: { ascii: "Calibri" } }),
         ]}),
         new Paragraph({ spacing: { after: 80 }, children: [
           new TextRun({ text: "Step 3:  ", bold: true, size: 20, color: P.primary, font: { ascii: "Calibri" } }),
