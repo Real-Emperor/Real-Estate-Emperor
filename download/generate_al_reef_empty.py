@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
 """
-Al Reef Al Janoubi — Real Estate Management System
-====================================================
+Al Reef Al Janoubi — Real Estate Management System (Updated)
+=============================================================
 AED 2,000 value professional empty template.
-10-sheet comprehensive RE management system.
+11-sheet comprehensive RE management system.
 Bottega palette (dark forest green 2D4A3E).
+
+CHANGES FROM PREVIOUS VERSION:
+- Added Guidance tab as first sheet
+- Removed ALL Late Fee / Late Payment Fee / late_fee references
+- Rent Collection: 12 cols (no Late Fee, no Total Due)
+- Payment Alerts: 9 cols (no Late Fee, no Total Due, SMS→Contacted?)
+- Revenue Analysis: no Late Fee Income line
+- Profit & Loss: no Late Fee Income line
+- Contract Tracker: updated columns per spec
+- Dashboard Net Profit reference updated for new P&L row
 """
 
 import sys
@@ -22,15 +32,13 @@ from openpyxl.chart.label import DataLabelList
 from openpyxl.formatting.rule import CellIsRule, FormulaRule
 from openpyxl.worksheet.datavalidation import DataValidation
 
-# Import base module (import the module, not individual values, so palette switch works)
+# Import base module
 import templates.base as base
 
 # ── Activate Bottega palette BEFORE anything else ──
 base.use_palette_explicit("bottega")
 
 # ── Now pull values AFTER palette is active ──
-# Functions (these read from module globals at call time, so they're fine)
-use_palette_explicit = base.use_palette_explicit
 setup_sheet = base.setup_sheet
 style_header_row = base.style_header_row
 style_data_row = base.style_data_row
@@ -63,7 +71,7 @@ apply_chart_colors = base.apply_chart_colors
 apply_pie_colors = base.apply_pie_colors
 make_chart_title = base.make_chart_title
 
-# Color tokens — read AFTER palette switch so they're bottega values
+# Color tokens — read AFTER palette switch
 PRIMARY = base.PRIMARY
 PRIMARY_LIGHT = base.PRIMARY_LIGHT
 SECONDARY = base.SECONDARY
@@ -93,7 +101,7 @@ DATE_FMT = "YYYY-MM-DD"
 PCT_FMT = "0.0%"
 
 # ── Tab color from bottega PRIMARY ──
-TAB_COLOR = PRIMARY  # Should be 2D4A3E
+TAB_COLOR = PRIMARY  # 2D4A3E
 
 # ── Helper: set print area, landscape, fit to width ──
 def setup_print(ws, last_col_letter, last_row, title_rows="2:4"):
@@ -122,31 +130,318 @@ def cf_formula(ws, range_str, formula, fill, font):
 wb = Workbook()
 wb.properties.creator = "Z.ai"
 
+
 # ================================================================
-# SHEET 1: DASHBOARD
+# SHEET 1: GUIDANCE (NEW TAB)
 # ================================================================
-ws_dash = wb.active
-ws_dash.title = "Dashboard"
+ws_guide = wb.active
+ws_guide.title = "Guidance"
+ws_guide.sheet_properties.tabColor = TAB_COLOR
+
+setup_sheet(ws_guide, title="Al Reef Al Janoubi — System Usage Guide", last_col=10)
+
+# Column widths
+ws_guide.column_dimensions["A"].width = 3
+ws_guide.column_dimensions["B"].width = 6    # step number
+ws_guide.column_dimensions["C"].width = 90   # main content
+for c_letter in ["D","E","F","G","H","I","J"]:
+    ws_guide.column_dimensions[c_letter].width = 3
+
+# Styling helpers for Guidance tab
+fill_section = PatternFill("solid", fgColor=PRIMARY)
+font_section = Font(name="Calibri", size=13, bold=True, color=HEADER_TEXT)
+fill_step = PatternFill("solid", fgColor=PRIMARY_LIGHT)
+font_step_title = Font(name="Calibri", size=11, bold=True, color=PRIMARY)
+font_step_body = Font(name="Calibri", size=10, color=NEUTRAL_900)
+font_tip_title = Font(name="Calibri", size=11, bold=True, color=ACCENT_POSITIVE)
+font_tip_body = Font(name="Calibri", size=10, color=NEUTRAL_600)
+font_bullet = Font(name="Calibri", size=10, color=NEUTRAL_900)
+fill_tip_bg = PatternFill("solid", fgColor="F0FAF4")  # light green tint
+
+r = 4  # start row
+
+# ── SECTION: Step 1 ──
+ws_guide.cell(row=r, column=2, value="STEP").font = font_section
+ws_guide.cell(row=r, column=2).fill = fill_section
+ws_guide.cell(row=r, column=2).alignment = Alignment(horizontal="center", vertical="center")
+ws_guide.cell(row=r, column=3, value="Register Your Properties").font = font_section
+ws_guide.cell(row=r, column=3).fill = fill_section
+for c in range(4, 11):
+    ws_guide.cell(row=r, column=c).fill = fill_section
+ws_guide.row_dimensions[r].height = 28
+r += 1
+
+bullets_1 = [
+    'Go to the "Property Registry" tab',
+    "Enter each unit: Unit ID, Building, Floor, Unit Type, Size, Monthly Rent",
+    "Municipality Fee auto-calculates at 5% of Monthly Rent",
+    'Set Status: Rented, Vacant, Under Maintenance, or Reserved',
+    "For rented units, fill Current Tenant, Contract Start, and Contract End",
+]
+for b in bullets_1:
+    ws_guide.cell(row=r, column=2, value="").fill = fill_step
+    ws_guide.cell(row=r, column=3, value=f"   •  {b}").font = font_bullet
+    ws_guide.cell(row=r, column=3).fill = fill_step
+    for c in range(4, 11):
+        ws_guide.cell(row=r, column=c).fill = fill_step
+    ws_guide.row_dimensions[r].height = 20
+    r += 1
+
+r += 1  # spacer
+
+# ── SECTION: Step 2 ──
+ws_guide.cell(row=r, column=2, value="STEP").font = font_section
+ws_guide.cell(row=r, column=2).fill = fill_section
+ws_guide.cell(row=r, column=2).alignment = Alignment(horizontal="center", vertical="center")
+ws_guide.cell(row=r, column=3, value="Set Up Tenant Profiles").font = font_section
+ws_guide.cell(row=r, column=3).fill = fill_section
+for c in range(4, 11):
+    ws_guide.cell(row=r, column=c).fill = fill_section
+ws_guide.row_dimensions[r].height = 28
+r += 1
+
+bullets_2 = [
+    'Go to the "Tenants" tab',
+    "Enter tenant details: Name, Phone, Email, Unit ID",
+    "Monthly Rent auto-fills from Property Registry via VLOOKUP",
+    "Fill in Lease Start, Lease End, Security Deposit, Payment Method",
+    "Contract Duration auto-calculates",
+    "LEASE END ALERTS: Cells turn RED if lease expired, AMBER if within 30 days of expiry",
+]
+for b in bullets_2:
+    ws_guide.cell(row=r, column=2, value="").fill = fill_step
+    ws_guide.cell(row=r, column=3, value=f"   •  {b}").font = font_bullet
+    ws_guide.cell(row=r, column=3).fill = fill_step
+    for c in range(4, 11):
+        ws_guide.cell(row=r, column=c).fill = fill_step
+    ws_guide.row_dimensions[r].height = 20
+    r += 1
+
+r += 1  # spacer
+
+# ── SECTION: Step 3 ──
+ws_guide.cell(row=r, column=2, value="STEP").font = font_section
+ws_guide.cell(row=r, column=2).fill = fill_section
+ws_guide.cell(row=r, column=2).alignment = Alignment(horizontal="center", vertical="center")
+ws_guide.cell(row=r, column=3, value="Track Monthly Rent Collection").font = font_section
+ws_guide.cell(row=r, column=3).fill = fill_section
+for c in range(4, 11):
+    ws_guide.cell(row=r, column=c).fill = fill_section
+ws_guide.row_dimensions[r].height = 28
+r += 1
+
+bullets_3 = [
+    'Go to "Rent Collection" at the start of each month',
+    "Enter each rented unit's payment details",
+    "Outstanding and Payment Status auto-calculate",
+    "DAYS LATE auto-calculates for unpaid/partial payments",
+    "Use the Collection Summary at the bottom to track overall performance",
+]
+for b in bullets_3:
+    ws_guide.cell(row=r, column=2, value="").fill = fill_step
+    ws_guide.cell(row=r, column=3, value=f"   •  {b}").font = font_bullet
+    ws_guide.cell(row=r, column=3).fill = fill_step
+    for c in range(4, 11):
+        ws_guide.cell(row=r, column=c).fill = fill_step
+    ws_guide.row_dimensions[r].height = 20
+    r += 1
+
+r += 1  # spacer
+
+# ── SECTION: Step 4 (CRITICAL) ──
+fill_critical = PatternFill("solid", fgColor=ACCENT_NEGATIVE)
+ws_guide.cell(row=r, column=2, value="STEP").font = font_section
+ws_guide.cell(row=r, column=2).fill = fill_critical
+ws_guide.cell(row=r, column=2).alignment = Alignment(horizontal="center", vertical="center")
+ws_guide.cell(row=r, column=3, value="Monitor Payment Alerts (By the 5th of Each Month)  ★ CRITICAL").font = font_section
+ws_guide.cell(row=r, column=3).fill = fill_critical
+for c in range(4, 11):
+    ws_guide.cell(row=r, column=c).fill = fill_critical
+ws_guide.row_dimensions[r].height = 28
+r += 1
+
+bullets_4 = [
+    "This is the CRITICAL step for cash flow management",
+    'On or before the 5th of each month, review "Rent Collection" tab',
+    'Any tenant showing "Unpaid" or "Partial" status should be listed in "Payment Alerts"',
+    "Copy their Unit ID, Name, Phone, Rent, and Due Date to the Payment Alerts tab",
+    "Then MANUALLY send SMS, WhatsApp, or call each tenant",
+    'Mark "Contacted?" as "Yes" after reaching out',
+    "Set a Follow-up Date for a second check",
+    "IMPORTANT: This system does NOT send SMS automatically. It is a tracking tool that tells you WHO to contact and WHEN. You must manually reach out to tenants using their phone numbers listed here.",
+]
+for b in bullets_4:
+    ws_guide.cell(row=r, column=2, value="").fill = fill_step
+    ws_guide.cell(row=r, column=3, value=f"   •  {b}").font = font_bullet
+    ws_guide.cell(row=r, column=3).fill = fill_step
+    for c in range(4, 11):
+        ws_guide.cell(row=r, column=c).fill = fill_step
+    ws_guide.row_dimensions[r].height = 20
+    r += 1
+
+r += 1  # spacer
+
+# ── SECTION: Step 5 ──
+ws_guide.cell(row=r, column=2, value="STEP").font = font_section
+ws_guide.cell(row=r, column=2).fill = fill_section
+ws_guide.cell(row=r, column=2).alignment = Alignment(horizontal="center", vertical="center")
+ws_guide.cell(row=r, column=3, value="Log Maintenance Requests").font = font_section
+ws_guide.cell(row=r, column=3).fill = fill_section
+for c in range(4, 11):
+    ws_guide.cell(row=r, column=c).fill = fill_section
+ws_guide.row_dimensions[r].height = 28
+r += 1
+
+bullets_5 = [
+    'Go to "Maintenance" tab whenever a repair is needed',
+    "Log the request with Unit ID, Category, Description, Priority",
+    "Track Estimated vs Actual Cost",
+    "Status options: Open, In Progress, Completed, Cancelled",
+]
+for b in bullets_5:
+    ws_guide.cell(row=r, column=2, value="").fill = fill_step
+    ws_guide.cell(row=r, column=3, value=f"   •  {b}").font = font_bullet
+    ws_guide.cell(row=r, column=3).fill = fill_step
+    for c in range(4, 11):
+        ws_guide.cell(row=r, column=c).fill = fill_step
+    ws_guide.row_dimensions[r].height = 20
+    r += 1
+
+r += 1  # spacer
+
+# ── SECTION: Step 6 ──
+ws_guide.cell(row=r, column=2, value="STEP").font = font_section
+ws_guide.cell(row=r, column=2).fill = fill_section
+ws_guide.cell(row=r, column=2).alignment = Alignment(horizontal="center", vertical="center")
+ws_guide.cell(row=r, column=3, value="Record Operating Expenses").font = font_section
+ws_guide.cell(row=r, column=3).fill = fill_section
+for c in range(4, 11):
+    ws_guide.cell(row=r, column=c).fill = fill_section
+ws_guide.row_dimensions[r].height = 28
+r += 1
+
+bullets_6 = [
+    'Go to "Expenses" tab regularly',
+    "Log ALL expenses: Manpower, Municipality Fees, Maintenance, Leasing, Insurance, Utilities, etc.",
+    "Mark recurring expenses for easy identification",
+    "The Expense Summary at the bottom auto-calculates totals by category",
+]
+for b in bullets_6:
+    ws_guide.cell(row=r, column=2, value="").fill = fill_step
+    ws_guide.cell(row=r, column=3, value=f"   •  {b}").font = font_bullet
+    ws_guide.cell(row=r, column=3).fill = fill_step
+    for c in range(4, 11):
+        ws_guide.cell(row=r, column=c).fill = fill_step
+    ws_guide.row_dimensions[r].height = 20
+    r += 1
+
+r += 1  # spacer
+
+# ── SECTION: Step 7 ──
+ws_guide.cell(row=r, column=2, value="STEP").font = font_section
+ws_guide.cell(row=r, column=2).fill = fill_section
+ws_guide.cell(row=r, column=2).alignment = Alignment(horizontal="center", vertical="center")
+ws_guide.cell(row=r, column=3, value="Review Revenue & Profit").font = font_section
+ws_guide.cell(row=r, column=3).fill = fill_section
+for c in range(4, 11):
+    ws_guide.cell(row=r, column=c).fill = fill_section
+ws_guide.row_dimensions[r].height = 28
+r += 1
+
+bullets_7 = [
+    'Check "Revenue Analysis" for monthly and annual revenue breakdown',
+    'Check "Profit & Loss" for the complete financial picture',
+    "Dashboard shows KPIs: Total Units, Occupied, Vacant, Occupancy Rate, Revenue, Net Profit",
+    "Charts visualize occupancy trends, revenue trends, expense breakdown, unit distribution",
+]
+for b in bullets_7:
+    ws_guide.cell(row=r, column=2, value="").fill = fill_step
+    ws_guide.cell(row=r, column=3, value=f"   •  {b}").font = font_bullet
+    ws_guide.cell(row=r, column=3).fill = fill_step
+    for c in range(4, 11):
+        ws_guide.cell(row=r, column=c).fill = fill_step
+    ws_guide.row_dimensions[r].height = 20
+    r += 1
+
+r += 1  # spacer
+
+# ── SECTION: Step 8 ──
+ws_guide.cell(row=r, column=2, value="STEP").font = font_section
+ws_guide.cell(row=r, column=2).fill = fill_section
+ws_guide.cell(row=r, column=2).alignment = Alignment(horizontal="center", vertical="center")
+ws_guide.cell(row=r, column=3, value="Monitor Contract Renewals").font = font_section
+ws_guide.cell(row=r, column=3).fill = fill_section
+for c in range(4, 11):
+    ws_guide.cell(row=r, column=c).fill = fill_section
+ws_guide.row_dimensions[r].height = 28
+r += 1
+
+bullets_8 = [
+    'Go to "Contract Tracker" to see which contracts are expiring soon',
+    "Contact tenants 60 days before contract expiry for renewal discussions",
+    "Plan ahead for units that may become vacant",
+]
+for b in bullets_8:
+    ws_guide.cell(row=r, column=2, value="").fill = fill_step
+    ws_guide.cell(row=r, column=3, value=f"   •  {b}").font = font_bullet
+    ws_guide.cell(row=r, column=3).fill = fill_step
+    for c in range(4, 11):
+        ws_guide.cell(row=r, column=c).fill = fill_step
+    ws_guide.row_dimensions[r].height = 20
+    r += 1
+
+r += 2  # double spacer before tips
+
+# ── TIPS section ──
+ws_guide.cell(row=r, column=2, value="").fill = fill_tip_bg
+ws_guide.cell(row=r, column=3, value="Tips for Optimal Use:").font = font_tip_title
+ws_guide.cell(row=r, column=3).fill = fill_tip_bg
+for c in range(4, 11):
+    ws_guide.cell(row=r, column=c).fill = fill_tip_bg
+ws_guide.row_dimensions[r].height = 24
+r += 1
+
+tips = [
+    "Update Rent Collection DAILY as payments come in",
+    "Review Payment Alerts by the 5th — late payments damage cash flow",
+    "Log expenses immediately — don't wait until month-end",
+    "Check Dashboard weekly for a quick business health check",
+    "Back up this file regularly",
+    "Print any sheet using File > Print (all sheets are print-ready)",
+]
+for t in tips:
+    ws_guide.cell(row=r, column=2, value="").fill = fill_tip_bg
+    ws_guide.cell(row=r, column=3, value=f"   ✓  {t}").font = font_tip_body
+    ws_guide.cell(row=r, column=3).fill = fill_tip_bg
+    for c in range(4, 11):
+        ws_guide.cell(row=r, column=c).fill = fill_tip_bg
+    ws_guide.row_dimensions[r].height = 20
+    r += 1
+
+setup_print(ws_guide, "J", r, "2:3")
+
+
+# ================================================================
+# SHEET 2: DASHBOARD
+# ================================================================
+ws_dash = wb.create_sheet("Dashboard")
 ws_dash.sheet_properties.tabColor = TAB_COLOR
 
 setup_sheet(ws_dash, title="Al Reef Al Janoubi — Real Estate Dashboard", last_col=14)
 
 # ── KPI Cards Row ──
-# Row 4-6: 6 KPIs side by side starting at B4
-# Each KPI: value (row 5) on top, label (row 6) below
-# KPI columns: B-C, D-E, F-G, H-I, J-K, L-M
-
+# Net Profit is now at P&L row 32 (was 33 — removed Late Fee Income line)
 kpi_data = [
     ("Total Units", "=IFERROR(COUNTA('Property Registry'!B5:B154)-COUNTBLANK('Property Registry'!B5:B154),0)"),
     ("Occupied Units", '=IFERROR(COUNTIF(\'Property Registry\'!I5:I154,"Rented"),0)'),
     ("Vacant Units", '=IFERROR(COUNTIF(\'Property Registry\'!I5:I154,"Vacant"),0)'),
     ("Occupancy Rate", '=IFERROR(COUNTIF(\'Property Registry\'!I5:I154,"Rented")/COUNTA(\'Property Registry\'!B5:B154),0)'),
     ("Monthly Revenue", "=IFERROR(SUM('Property Registry'!G5:G154),0)"),
-    ("Net Profit", "=IFERROR('Profit & Loss'!C33,0)"),
+    ("Net Profit", "=IFERROR('Profit & Loss'!C32,0)"),
 ]
 
 # Set row heights for KPI area
-ws_dash.row_dimensions[4].height = 8  # spacer
+ws_dash.row_dimensions[4].height = 8   # spacer
 ws_dash.row_dimensions[5].height = 38  # KPI value
 ws_dash.row_dimensions[6].height = 20  # KPI label
 
@@ -177,8 +472,7 @@ for i, (label, formula) in enumerate(kpi_data):
     cell_lbl.font = font_kpi_label()
     cell_lbl.alignment = Alignment(horizontal="center", vertical="top")
 
-# ── Chart Data Areas (hidden rows for chart references) ──
-# We'll place chart source data starting at row 8 for convenience
+# ── Chart Data Areas ──
 # Chart a: Occupancy Rate by Building (rows 8-13)
 ws_dash.cell(row=8, column=2, value="Building").font = font_caption()
 ws_dash.cell(row=8, column=3, value="Occupancy Rate").font = font_caption()
@@ -277,7 +571,7 @@ setup_print(ws_dash, "N", 104, "2:3")
 
 
 # ================================================================
-# SHEET 2: PROPERTY REGISTRY
+# SHEET 3: PROPERTY REGISTRY
 # ================================================================
 ws_prop = wb.create_sheet("Property Registry")
 ws_prop.sheet_properties.tabColor = TAB_COLOR
@@ -309,9 +603,7 @@ for i, w in enumerate(prop_widths):
 # Data rows with formulas and styling
 for row_idx in range(prop_data_rows):
     r = prop_data_start + row_idx
-    # Municipality Fee formula (col H = col 8 → column H in sheet, but col index 8 from B=2 → G is col 7, H is col 8)
-    # Columns: B=UnitID, C=Building, D=Floor, E=UnitType, F=Size, G=MonthlyRent, H=MunicipalityFee
-    # Municipality Fee = IFERROR(G5*0.05,0)
+    # Municipality Fee = IFERROR(G{r}*0.05,0)
     ws_prop.cell(row=r, column=8, value=f"=IFERROR(G{r}*0.05,0)")
     ws_prop.cell(row=r, column=8).number_format = CURRENCY_FMT
     # Monthly Rent format
@@ -363,13 +655,11 @@ style_total_row(ws_prop, total_row, prop_col_start, prop_col_end)
 
 # Freeze panes
 ws_prop.freeze_panes = "C5"
-
-# Print
 setup_print(ws_prop, "M", total_row, "2:4")
 
 
 # ================================================================
-# SHEET 3: TENANTS
+# SHEET 4: TENANTS
 # ================================================================
 ws_tenant = wb.create_sheet("Tenants")
 ws_tenant.sheet_properties.tabColor = TAB_COLOR
@@ -419,11 +709,9 @@ dv_paymethod.promptTitle = "Payment Method"
 ws_tenant.add_data_validation(dv_paymethod)
 dv_paymethod.add(f"L{tenant_data_start}:L{tenant_data_start + tenant_data_rows - 1}")
 
-# Conditional formatting: Lease End within 30 days → amber, past today → red
+# Conditional formatting: Lease End within 30 days -> amber, past today -> red
 lease_end_range = f"I{tenant_data_start}:I{tenant_data_start + tenant_data_rows - 1}"
-# Lease End past today
 cf_formula(ws_tenant, lease_end_range, f'AND(I{tenant_data_start}<TODAY(),I{tenant_data_start}<>"")', CF_NEGATIVE_FILL, CF_NEGATIVE_FONT)
-# Lease End within 30 days
 cf_formula(ws_tenant, lease_end_range, f'AND(I{tenant_data_start}-TODAY()<=30,I{tenant_data_start}-TODAY()>0,I{tenant_data_start}<>"")', CF_WARNING_FILL, CF_WARNING_FONT)
 
 # Totals row
@@ -440,20 +728,24 @@ setup_print(ws_tenant, "P", t_total_row, "2:4")
 
 
 # ================================================================
-# SHEET 4: RENT COLLECTION
+# SHEET 5: RENT COLLECTION (NO Late Fee, NO Total Due)
 # ================================================================
 ws_rent = wb.create_sheet("Rent Collection")
 ws_rent.sheet_properties.tabColor = TAB_COLOR
 
-setup_sheet(ws_rent, title="Rent Collection — [Month/Year]", last_col=14)
+setup_sheet(ws_rent, title="Rent Collection — [Month/Year]", last_col=13)
 
+# NEW headers: 12 cols (no Late Fee, no Total Due)
+# B: Unit ID, C: Tenant Name, D: Monthly Rent, E: Due Date, F: Payment Date,
+# G: Amount Paid, H: Outstanding, I: Payment Status, J: Days Late,
+# K: Payment Method, L: Receipt #, M: Notes
 rent_headers = [
     "Unit ID", "Tenant Name", "Monthly Rent", "Due Date", "Payment Date",
     "Amount Paid", "Outstanding", "Payment Status", "Days Late",
-    "Late Fee", "Total Due", "Payment Method", "Receipt #", "Notes"
+    "Payment Method", "Receipt #", "Notes"
 ]
 rent_col_start = 2
-rent_col_end = 15
+rent_col_end = 13    # was 15, now 13
 rent_header_row = 4
 rent_data_start = 5
 rent_data_rows = 150
@@ -462,26 +754,21 @@ for i, h in enumerate(rent_headers):
     ws_rent.cell(row=rent_header_row, column=rent_col_start + i, value=h)
 style_header_row(ws_rent, rent_header_row, rent_col_start, rent_col_end)
 
-rent_widths = [12, 22, 16, 14, 14, 16, 16, 16, 12, 14, 16, 16, 12, 24]
+rent_widths = [12, 22, 16, 14, 14, 16, 16, 16, 12, 16, 12, 24]
 for i, w in enumerate(rent_widths):
     ws_rent.column_dimensions[get_column_letter(rent_col_start + i)].width = w
 
 for row_idx in range(rent_data_rows):
     r = rent_data_start + row_idx
-    # Outstanding = IFERROR(C5-F5,0) — Rent minus Amount Paid
+    # H: Outstanding = IFERROR(D{r}-G{r},0)
     ws_rent.cell(row=r, column=8, value=f"=IFERROR(D{r}-G{r},0)")
     ws_rent.cell(row=r, column=8).number_format = CURRENCY_FMT
-    # Payment Status = IF(G5>=D5,"Paid",IF(G5>0,"Partial","Unpaid"))
+    # I: Payment Status = IF(G{r}>=D{r},"Paid",IF(G{r}>0,"Partial","Unpaid"))
     ws_rent.cell(row=r, column=9, value=f'=IF(G{r}>=D{r},"Paid",IF(G{r}>0,"Partial","Unpaid"))')
-    # Days Late = IFERROR(IF(I5="Unpaid",MAX(0,TODAY()-E5),IF(I5="Partial",MAX(0,TODAY()-E5),0)),0)
+    # J: Days Late = IFERROR(IF(I{r}="Unpaid",MAX(0,TODAY()-E{r}),IF(I{r}="Partial",MAX(0,TODAY()-E{r}),0)),0)
     ws_rent.cell(row=r, column=10, value=f'=IFERROR(IF(I{r}="Unpaid",MAX(0,TODAY()-E{r}),IF(I{r}="Partial",MAX(0,TODAY()-E{r}),0)),0)')
     ws_rent.cell(row=r, column=10).number_format = "#,##0"
-    # Late Fee = IFERROR(IF(J5>0,MIN(D5*0.05,500),0),0) — 5% late fee, max 500 AED
-    ws_rent.cell(row=r, column=11, value=f"=IFERROR(IF(J{r}>0,MIN(D{r}*0.05,500),0),0)")
-    ws_rent.cell(row=r, column=11).number_format = CURRENCY_FMT
-    # Total Due = IFERROR(D5+K5,0) — Rent + Late Fee
-    ws_rent.cell(row=r, column=12, value=f"=IFERROR(D{r}+K{r},0)")
-    ws_rent.cell(row=r, column=12).number_format = CURRENCY_FMT
+    # NO Late Fee column, NO Total Due column
     # Currency formats
     ws_rent.cell(row=r, column=4).number_format = CURRENCY_FMT   # Monthly Rent
     ws_rent.cell(row=r, column=7).number_format = CURRENCY_FMT   # Amount Paid
@@ -491,14 +778,14 @@ for row_idx in range(rent_data_rows):
 
     style_data_row(ws_rent, r, rent_col_start, rent_col_end, row_idx)
 
-# Data Validation: Payment Method
+# Data Validation: Payment Method (column K)
 dv_paymethod2 = DataValidation(type="list", formula1='"Cash,Bank Transfer,Cheque,Online"', allow_blank=True)
 dv_paymethod2.prompt = "Select Payment Method"
 dv_paymethod2.promptTitle = "Payment Method"
 ws_rent.add_data_validation(dv_paymethod2)
-dv_paymethod2.add(f"L{rent_data_start}:L{rent_data_start + rent_data_rows - 1}")
+dv_paymethod2.add(f"K{rent_data_start}:K{rent_data_start + rent_data_rows - 1}")
 
-# Conditional formatting: Payment Status
+# Conditional formatting: Payment Status (column I)
 status_range = f"I{rent_data_start}:I{rent_data_start + rent_data_rows - 1}"
 cf_cell_is(ws_rent, status_range, "equal", '"Paid"', CF_POSITIVE_FILL, CF_POSITIVE_FONT)
 cf_cell_is(ws_rent, status_range, "equal", '"Partial"', CF_WARNING_FILL, CF_WARNING_FONT)
@@ -536,29 +823,33 @@ for i, (label, formula) in enumerate(summary_items):
         ws_rent.cell(row=r, column=c).fill = PatternFill("solid", fgColor=PRIMARY_LIGHT)
 
 ws_rent.freeze_panes = "C5"
-setup_print(ws_rent, "O", summary_start + len(summary_items) + 1, "2:4")
+setup_print(ws_rent, "M", summary_start + len(summary_items) + 1, "2:4")
 
 
 # ================================================================
-# SHEET 5: PAYMENT ALERTS
+# SHEET 6: PAYMENT ALERTS (NO Late Fee, NO Total Due, Contacted? not SMS Sent?)
 # ================================================================
 ws_alerts = wb.create_sheet("Payment Alerts")
 ws_alerts.sheet_properties.tabColor = TAB_COLOR
 
-setup_sheet(ws_alerts, title="Payment Alerts — Tenants Who Haven't Paid by the 5th", last_col=12)
+setup_sheet(ws_alerts, title="Payment Alerts — Tenants Who Haven't Paid by the 5th", last_col=10)
 
-# Instruction row
-ws_alerts.cell(row=3, column=2, value="⚠ Fill this sheet by the 5th of each month. Contact all tenants listed here immediately.")
+# Instruction row — detailed explanation
+ws_alerts.cell(row=3, column=2,
+    value="IMPORTANT: This sheet does NOT send SMS automatically. It is a tracking tool. By the 5th of each month, review the Rent Collection sheet for unpaid tenants, copy their details here, then manually send SMS/WhatsApp/call them. Mark 'Contacted' as Yes once done.")
 ws_alerts.cell(row=3, column=2).font = Font(name="Calibri", size=10, bold=True, color=ACCENT_NEGATIVE)
-ws_alerts.merge_cells(start_row=3, start_column=2, end_row=3, end_column=12)
+ws_alerts.merge_cells(start_row=3, start_column=2, end_row=3, end_column=10)
+ws_alerts.row_dimensions[3].height = 40
 
+# NEW headers: 9 cols (no Late Fee, no Total Due, Contacted? instead of SMS Sent?)
+# B: Unit ID, C: Tenant Name, D: Phone, E: Monthly Rent, F: Due Date,
+# G: Days Late, H: Contacted?, I: Follow-up Date, J: Notes
 alert_headers = [
     "Unit ID", "Tenant Name", "Phone", "Monthly Rent", "Due Date",
-    "Days Late", "Late Fee", "Total Due", "SMS Sent?",
-    "Follow-up Date", "Notes"
+    "Days Late", "Contacted?", "Follow-up Date", "Notes"
 ]
 alert_col_start = 2
-alert_col_end = 12
+alert_col_end = 10     # was 12, now 10
 alert_header_row = 4
 alert_data_start = 5
 alert_data_rows = 50
@@ -572,43 +863,39 @@ for i, h in enumerate(alert_headers):
     cell.border = border_header()
 ws_alerts.row_dimensions[alert_header_row].height = ROW_HEIGHTS["header"]
 
-alert_widths = [12, 22, 16, 16, 14, 12, 14, 16, 12, 14, 24]
+alert_widths = [12, 22, 16, 16, 14, 12, 14, 14, 24]
 for i, w in enumerate(alert_widths):
     ws_alerts.column_dimensions[get_column_letter(alert_col_start + i)].width = w
 
 for row_idx in range(alert_data_rows):
     r = alert_data_start + row_idx
-    # Late Fee formula: IFERROR(IF(G5>0,MIN(E5*0.05,500),0),0) — same as Rent Collection
-    # Days Late is manual, Late Fee based on it
-    ws_alerts.cell(row=r, column=8, value=f"=IFERROR(IF(G{r}>0,MIN(E{r}*0.05,500),0),0)")
-    ws_rent.cell(row=r, column=8).number_format = CURRENCY_FMT
-    # Total Due = Rent + Late Fee
-    ws_alerts.cell(row=r, column=9, value=f"=IFERROR(E{r}+H{r},0)")
-    ws_alerts.cell(row=r, column=9).number_format = CURRENCY_FMT
+    # NO Late Fee formula, NO Total Due formula
     # Currency formats
     ws_alerts.cell(row=r, column=5).number_format = CURRENCY_FMT   # Monthly Rent
     ws_alerts.cell(row=r, column=6).number_format = DATE_FMT       # Due Date
-    ws_alerts.cell(row=r, column=11).number_format = DATE_FMT      # Follow-up Date
+    ws_alerts.cell(row=r, column=9).number_format = DATE_FMT       # Follow-up Date
     ws_alerts.cell(row=r, column=7).number_format = "#,##0"        # Days Late
 
     style_data_row(ws_alerts, r, alert_col_start, alert_col_end, row_idx)
 
-# Data Validation: SMS Sent
-dv_sms = DataValidation(type="list", formula1='"Yes,No"', allow_blank=True)
-ws_alerts.add_data_validation(dv_sms)
-dv_sms.add(f"J{alert_data_start}:J{alert_data_start + alert_data_rows - 1}")
+# Data Validation: Contacted? (column H)
+dv_contacted = DataValidation(type="list", formula1='"Yes,No"', allow_blank=True)
+dv_contacted.prompt = "Mark as Yes after contacting tenant"
+dv_contacted.promptTitle = "Contacted?"
+ws_alerts.add_data_validation(dv_contacted)
+dv_contacted.add(f"H{alert_data_start}:H{alert_data_start + alert_data_rows - 1}")
 
-# Conditional formatting: Days Late > 30 → deep red, > 15 → amber
+# Conditional formatting: Days Late > 30 -> deep red, > 15 -> amber (column G)
 days_late_range = f"G{alert_data_start}:G{alert_data_start + alert_data_rows - 1}"
 cf_cell_is(ws_alerts, days_late_range, "greaterThan", "30", CF_NEGATIVE_FILL, CF_NEGATIVE_FONT)
 cf_cell_is(ws_alerts, days_late_range, "greaterThan", "15", CF_WARNING_FILL, CF_WARNING_FONT)
 
 ws_alerts.freeze_panes = "C5"
-setup_print(ws_alerts, "L", alert_data_start + alert_data_rows, "2:4")
+setup_print(ws_alerts, "J", alert_data_start + alert_data_rows, "2:4")
 
 
 # ================================================================
-# SHEET 6: MAINTENANCE
+# SHEET 7: MAINTENANCE
 # ================================================================
 ws_maint = wb.create_sheet("Maintenance")
 ws_maint.sheet_properties.tabColor = TAB_COLOR
@@ -690,7 +977,7 @@ setup_print(ws_maint, "M", m_total_row, "2:4")
 
 
 # ================================================================
-# SHEET 7: EXPENSES
+# SHEET 8: EXPENSES
 # ================================================================
 ws_exp = wb.create_sheet("Expenses")
 ws_exp.sheet_properties.tabColor = TAB_COLOR
@@ -790,7 +1077,7 @@ setup_print(ws_exp, "K", gt_row, "2:4")
 
 
 # ================================================================
-# SHEET 8: REVENUE ANALYSIS
+# SHEET 9: REVENUE ANALYSIS (NO Late Fee Income line)
 # ================================================================
 ws_rev = wb.create_sheet("Revenue Analysis")
 ws_rev.sheet_properties.tabColor = TAB_COLOR
@@ -816,16 +1103,15 @@ ws_rev.column_dimensions["B"].width = 24
 for c in range(3, 16):
     ws_rev.column_dimensions[get_column_letter(c)].width = 14
 
-# Revenue line items with formulas
+# Revenue line items — NO Late Fee Income
 rev_items = [
     ("Rental Income", "rental"),
-    ("Late Fee Income", "late_fee"),
     ("Municipality Fees Collected", "municipality"),
     ("Other Income", "other"),
-    ("GROSS REVENUE", "gross"),          # separator / bold
+    ("GROSS REVENUE", "gross"),
     ("Less: Vacancy Loss", "vacancy"),
     ("Less: Bad Debt/Unpaid", "bad_debt"),
-    ("NET REVENUE", "net"),              # separator / bold
+    ("NET REVENUE", "net"),
 ]
 
 current_row = rev_data_start
@@ -837,7 +1123,7 @@ for item_name, key in rev_items:
     ws_rev.cell(row=r, column=2, value=item_name)
 
     if key == "gross":
-        # Gross Revenue = SUM of above 4 items
+        # Gross Revenue = SUM of above 3 items (rental, municipality, other)
         for c in range(3, 16):
             col_letter = get_column_letter(c)
             ws_rev.cell(row=r, column=c,
@@ -855,15 +1141,11 @@ for item_name, key in rev_items:
         for c in range(2, 16):
             ws_rev.cell(row=r, column=c).fill = PatternFill("solid", fgColor=PRIMARY_LIGHT)
     else:
-        # Regular items - formulas reference other sheets where possible
+        # Regular items
         for c in range(3, 15):  # Jan-Dec (columns C-N)
-            # Leave structured but with SUMPRODUCT references
             if key == "rental":
                 ws_rev.cell(row=r, column=c,
                     value=f"=IFERROR(SUMPRODUCT(('Property Registry'!I5:I154=\"Rented\")*('Property Registry'!G5:G154)),0)")
-            elif key == "late_fee":
-                ws_rev.cell(row=r, column=c,
-                    value=f"=IFERROR(SUM('Rent Collection'!K5:K154),0)")
             elif key == "municipality":
                 ws_rev.cell(row=r, column=c,
                     value=f"=IFERROR(SUM('Property Registry'!H5:H154),0)")
@@ -889,7 +1171,7 @@ for item_name, key in rev_items:
 
     current_row += 1
 
-# Conditional formatting: negative → red, positive → green
+# Conditional formatting: negative -> red, positive -> green
 for r in range(rev_data_start, current_row):
     for c in range(3, 16):
         cell_ref = f"{get_column_letter(c)}{r}"
@@ -897,7 +1179,6 @@ for r in range(rev_data_start, current_row):
 
 # Revenue vs Vacancy Loss bar chart
 chart_rev = create_bar_chart(width=22, height=12)
-# Create small data area for chart (rows below main data)
 chart_data_start = current_row + 2
 ws_rev.cell(row=chart_data_start, column=2, value="Category").font = font_caption()
 ws_rev.cell(row=chart_data_start, column=3, value="Amount").font = font_caption()
@@ -926,7 +1207,7 @@ setup_print(ws_rev, "O", current_row + 25, "2:4")
 
 
 # ================================================================
-# SHEET 9: PROFIT & LOSS
+# SHEET 10: PROFIT & LOSS (NO Late Fee Income line)
 # ================================================================
 ws_pl = wb.create_sheet("Profit & Loss")
 ws_pl.sheet_properties.tabColor = TAB_COLOR
@@ -979,17 +1260,15 @@ def pl_margin_line(ws, row, text, formula):
 pl_section_header(ws_pl, current_row, "REVENUE")
 current_row += 1
 
-# Revenue items referencing Revenue Analysis sheet
+# Revenue items — NO Late Fee Income
+# rev_data_start = 5, items: row 5=Rental Income, row 6=Municipality Fees, row 7=Other Income
+# row 8=GROSS REVENUE, row 9=Vacancy Loss, row 10=Bad Debt, row 11=NET REVENUE
 rev_rental_row = current_row
 pl_line_item(ws_pl, current_row, "Rental Income", f"=IFERROR('Revenue Analysis'!O{rev_data_start},0)", indent=True)
 current_row += 1
 
-rev_late_row = current_row
-pl_line_item(ws_pl, current_row, "Late Fee Income", f"=IFERROR('Revenue Analysis'!O{rev_data_start+1},0)", indent=True)
-current_row += 1
-
 rev_other_row = current_row
-pl_line_item(ws_pl, current_row, "Other Income", f"=IFERROR('Revenue Analysis'!O{rev_data_start+3},0)", indent=True)
+pl_line_item(ws_pl, current_row, "Other Income", f"=IFERROR('Revenue Analysis'!O{rev_data_start+2},0)", indent=True)
 current_row += 1
 
 total_rev_row = current_row
@@ -1001,7 +1280,6 @@ current_row += 1
 pl_section_header(ws_pl, current_row, "COST OF OPERATIONS")
 current_row += 1
 
-# Use SUMPRODUCT referencing Expenses sheet categories
 cost_items = [
     ("Manpower/Staff Costs", "Manpower/Staff"),
     ("Maintenance Costs", "Maintenance"),
@@ -1066,6 +1344,30 @@ net_margin_row = current_row
 pl_margin_line(ws_pl, current_row, "Net Margin %", f"=IFERROR(C{net_profit_row}/C{total_rev_row},0)")
 current_row += 1
 
+# Verify net_profit_row matches Dashboard reference
+# With our structure: Rev=2 items, Total Rev=1, blank, Cost header, 6 items, Total Cost, blank,
+# Gross Profit, Gross Margin, blank, OpEx header, 7 items, Total OpEx, blank, Net Profit, Net Margin
+# Row 5: REVENUE header
+# Row 6: Rental Income
+# Row 7: Other Income
+# Row 8: Total Revenue
+# Row 9: blank
+# Row 10: COST OF OPERATIONS header
+# Row 11-16: 6 cost items
+# Row 17: Total Cost
+# Row 18: blank
+# Row 19: Gross Profit
+# Row 20: Gross Margin
+# Row 21: blank
+# Row 22: OPERATING EXPENSES header
+# Row 23-29: 7 opex items
+# Row 30: Total OpEx
+# Row 31: blank
+# Row 32: Net Profit  <-- This should be C32 which matches Dashboard
+# Row 33: Net Margin
+assert net_profit_row == 32, f"Net Profit row is {net_profit_row}, expected 32. Update Dashboard reference!"
+print(f"  Net Profit row confirmed at: {net_profit_row}")
+
 # ── Waterfall Summary ──
 current_row += 2
 pl_section_header(ws_pl, current_row, "WATERFALL SUMMARY")
@@ -1097,7 +1399,7 @@ ws_pl.column_dimensions["B"].width = 28
 ws_pl.column_dimensions["C"].width = 20
 ws_pl.column_dimensions["D"].width = 5
 
-# Conditional formatting: positive → green, negative → red on column C
+# Conditional formatting: positive -> green, negative -> red on column C
 pl_data_range = f"C5:C{current_row - 1}"
 cf_formula(ws_pl, pl_data_range, "C5<0", CF_NEGATIVE_FILL, CF_NEGATIVE_FONT)
 cf_formula(ws_pl, pl_data_range, "AND(C5>0,ROW()>5)", CF_POSITIVE_FILL, CF_POSITIVE_FONT)
@@ -1106,21 +1408,22 @@ setup_print(ws_pl, "D", current_row, "2:4")
 
 
 # ================================================================
-# SHEET 10: CONTRACTS
+# SHEET 11: CONTRACT TRACKER (Updated per spec)
 # ================================================================
-ws_con = wb.create_sheet("Contracts")
+ws_con = wb.create_sheet("Contract Tracker")
 ws_con.sheet_properties.tabColor = TAB_COLOR
 
-setup_sheet(ws_con, title="Lease Contract Tracker", last_col=13)
+setup_sheet(ws_con, title="Lease Contract Tracker", last_col=12)
 
+# Updated headers per spec: Unit ID, Tenant, Phone, Building, Unit Type,
+# Lease Start, Lease End, Days Until Expiry, Renewal Status, New Rent, Notes
 con_headers = [
-    "Unit ID", "Tenant Name", "Contract Start", "Contract End",
-    "Duration (months)", "Monthly Rent", "Total Contract Value",
-    "Days Remaining", "Status", "Renewal Status",
-    "New Rent (if renewed)", "Notes"
+    "Unit ID", "Tenant", "Phone", "Building", "Unit Type",
+    "Lease Start", "Lease End", "Days Until Expiry",
+    "Renewal Status", "New Rent (AED)", "Notes"
 ]
 con_col_start = 2
-con_col_end = 13
+con_col_end = 12
 con_header_row = 4
 con_data_start = 5
 con_data_rows = 150
@@ -1129,45 +1432,42 @@ for i, h in enumerate(con_headers):
     ws_con.cell(row=con_header_row, column=con_col_start + i, value=h)
 style_header_row(ws_con, con_header_row, con_col_start, con_col_end)
 
-con_widths = [12, 22, 14, 14, 18, 16, 20, 16, 16, 18, 20, 24]
+con_widths = [12, 22, 16, 14, 14, 14, 14, 18, 18, 16, 24]
 for i, w in enumerate(con_widths):
     ws_con.column_dimensions[get_column_letter(con_col_start + i)].width = w
 
 for row_idx in range(con_data_rows):
     r = con_data_start + row_idx
-    # Duration: =IFERROR((E5-D5)/30,0)
-    ws_con.cell(row=r, column=6, value=f"=IFERROR((E{r}-D{r})/30,0)")
-    ws_con.cell(row=r, column=6).number_format = "#,##0"
-    # Total Contract Value: =IFERROR(G5*F5,0)
-    ws_con.cell(row=r, column=8, value=f"=IFERROR(G{r}*F{r},0)")
-    ws_con.cell(row=r, column=8).number_format = CURRENCY_FMT
-    # Days Remaining: =IFERROR(MAX(0,E5-TODAY()),0)
-    ws_con.cell(row=r, column=9, value=f"=IFERROR(MAX(0,E{r}-TODAY()),0)")
+    # Column H (col 9): Days Until Expiry = IFERROR(MAX(0,G{r}-TODAY()),0)
+    # G is col 8 = Lease End
+    ws_con.cell(row=r, column=9, value=f"=IFERROR(MAX(0,H{r}-TODAY()),0)")
     ws_con.cell(row=r, column=9).number_format = "#,##0"
-    # Status: =IF(I5<=0,"Expired",IF(I5<=30,"Expiring Soon",IF(I5<=90,"Renewal Due","Active")))
-    ws_con.cell(row=r, column=10, value=f'=IF(I{r}<=0,"Expired",IF(I{r}<=30,"Expiring Soon",IF(I{r}<=90,"Renewal Due","Active")))')
-    # Currency formats
-    ws_con.cell(row=r, column=7).number_format = CURRENCY_FMT  # Monthly Rent
-    ws_con.cell(row=r, column=12).number_format = CURRENCY_FMT  # New Rent
+    # Currency format: New Rent (col 11)
+    ws_con.cell(row=r, column=11).number_format = CURRENCY_FMT
     # Date formats
-    ws_con.cell(row=r, column=4).number_format = DATE_FMT  # Contract Start
-    ws_con.cell(row=r, column=5).number_format = DATE_FMT  # Contract End
+    ws_con.cell(row=r, column=7).number_format = DATE_FMT  # Lease Start
+    ws_con.cell(row=r, column=8).number_format = DATE_FMT  # Lease End
 
     style_data_row(ws_con, r, con_col_start, con_col_end, row_idx)
 
-# Data Validation: Renewal Status
-dv_renewal = DataValidation(type="list", formula1='"Renewed,In Negotiation,Not Renewed,Tenant Leaving"', allow_blank=True)
+# Data Validation: Renewal Status (column J = col 10)
+dv_renewal = DataValidation(type="list", formula1='"Active,Expiring Soon,Expired,Renewed,Not Renewed"', allow_blank=True)
 dv_renewal.prompt = "Select Renewal Status"
 ws_con.add_data_validation(dv_renewal)
 dv_renewal.add(f"J{con_data_start}:J{con_data_start + con_data_rows - 1}")
 
-# Conditional formatting: Status
-con_status_range = f"J{con_data_start}:J{con_data_start + con_data_rows - 1}"
-cf_cell_is(ws_con, con_status_range, "equal", '"Expired"', CF_NEGATIVE_FILL, CF_NEGATIVE_FONT)
-cf_cell_is(ws_con, con_status_range, "equal", '"Expiring Soon"', CF_WARNING_FILL, CF_WARNING_FONT)
-cf_cell_is(ws_con, con_status_range, "equal", '"Renewal Due"',
-           PatternFill("solid", fgColor="FEF9E7"), Font(color="B89B4A"))  # Yellow-ish
-cf_cell_is(ws_con, con_status_range, "equal", '"Active"', CF_POSITIVE_FILL, CF_POSITIVE_FONT)
+# Conditional formatting: Days Until Expiry (column I = col 9)
+days_until_range = f"I{con_data_start}:I{con_data_start + con_data_rows - 1}"
+cf_cell_is(ws_con, days_until_range, "lessThanOrEqual", "0", CF_NEGATIVE_FILL, CF_NEGATIVE_FONT)
+cf_cell_is(ws_con, days_until_range, "lessThanOrEqual", "30", CF_WARNING_FILL, CF_WARNING_FONT)
+
+# Also conditional formatting on Renewal Status
+renewal_range = f"J{con_data_start}:J{con_data_start + con_data_rows - 1}"
+cf_cell_is(ws_con, renewal_range, "equal", '"Expired"', CF_NEGATIVE_FILL, CF_NEGATIVE_FONT)
+cf_cell_is(ws_con, renewal_range, "equal", '"Expiring Soon"', CF_WARNING_FILL, CF_WARNING_FONT)
+cf_cell_is(ws_con, renewal_range, "equal", '"Active"', CF_POSITIVE_FILL, CF_POSITIVE_FONT)
+cf_cell_is(ws_con, renewal_range, "equal", '"Renewed"',
+           PatternFill("solid", fgColor="E8F0EB"), Font(color=PRIMARY))
 
 # Summary at bottom
 con_summary_start = con_data_start + con_data_rows + 2
@@ -1177,8 +1477,9 @@ ws_con.merge_cells(start_row=con_summary_start, start_column=2, end_row=con_summ
 con_summary_items = [
     ("# Active", f'=IFERROR(COUNTIF(J{con_data_start}:J{con_data_start+con_data_rows-1},"Active"),0)'),
     ("# Expiring Soon", f'=IFERROR(COUNTIF(J{con_data_start}:J{con_data_start+con_data_rows-1},"Expiring Soon"),0)'),
-    ("# Renewal Due", f'=IFERROR(COUNTIF(J{con_data_start}:J{con_data_start+con_data_rows-1},"Renewal Due"),0)'),
     ("# Expired", f'=IFERROR(COUNTIF(J{con_data_start}:J{con_data_start+con_data_rows-1},"Expired"),0)'),
+    ("# Renewed", f'=IFERROR(COUNTIF(J{con_data_start}:J{con_data_start+con_data_rows-1},"Renewed"),0)'),
+    ("# Not Renewed", f'=IFERROR(COUNTIF(J{con_data_start}:J{con_data_start+con_data_rows-1},"Not Renewed"),0)'),
     ("# Total", f'=IFERROR(COUNTA(B{con_data_start}:B{con_data_start+con_data_rows-1})-COUNTBLANK(B{con_data_start}:B{con_data_start+con_data_rows-1}),0)'),
 ]
 
@@ -1193,21 +1494,22 @@ for i, (label, formula) in enumerate(con_summary_items):
         ws_con.cell(row=r, column=c).fill = PatternFill("solid", fgColor=PRIMARY_LIGHT)
 
 ws_con.freeze_panes = "C5"
-setup_print(ws_con, "M", con_summary_start + len(con_summary_items) + 1, "2:4")
+setup_print(ws_con, "L", con_summary_start + len(con_summary_items) + 1, "2:4")
 
 
 # ================================================================
-# FINAL: Set sheet order (Dashboard first)
+# FINAL: Verify sheet order
 # ================================================================
-# Sheets are already in order: Dashboard, Property Registry, Tenants,
+# Sheets in order: Guidance, Dashboard, Property Registry, Tenants,
 # Rent Collection, Payment Alerts, Maintenance, Expenses,
-# Revenue Analysis, Profit & Loss, Contracts
+# Revenue Analysis, Profit & Loss, Contract Tracker
 
 # ================================================================
 # SAVE
 # ================================================================
 wb.save(OUTPUT_PATH)
-print(f"✅ Al Reef Al Janoubi RE System saved to: {OUTPUT_PATH}")
-print(f"   Sheets: {len(wb.sheetnames)}")
+print(f"Al Reef Al Janoubi RE System saved to: {OUTPUT_PATH}")
+print(f"  Sheets: {len(wb.sheetnames)}")
 for s in wb.sheetnames:
-    print(f"   - {s}")
+    print(f"  - {s}")
+print(f"  Net Profit P&L reference: C{net_profit_row}")
