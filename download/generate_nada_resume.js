@@ -1,374 +1,344 @@
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   AlignmentType, WidthType, BorderStyle, ShadingType, TabStopType,
-  VerticalAlign,
 } = require("docx");
 const fs = require("fs");
 
-// ── Palette: Refined Hospitality Corporate ──
-const S = {
-  side: "1A3040",      // deep navy sidebar
-  sideText: "FFFFFF",  // white sidebar text
-  sideLabel: "A0B8C8", // light blue-grey sidebar secondary
-  accent: "2E86AB",    // teal accent
-  title: "1A2636",     // dark heading
-  body: "2C3E50",      // body text
-  sec: "6B8A98",       // secondary info (dates etc.)
-  line: "2E86AB",      // left-border heading line
-  dotFill: "2E86AB",   // skill dot filled
-  dotEmpty: "B8D4DE",  // skill dot empty
-  lightBg: "F0F5F8",   // light background
+// ── Custom Female Professional Color Palette ──
+// Sophisticated dusty rose/plum palette — feminine yet corporate
+const C = {
+  side: "5B4A5A",     // sidebar background (dusty plum)
+  text: "FFFFFF",     // sidebar text (white)
+  label: "C8B0C4",   // sidebar secondary text (soft lavender)
+  accent: "9B6B8A",   // accent color (muted mauve)
+  dot: "B8828A",      // skill dot fill color (dusty rose)
+  dotDim: "D4C0C4",   // skill dot empty color
+  title: "3A2A3A",    // body heading (dark plum)
+  body: "3D3040",     // body content
+  sec: "7A6A78",      // secondary info
 };
 
+// ── No-border constants ──
 const NB = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+const noBorders = { top: NB, bottom: NB, left: NB, right: NB };
+const allNoBorders = { top: NB, bottom: NB, left: NB, right: NB,
+                       insideHorizontal: NB, insideVertical: NB };
 
-// ── Helper: Section heading with left border ──
+// ── Helper: Sidebar paragraph ──
+function sidePara(runs, opts = {}) {
+  return new Paragraph({
+    spacing: { before: opts.before || 0, after: opts.after || 40, line: 276 },
+    alignment: opts.align || AlignmentType.LEFT,
+    children: runs,
+  });
+}
+
+// ── Helper: Sidebar section label ──
+function sideLabel(text) {
+  return sidePara([
+    new TextRun({ text: text.toUpperCase(), size: 18, bold: true, color: C.label, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" }, characterSpacing: 60 }),
+  ], { before: 180, after: 60 });
+}
+
+// ── Helper: Sidebar divider line ──
+function sideDivider() {
+  return new Paragraph({
+    spacing: { before: 100, after: 100 },
+    borders: { bottom: { style: BorderStyle.SINGLE, size: 1, color: C.label, space: 4 } },
+    children: [],
+  });
+}
+
+// ── Helper: Skill with dots ──
+function skillDots(name, level) {
+  const filled = "●".repeat(level);
+  const empty = "○".repeat(5 - level);
+  return sidePara([
+    new TextRun({ text: name + "  ", size: 17, color: C.text, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+    new TextRun({ text: filled, size: 13, color: C.dot, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+    new TextRun({ text: empty, size: 13, color: C.dotDim, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+  ], { before: 20, after: 20 });
+}
+
+// ── Helper: Right-side section heading (left-border style, Template C) ──
 function sectionHeading(text) {
   return new Paragraph({
-    borders: { left: { style: BorderStyle.SINGLE, size: 8, color: S.accent, space: 8 } },
+    spacing: { before: 200, after: 100, line: 276 },
+    borders: { left: { style: BorderStyle.SINGLE, size: 8, color: C.accent, space: 8 } },
     indent: { left: 120 },
-    spacing: { before: 240, after: 80 },
     children: [
-      new TextRun({ text, size: 22, bold: true, color: S.title, font: "Calibri" }),
+      new TextRun({ text: text.toUpperCase(), size: 22, bold: true, color: C.title, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" }, characterSpacing: 40 }),
     ],
-  });
-}
-
-// ── Helper: Sidebar label + value ──
-function sidebarLabel(label, value) {
-  return new Paragraph({
-    spacing: { before: 40, after: 40 },
-    children: [
-      new TextRun({ text: label, size: 15, color: S.sideLabel, font: "Calibri" }),
-    ],
-  });
-}
-
-function sidebarValue(value) {
-  return new Paragraph({
-    spacing: { before: 0, after: 80 },
-    children: [
-      new TextRun({ text: value, size: 17, color: S.sideText, font: "Calibri" }),
-    ],
-  });
-}
-
-// ── Helper: Skill rating ──
-function skillRating(name, level) {
-  const filled = "\u25CF".repeat(level);
-  const empty = "\u25CB".repeat(5 - level);
-  return new Paragraph({
-    spacing: { before: 30, after: 30 },
-    children: [
-      new TextRun({ text: name + "  ", size: 17, color: S.sideText, font: "Calibri" }),
-      new TextRun({ text: filled, size: 13, color: S.dotFill, font: "Calibri" }),
-      new TextRun({ text: empty, size: 13, color: S.dotEmpty, font: "Calibri" }),
-    ],
-  });
-}
-
-// ── Helper: Sidebar divider ──
-function sidebarDivider() {
-  return new Paragraph({
-    spacing: { before: 80, after: 80 },
-    borders: { bottom: { style: BorderStyle.SINGLE, size: 1, color: "2A4A5A", space: 4 } },
-    children: [new TextRun({ text: "", size: 2 })],
   });
 }
 
 // ── Helper: Experience entry ──
 function experienceEntry(company, role, dateRange, bullets) {
-  const items = [];
-  // Line 1: Company name (bold)
-  items.push(new Paragraph({
-    spacing: { before: 140, after: 0 },
-    children: [
-      new TextRun({ text: company, size: 21, bold: true, color: S.title, font: "Calibri" }),
-    ],
-  }));
-  // Line 2: Role (accent) + Date range (right-aligned via tab)
-  items.push(new Paragraph({
-    spacing: { before: 0, after: 60 },
-    tabStops: [{ type: TabStopType.RIGHT, position: 7500 }],
-    children: [
-      new TextRun({ text: role, size: 19, color: S.accent, font: "Calibri" }),
-      new TextRun({ text: "\t" + dateRange, size: 17, color: S.sec, font: "Calibri" }),
-    ],
-  }));
-  // Bullets
-  for (const b of bullets) {
-    items.push(new Paragraph({
-      spacing: { before: 20, after: 20 },
-      indent: { left: 240 },
+  const children = [
+    // Company name (bold)
+    new Paragraph({
+      spacing: { before: 120, after: 20, line: 276 },
       children: [
-        new TextRun({ text: "\u25B8 ", size: 17, color: S.accent, font: "Calibri" }),
-        new TextRun({ text: b, size: 18, color: S.body, font: "Calibri" }),
+        new TextRun({ text: company, size: 21, bold: true, color: C.title, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
       ],
-    }));
-  }
-  return items;
-}
-
-// ── Helper: Education entry ──
-function educationEntry(school, degree, dateRange, details) {
-  const items = [];
-  items.push(new Paragraph({
-    spacing: { before: 140, after: 0 },
-    children: [
-      new TextRun({ text: school, size: 21, bold: true, color: S.title, font: "Calibri" }),
-    ],
-  }));
-  items.push(new Paragraph({
-    spacing: { before: 0, after: 40 },
-    tabStops: [{ type: TabStopType.RIGHT, position: 7500 }],
-    children: [
-      new TextRun({ text: degree, size: 19, color: S.accent, font: "Calibri" }),
-      new TextRun({ text: "\t" + dateRange, size: 17, color: S.sec, font: "Calibri" }),
-    ],
-  }));
-  for (const d of details) {
-    items.push(new Paragraph({
-      spacing: { before: 20, after: 20 },
-      indent: { left: 240 },
-      children: [
-        new TextRun({ text: "\u25B8 ", size: 17, color: S.accent, font: "Calibri" }),
-        new TextRun({ text: d, size: 18, color: S.body, font: "Calibri" }),
-      ],
-    }));
-  }
-  return items;
-}
-
-// ════════════════════════════════════════════
-// BUILD SIDEBAR CELL
-// ════════════════════════════════════════════
-const sidebarChildren = [];
-
-// Name
-sidebarChildren.push(new Paragraph({
-  spacing: { before: 600, after: 40 },
-  alignment: AlignmentType.CENTER,
-  children: [
-    new TextRun({ text: "NADA", size: 40, bold: true, color: S.sideText, font: "Calibri" }),
-  ],
-}));
-sidebarChildren.push(new Paragraph({
-  spacing: { before: 0, after: 120 },
-  alignment: AlignmentType.CENTER,
-  children: [
-    new TextRun({ text: "EL SHERBINEY", size: 28, bold: true, color: S.sideText, font: "Calibri" }),
-  ],
-}));
-
-// Target title
-sidebarChildren.push(new Paragraph({
-  spacing: { before: 0, after: 200 },
-  alignment: AlignmentType.CENTER,
-  children: [
-    new TextRun({ text: "Hospitality & Tourism Professional", size: 16, color: S.accent, font: "Calibri", italics: true }),
-  ],
-}));
-
-sidebarDivider();
-
-// Contact
-sidebarChildren.push(sidebarLabel("CONTACT"));
-sidebarChildren.push(sidebarValue("+20 (0) XXX-XXX-XXXX"));
-sidebarChildren.push(sidebarValue("nada.elsherbiney@email.com"));
-sidebarChildren.push(sidebarValue("Alexandria, Egypt"));
-
-sidebarDivider();
-
-// Education sidebar
-sidebarChildren.push(sidebarLabel("EDUCATION"));
-sidebarChildren.push(sidebarValue("B.A. Tourism & Hospitality"));
-sidebarChildren.push(sidebarValue("EGOTH Institute"));
-sidebarChildren.push(sidebarValue("Expected 2028"));
-
-sidebarDivider();
-
-// Languages
-sidebarChildren.push(sidebarLabel("LANGUAGES"));
-sidebarChildren.push(skillRating("Arabic", 5));
-sidebarChildren.push(skillRating("English", 4));
-
-sidebarDivider();
-
-// Skills
-sidebarChildren.push(sidebarLabel("CORE SKILLS"));
-sidebarChildren.push(skillRating("Customer Service", 5));
-sidebarChildren.push(skillRating("Social Media", 4));
-sidebarChildren.push(skillRating("Inventory Mgmt.", 4));
-sidebarChildren.push(skillRating("Sales Operations", 4));
-sidebarChildren.push(skillRating("Trend Analysis", 3));
-sidebarChildren.push(skillRating("Hospitality Ops", 3));
-
-sidebarDivider();
-
-// Certifications
-sidebarChildren.push(sidebarLabel("CERTIFICATIONS"));
-sidebarChildren.push(sidebarValue("Tourism Basics Certificate"));
-sidebarChildren.push(sidebarValue("My Travel Training Program"));
-
-sidebarDivider();
-
-// Interests
-sidebarChildren.push(sidebarLabel("INTERESTS"));
-sidebarChildren.push(sidebarValue("Beauty & Fashion Trends"));
-sidebarChildren.push(sidebarValue("Travel & Cultural Exchange"));
-sidebarChildren.push(sidebarValue("Digital Marketing"));
-
-const sidebarCell = new TableCell({
-  shading: { fill: S.side, type: ShadingType.CLEAR },
-  margins: { top: 200, bottom: 200, left: 250, right: 250 },
-  width: { size: 3400, type: WidthType.DXA },
-  borders: { top: NB, bottom: NB, left: NB, right: NB },
-  children: sidebarChildren,
-});
-
-// ════════════════════════════════════════════
-// BUILD BODY CELL
-// ════════════════════════════════════════════
-const bodyChildren = [];
-
-// Profile Summary
-bodyChildren.push(sectionHeading("PROFILE SUMMARY"));
-bodyChildren.push(new Paragraph({
-  spacing: { before: 60, after: 120 },
-  children: [
-    new TextRun({
-      text: "Ambitious hospitality and tourism management student with over two years of hands-on experience in retail sales, inventory optimization, and social media community management. Proven ability to analyze consumer demand patterns, coordinate restocking workflows, and drive customer engagement across digital platforms. Seeking to leverage strong interpersonal skills, trend-awareness, and operational discipline in a corporate hospitality or tourism management role.",
-      size: 18, color: S.body, font: "Calibri",
     }),
-  ],
-}));
+    // Role + Date
+    new Paragraph({
+      spacing: { before: 0, after: 40, line: 276 },
+      tabStops: [{ type: TabStopType.RIGHT, position: 7600 }],
+      children: [
+        new TextRun({ text: role, size: 19, color: C.accent, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" }, italics: true }),
+        new TextRun({ text: "\t" + dateRange, size: 17, color: C.sec, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+      ],
+    }),
+  ];
+  // Bullet points
+  for (const b of bullets) {
+    children.push(new Paragraph({
+      spacing: { before: 10, after: 10, line: 260 },
+      indent: { left: 240 },
+      children: [
+        new TextRun({ text: "\u25B8 ", size: 15, color: C.accent, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+        new TextRun({ text: b, size: 18, color: C.body, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+      ],
+    }));
+  }
+  return children;
+}
 
-// Work Experience
-bodyChildren.push(sectionHeading("WORK EXPERIENCE"));
+// ── Build sidebar content ──
+function buildSidebar() {
+  const items = [];
 
-bodyChildren.push(...experienceEntry(
-  "She-M",
-  "Sales Associate & Social Media Moderator",
-  "Jan 2025 \u2013 Present",
-  [
-    "Manage official TikTok and Instagram accounts, responding to customer inquiries, booking orders, and communicating product availability schedules in real time",
-    "Conduct weekly inventory audits to identify stock gaps, coordinate restocking priorities, and reduce overstock of low-demand items through demand-driven analysis",
-    "Monitor beauty and accessories market trends to inform product selection, promotional timing, and visual merchandising strategies",
-    "Address customer concerns via comments and direct messages, maintaining a response rate that supports sustained engagement and repeat orders",
-    "Coordinate pre-order schedules for upcoming product launches, ensuring customers are informed of availability timelines",
-  ]
-));
+  // Photo placeholder (circle)
+  items.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 300, after: 100, line: 276 },
+    children: [new TextRun({ text: "\u25CB", size: 80, color: C.label, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } })],
+  }));
 
-bodyChildren.push(...experienceEntry(
-  "Seniors Cosmetics Store",
-  "Sales Associate",
-  "Jul 2023 \u2013 Dec 2024  \u2022  1 yr 6 mos",
-  [
-    "Delivered personalized product consultations in cosmetics and accessories, translating customer preferences into tailored recommendations",
-    "Maintained visual merchandising standards aligned with seasonal trends and promotional campaigns",
-    "Processed point-of-sale transactions accurately and managed cash handling procedures",
-    "Contributed to achieving weekly sales targets through proactive customer engagement and upselling techniques",
-  ]
-));
+  // Name
+  items.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 80, after: 40, line: 340 },
+    children: [new TextRun({ text: "NADA", size: 44, bold: true, color: C.text, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } })],
+  }));
+  items.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 0, after: 20, line: 300 },
+    children: [new TextRun({ text: "EL SHERBINEY", size: 32, bold: true, color: C.text, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } })],
+  }));
 
-// Internship
-bodyChildren.push(...experienceEntry(
-  "My Travel",
-  "Tourism Operations Intern",
-  "1 Month  \u2022  Certificate Program",
-  [
-    "Completed foundational training in tourism operations, including itinerary planning, customer service protocols, and destination management",
-    "Gained exposure to booking systems, travel coordination workflows, and industry regulatory frameworks",
-    "Received Tourism Basics Certificate upon successful completion of the program",
-  ]
-));
+  // Title
+  items.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 20, after: 60, line: 276 },
+    children: [new TextRun({ text: "Hospitality & Tourism Professional", size: 16, color: C.label, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" }, italics: true })],
+  }));
 
-// Education
-bodyChildren.push(sectionHeading("EDUCATION"));
+  // Divider
+  items.push(sideDivider());
 
-bodyChildren.push(...educationEntry(
-  "The Higher Institute of Tourism and Hotels (EGOTH)",
-  "Bachelor of Tourism Studies & Hospitality Management",
-  "Sep 2023 \u2013 Expected Jun 2028",
-  [
-    "Accredited by Egypt\u2019s National Authority for Quality Assurance and Accreditation of Education (NAQAAE)",
-    "Relevant coursework: Hospitality Operations, Tourism Marketing, Customer Relationship Management, Revenue Management",
-    "Active participant in campus hospitality simulation projects and industry networking events",
-  ]
-));
+  // Contact
+  items.push(sideLabel("Contact"));
+  items.push(sidePara([
+    new TextRun({ text: "+20 12 0626 1004", size: 17, color: C.text, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+  ], { before: 20, after: 20 }));
+  items.push(sidePara([
+    new TextRun({ text: "Egypt", size: 17, color: C.text, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+  ], { before: 20, after: 20 }));
+  items.push(sidePara([
+    new TextRun({ text: "\u3010Please fill in: email\u3011", size: 16, color: C.label, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+  ], { before: 20, after: 20 }));
 
-// Key Achievements
-bodyChildren.push(sectionHeading("KEY COMPETENCIES"));
-const competencies = [
-  "Inventory Analysis & Demand Forecasting  \u2022  Social Media Community Management  \u2022  Customer Relationship Management",
-  "Retail Sales & Consultative Selling  \u2022  Trend Monitoring & Market Awareness  \u2022  Cross-Platform Digital Communication",
-  "Visual Merchandising  \u2022  Hospitality Service Standards  \u2022  Multilingual Communication (Arabic/English)",
-];
-for (const c of competencies) {
-  bodyChildren.push(new Paragraph({
-    spacing: { before: 30, after: 30 },
+  // Divider
+  items.push(sideDivider());
+
+  // Skills
+  items.push(sideLabel("Core Skills"));
+  items.push(skillDots("Inventory Management", 4));
+  items.push(skillDots("Social Media", 4));
+  items.push(skillDots("Customer Relations", 4));
+  items.push(skillDots("Sales Operations", 4));
+  items.push(skillDots("Trend Analysis", 3));
+  items.push(skillDots("Hospitality Ops", 3));
+
+  // Divider
+  items.push(sideDivider());
+
+  // Languages
+  items.push(sideLabel("Languages"));
+  items.push(sidePara([
+    new TextRun({ text: "Arabic  ", size: 17, color: C.text, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+    new TextRun({ text: "\u25CF\u25CF\u25CF\u25CF\u25CF", size: 13, color: C.dot, font: { ascii: "Calibri" } }),
+    new TextRun({ text: "  Native", size: 15, color: C.label, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" }, italics: true }),
+  ], { before: 20, after: 20 }));
+  items.push(sidePara([
+    new TextRun({ text: "English ", size: 17, color: C.text, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+    new TextRun({ text: "\u25CF\u25CF\u25CF\u25CF\u25CB", size: 13, color: C.dot, font: { ascii: "Calibri" } }),
+    new TextRun({ text: "  Professional", size: 15, color: C.label, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" }, italics: true }),
+  ], { before: 20, after: 20 }));
+
+  // Divider
+  items.push(sideDivider());
+
+  // Certifications
+  items.push(sideLabel("Certifications"));
+  items.push(sidePara([
+    new TextRun({ text: "Tourism Training Certificate", size: 16, color: C.text, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+  ], { before: 20, after: 10 }));
+  items.push(sidePara([
+    new TextRun({ text: "My Travel", size: 15, color: C.label, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" }, italics: true }),
+  ], { before: 0, after: 20 }));
+
+  return items;
+}
+
+// ── Build right-side body content ──
+function buildBody() {
+  const items = [];
+
+  // Profile Summary
+  items.push(sectionHeading("Profile Summary"));
+  items.push(new Paragraph({
+    spacing: { before: 60, after: 80, line: 276 },
     indent: { left: 120 },
     children: [
-      new TextRun({ text: "\u25B8 ", size: 17, color: S.accent, font: "Calibri" }),
-      new TextRun({ text: c, size: 17, color: S.body, font: "Calibri" }),
+      new TextRun({ text: "Results-driven hospitality and tourism student with over two years of combined experience in retail sales, social media management, and customer engagement. Proven ability to analyze inventory trends, optimize stock levels, and build responsive online communities across TikTok and Instagram platforms. Adept at translating consumer insights into actionable strategies that drive sales performance and customer satisfaction. Seeking to leverage cross-functional expertise in a dynamic corporate hospitality or tourism environment.", size: 18, color: C.body, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
     ],
   }));
+
+  // Work Experience
+  items.push(sectionHeading("Work Experience"));
+
+  // Experience 1: She-M
+  const sheMBullets = [
+    "Managed official TikTok and Instagram accounts, delivering timely responses to comments and direct messages to sustain an active, engaged brand community",
+    "Processed end-to-end customer orders including pricing confirmation, availability verification, and appointment scheduling, ensuring a seamless purchasing experience",
+    "Monitored social media engagement metrics and audience behaviour patterns to inform content scheduling and optimise platform reach",
+    "Communicated product pricing, availability, and order status across digital channels, maintaining professional and consistent brand representation",
+  ];
+  items.push(...experienceEntry("She-M", "Sales & Social Media Moderator", "Jan 2025 \u2013 May 2026", sheMBullets));
+
+  // Experience 2: Seniors Cosmetics Store
+  const seniorsBullets = [
+    "Conducted weekly inventory reviews analysing stock levels and consumption patterns to optimise procurement decisions and reduce low-demand overstock",
+    "Tracked makeup and accessories market trends to align product offerings with evolving consumer preferences and maintain competitive positioning",
+    "Delivered personalised customer consultations in a fast-paced retail setting, building lasting client relationships and driving repeat business",
+  ];
+  items.push(...experienceEntry("Seniors Cosmetics Store", "Sales Associate", "Jul 2023 \u2013 Dec 2024", seniorsBullets));
+
+  // Experience 3: My Travel
+  const travelBullets = [
+    "Completed an intensive foundational training programme covering tourism operations, itinerary planning, customer service protocols, and hospitality industry standards",
+  ];
+  items.push(...experienceEntry("My Travel", "Tourism Training Intern", "2025", travelBullets));
+
+  // Education
+  items.push(sectionHeading("Education"));
+
+  items.push(new Paragraph({
+    spacing: { before: 100, after: 20, line: 276 },
+    indent: { left: 120 },
+    children: [
+      new TextRun({ text: "The Higher Institute of Tourism and Hotels (EGOTH)", size: 20, bold: true, color: C.title, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+    ],
+  }));
+  items.push(new Paragraph({
+    spacing: { before: 0, after: 20, line: 276 },
+    indent: { left: 120 },
+    tabStops: [{ type: TabStopType.RIGHT, position: 7600 }],
+    children: [
+      new TextRun({ text: "Bachelor of Tourism Studies and Hospitality Management", size: 18, color: C.accent, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" }, italics: true }),
+      new TextRun({ text: "\tExpected 2028", size: 17, color: C.sec, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+    ],
+  }));
+  items.push(new Paragraph({
+    spacing: { before: 0, after: 40, line: 260 },
+    indent: { left: 120 },
+    children: [
+      new TextRun({ text: "\u25B8 ", size: 15, color: C.accent, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+      new TextRun({ text: "Accredited by Egypt\u2019s National Authority for Quality Assurance and Accreditation of Education", size: 17, color: C.body, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+    ],
+  }));
+  items.push(new Paragraph({
+    spacing: { before: 0, after: 40, line: 260 },
+    indent: { left: 120 },
+    children: [
+      new TextRun({ text: "\u25B8 ", size: 15, color: C.accent, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+      new TextRun({ text: "Relevant coursework: Hospitality Operations, Tourism Management, Customer Service Excellence", size: 17, color: C.body, font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" } }),
+    ],
+  }));
+
+  return items;
 }
 
-const bodyCell = new TableCell({
-  shading: { fill: "FFFFFF", type: ShadingType.CLEAR },
-  margins: { top: 300, bottom: 200, left: 350, right: 350 },
-  width: { size: 8506, type: WidthType.DXA },
-  borders: { top: NB, bottom: NB, left: NB, right: NB },
-  verticalAlign: VerticalAlign.TOP,
-  children: bodyChildren,
-});
+// ── Assemble the document ──
+async function main() {
+  const sidebarItems = buildSidebar();
+  const bodyItems = buildBody();
 
-// ════════════════════════════════════════════
-// MAIN TABLE (sidebar + body)
-// ════════════════════════════════════════════
-const mainTable = new Table({
-  columnWidths: [3400, 8506],
-  rows: [
-    new TableRow({
-      height: { value: 16038, rule: "exact" },
-      children: [sidebarCell, bodyCell],
-    }),
-  ],
-  borders: {
-    top: NB, bottom: NB, left: NB, right: NB,
-    insideHorizontal: NB, insideVertical: NB,
-  },
-  width: { size: 100, type: WidthType.PERCENTAGE },
-});
+  // Full-page table: sidebar (30%) + body (70%)
+  const mainTable = new Table({
+    columnWidths: [3400, 8506],
+    rows: [
+      new TableRow({
+        height: { value: 16038, rule: "exact" },
+        children: [
+          // Left sidebar cell
+          new TableCell({
+            width: { size: 30, type: WidthType.PERCENTAGE },
+            shading: { fill: C.side, type: ShadingType.CLEAR },
+            verticalAlign: "top",
+            borders: { ...noBorders, right: { style: BorderStyle.SINGLE, size: 0, color: C.side } },
+            margins: { top: 200, bottom: 200, left: 300, right: 200 },
+            children: sidebarItems,
+          }),
+          // Right body cell
+          new TableCell({
+            width: { size: 70, type: WidthType.PERCENTAGE },
+            shading: { fill: "FFFFFF", type: ShadingType.CLEAR },
+            verticalAlign: "top",
+            borders: noBorders,
+            margins: { top: 300, bottom: 200, left: 400, right: 400 },
+            children: bodyItems,
+          }),
+        ],
+      }),
+    ],
+  });
 
-// ════════════════════════════════════════════
-// DOCUMENT
-// ════════════════════════════════════════════
-const doc = new Document({
-  styles: {
-    default: {
-      document: {
-        run: { font: "Calibri", size: 20, color: S.body },
-        paragraph: { spacing: { line: 276 } },
-      },
-    },
-  },
-  sections: [
-    {
-      properties: {
-        page: {
-          size: { width: 11906, height: 16838 },
-          margin: { top: 0, bottom: 0, left: 0, right: 0 },
+  const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: { ascii: "Calibri", eastAsia: "Microsoft YaHei" },
+            size: 20,
+            color: C.body,
+          },
+          paragraph: {
+            spacing: { line: 276 },
+          },
         },
       },
-      children: [mainTable],
     },
-  ],
-});
+    sections: [
+      {
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838 },
+            margin: { top: 0, bottom: 0, left: 0, right: 0 },
+          },
+        },
+        children: [mainTable],
+      },
+    ],
+  });
 
-const OUTPUT = "/home/z/my-project/download/Nada_El_Sherbiney_Resume.docx";
-Packer.toBuffer(doc).then(buf => {
-  fs.writeFileSync(OUTPUT, buf);
-  console.log("Resume generated:", OUTPUT, "Size:", buf.length, "bytes");
-});
+  const buffer = await Packer.toBuffer(doc);
+  fs.writeFileSync("/home/z/my-project/download/Nada_El_Sherbiney_Resume.docx", buffer);
+  console.log("Resume generated successfully!");
+}
+
+main().catch(console.error);
