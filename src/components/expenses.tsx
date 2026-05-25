@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import type { ExpenseData } from '@/lib/types'
-import { useAppStore } from '@/lib/store'
+import type { ExpenseData, PropertyData } from '@/lib/types'
+import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { formatAED, formatDate, getCategoryIcon } from '@/lib/utils'
+import { t, getExpenseCategoryLabel, getNameByLang, type Language } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,23 +13,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Receipt, Plus, Pencil, Trash2, TrendingDown, Loader2 } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Receipt, Plus, Pencil, Trash2, TrendingDown, Loader2, ShieldAlert } from 'lucide-react'
+
+const EXPENSE_CATEGORIES = ['maintenance', 'utility', 'insurance', 'manpower', 'municipality', 'leasing', 'security', 'other'] as const
 
 export default function Expenses() {
-  const { language } = useAppStore()
+  const { language, authUser } = useAppStore()
+  const lang = language as Language
   const [expenses, setExpenses] = useState<ExpenseData[]>([])
+  const [properties, setProperties] = useState<PropertyData[]>([])
   const [loading, setLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<ExpenseData | null>(null)
-  const [form, setForm] = useState({ category: 'maintenance', description: '', amount: 0, date: new Date().toISOString().split('T')[0] })
+  const [form, setForm] = useState({
+    category: 'maintenance', description: '', amount: 0,
+    date: new Date().toISOString().split('T')[0],
+    vendor: '', invoiceNumber: '', recurring: false, building: '',
+  })
 
-  const t = (en: string, ar: string) => language === 'ar' ? ar : en
+  // Access control: Owner/Admin only
+  const canAccess = authUser && isOwnerOrAdmin(authUser.role)
 
   const fetchExpenses = useCallback(async () => {
     try {
-      const res = await fetch('/api/expenses')
-      if (res.ok) setExpenses(await res.json())
+      const [eRes, pRes] = await Promise.all([fetch('/api/expenses'), fetch('/api/properties')])
+      if (eRes.ok) setExpenses(await eRes.json())
+      if (pRes.ok) setProperties(await pRes.json())
     } catch (e) {
       console.error(e)
     } finally {
@@ -40,18 +52,34 @@ export default function Expenses() {
 
   const openNew = () => {
     setEditing(null)
-    setForm({ category: 'maintenance', description: '', amount: 0, date: new Date().toISOString().split('T')[0] })
+    setForm({
+      category: 'maintenance', description: '', amount: 0,
+      date: new Date().toISOString().split('T')[0],
+      vendor: '', invoiceNumber: '', recurring: false, building: '',
+    })
     setDialogOpen(true)
   }
 
   const openEdit = (e: ExpenseData) => {
     setEditing(e)
-    setForm({ category: e.category, description: e.description, amount: e.amount, date: new Date(e.date).toISOString().split('T')[0] })
+    setForm({
+      category: e.category, description: e.description, amount: e.amount,
+      date: new Date(e.date).toISOString().split('T')[0],
+      vendor: e.vendor || '', invoiceNumber: e.invoiceNumber || '',
+      recurring: e.recurring || false, building: e.building || '',
+    })
     setDialogOpen(true)
   }
 
   const handleSave = async () => {
-    const body = { ...form, amount: Number(form.amount) }
+    const body = {
+      ...form,
+      amount: Number(form.amount),
+      vendor: form.vendor || null,
+      invoiceNumber: form.invoiceNumber || null,
+      recurring: form.recurring,
+      building: form.building || null,
+    }
     if (editing) {
       await fetch('/api/expenses', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editing.id, ...body }) })
     } else {
@@ -62,7 +90,7 @@ export default function Expenses() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('Delete this expense?', 'حذف هذا المصروف؟'))) return
+    if (!confirm(t('deleteExpense', lang))) return
     await fetch(`/api/expenses?id=${id}`, { method: 'DELETE' })
     fetchExpenses()
   }
@@ -85,18 +113,28 @@ export default function Expenses() {
     return <div className="flex items-center justify-center h-96"><Loader2 className="w-8 h-8 animate-spin text-emerald" /></div>
   }
 
+  if (!canAccess) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <ShieldAlert className="w-12 h-12 text-terracotta" />
+        <h2 className="text-xl font-bold">{t('accessDenied', lang)}</h2>
+        <p className="text-muted-foreground text-sm text-center max-w-md">{t('financialDataProtected', lang)}</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold">{t('Expenses', 'المصروفات')}</h1>
+          <h1 className="text-2xl font-bold">{t('expenses', lang)}</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {t(`${expenses.length} expenses tracked`, `${expenses.length} مصروفات مسجلة`)}
+            {expenses.length} {t('expensesCount', lang)}
           </p>
         </div>
         <Button onClick={openNew} className="bg-emerald hover:bg-emerald/90 text-white">
           <Plus className="w-4 h-4 mr-2" />
-          {t('Add Expense', 'إضافة مصروف')}
+          {t('addExpense', lang)}
         </Button>
       </div>
 
@@ -104,7 +142,7 @@ export default function Expenses() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="card-hover border-l-4 border-l-terracotta">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">{t('This Month Total', 'إجمالي الشهر')}</p>
+            <p className="text-xs text-muted-foreground">{t('thisMonthTotal', lang)}</p>
             <p className="text-2xl font-bold text-terracotta mt-1">{formatAED(monthlyTotal)}</p>
           </CardContent>
         </Card>
@@ -112,7 +150,7 @@ export default function Expenses() {
           <Card key={cat} className="card-hover">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">
-                {getCategoryIcon(cat)} {t(cat.charAt(0).toUpperCase() + cat.slice(1), cat === 'utility' ? 'مرافق' : cat === 'maintenance' ? 'صيانة' : cat === 'insurance' ? 'تأمين' : cat === 'salary' ? 'رواتب' : 'أخرى')}
+                {getCategoryIcon(cat)} {getExpenseCategoryLabel(cat, lang)}
               </p>
               <p className="text-xl font-bold mt-1">{formatAED(total)}</p>
             </CardContent>
@@ -122,7 +160,15 @@ export default function Expenses() {
 
       {/* Filter */}
       <div className="flex gap-2 flex-wrap">
-        {['all', 'utility', 'maintenance', 'insurance', 'salary', 'other'].map(c => (
+        <Button
+          variant={categoryFilter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setCategoryFilter('all')}
+          className={categoryFilter === 'all' ? 'bg-emerald hover:bg-emerald/90 text-white' : ''}
+        >
+          {t('all', lang)}
+        </Button>
+        {EXPENSE_CATEGORIES.map(c => (
           <Button
             key={c}
             variant={categoryFilter === c ? 'default' : 'outline'}
@@ -130,7 +176,7 @@ export default function Expenses() {
             onClick={() => setCategoryFilter(c)}
             className={categoryFilter === c ? 'bg-emerald hover:bg-emerald/90 text-white' : ''}
           >
-            {c === 'all' ? t('All', 'الكل') : `${getCategoryIcon(c)} ${t(c.charAt(0).toUpperCase() + c.slice(1), c)}`}
+            {getCategoryIcon(c)} {getExpenseCategoryLabel(c, lang)}
           </Button>
         ))}
       </div>
@@ -142,11 +188,14 @@ export default function Expenses() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t('Category', 'الفئة')}</TableHead>
-                  <TableHead>{t('Description', 'الوصف')}</TableHead>
-                  <TableHead>{t('Amount', 'المبلغ')}</TableHead>
-                  <TableHead>{t('Date', 'التاريخ')}</TableHead>
-                  <TableHead className="text-right">{t('Actions', 'إجراءات')}</TableHead>
+                  <TableHead>{t('category', lang)}</TableHead>
+                  <TableHead>{t('description', lang)}</TableHead>
+                  <TableHead>{t('amount', lang)}</TableHead>
+                  <TableHead>{t('date', lang)}</TableHead>
+                  <TableHead>{t('vendor', lang)}</TableHead>
+                  <TableHead>{t('invoiceNumber', lang)}</TableHead>
+                  <TableHead>{t('recurring', lang)}</TableHead>
+                  <TableHead className="text-right">{t('actions', lang)}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -154,12 +203,21 @@ export default function Expenses() {
                   <TableRow key={expense.id}>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">
-                        {getCategoryIcon(expense.category)} {t(expense.category.charAt(0).toUpperCase() + expense.category.slice(1), expense.category)}
+                        {getCategoryIcon(expense.category)} {getExpenseCategoryLabel(expense.category, lang)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm">{expense.description}</TableCell>
                     <TableCell className="font-semibold text-sm text-terracotta">{formatAED(expense.amount)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{formatDate(expense.date)}</TableCell>
+                    <TableCell className="text-sm">{expense.vendor || '—'}</TableCell>
+                    <TableCell className="text-sm">{expense.invoiceNumber || '—'}</TableCell>
+                    <TableCell className="text-sm">
+                      {expense.recurring ? (
+                        <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">{t('recurring', lang)}</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{t('oneTime', lang)}</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => openEdit(expense)} className="p-1.5 rounded hover:bg-muted text-muted-foreground">
@@ -177,7 +235,7 @@ export default function Expenses() {
           </div>
           {filtered.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              {t('No expenses found', 'لم يتم العثور على مصروفات')}
+              {t('noExpensesFound', lang)}
             </div>
           )}
         </CardContent>
@@ -185,43 +243,75 @@ export default function Expenses() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editing ? t('Edit Expense', 'تعديل المصروف') : t('Add Expense', 'إضافة مصروف')}
+              {editing ? t('editExpense', lang) : t('addExpense', lang)}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>{t('Category', 'الفئة')}</Label>
+              <Label>{t('category', lang)}</Label>
               <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="maintenance">{getCategoryIcon('maintenance')} {t('Maintenance', 'صيانة')}</SelectItem>
-                  <SelectItem value="utility">{getCategoryIcon('utility')} {t('Utility', 'مرافق')}</SelectItem>
-                  <SelectItem value="insurance">{getCategoryIcon('insurance')} {t('Insurance', 'تأمين')}</SelectItem>
-                  <SelectItem value="salary">{getCategoryIcon('salary')} {t('Salary', 'رواتب')}</SelectItem>
-                  <SelectItem value="other">{getCategoryIcon('other')} {t('Other', 'أخرى')}</SelectItem>
+                  {EXPENSE_CATEGORIES.map(cat => (
+                    <SelectItem key={cat} value={cat}>{getCategoryIcon(cat)} {getExpenseCategoryLabel(cat, lang)}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>{t('Description', 'الوصف')}</Label>
+              <Label>{t('description', lang)}</Label>
               <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
             </div>
-            <div>
-              <Label>{t('Amount (AED)', 'المبلغ (درهم)')}</Label>
-              <Input type="number" value={form.amount} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>{t('amount', lang)}</Label>
+                <Input type="number" value={form.amount} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} />
+              </div>
+              <div>
+                <Label>{t('date', lang)}</Label>
+                <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+              </div>
             </div>
-            <div>
-              <Label>{t('Date', 'التاريخ')}</Label>
-              <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>{t('vendor', lang)}</Label>
+                <Input value={form.vendor} onChange={e => setForm({ ...form, vendor: e.target.value })} placeholder={t('vendor', lang)} />
+              </div>
+              <div>
+                <Label>{t('invoiceNumber', lang)}</Label>
+                <Input value={form.invoiceNumber} onChange={e => setForm({ ...form, invoiceNumber: e.target.value })} placeholder={t('invoiceNumber', lang)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  id="recurring"
+                  checked={form.recurring}
+                  onCheckedChange={(checked) => setForm({ ...form, recurring: !!checked })}
+                />
+                <Label htmlFor="recurring" className="cursor-pointer">{t('recurring', lang)}</Label>
+              </div>
+              <div>
+                <Label>{t('building', lang)}</Label>
+                <Select value={form.building} onValueChange={v => setForm({ ...form, building: v })}>
+                  <SelectTrigger><SelectValue placeholder={t('select', lang)} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('none', lang)}</SelectItem>
+                    {properties.map(p => (
+                      <SelectItem key={p.id} value={getNameByLang(p, lang)}>{getNameByLang(p, lang)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('Cancel', 'إلغاء')}</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel', lang)}</Button>
             <Button onClick={handleSave} className="bg-emerald hover:bg-emerald/90 text-white" disabled={!form.description || form.amount <= 0}>
-              {t('Save', 'حفظ')}
+              {t('save', lang)}
             </Button>
           </DialogFooter>
         </DialogContent>

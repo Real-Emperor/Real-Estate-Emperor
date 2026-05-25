@@ -20,50 +20,6 @@ export function formatDate(date: string | Date): string {
   })
 }
 
-export function getMonthName(month: number, lang: 'en' | 'ar' = 'en'): string {
-  const monthsEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-  const monthsAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
-  return lang === 'ar' ? monthsAr[month - 1] : monthsEn[month - 1]
-}
-
-export function getMonthShort(month: number): string {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  return months[month - 1] || ''
-}
-
-export function getWhatsAppLink(phone: string, name: string, amount: number, month: number, year: number, lang: 'en' | 'ar' = 'en'): string {
-  const cleanPhone = phone.replace(/[^0-9]/g, '')
-  const monthName = getMonthName(month, lang)
-
-  let message: string
-  if (lang === 'ar') {
-    message = `عزيزي ${name}، تذكير بأن إيجارك بمبلغ ${amount} درهم لشهر ${monthName} ${year} متأخر. يرجى ترتيب الدفع في أقرب وقت ممكن. — الريف الجنوبي`
-  } else {
-    message = `Dear ${name}, this is a reminder that your rent of ${formatAED(amount)} for ${monthName} ${year} is overdue. Please arrange payment at your earliest convenience. — Al Reef Al Janoubi`
-  }
-
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
-}
-
-export function getPropertyTypeLabel(type: string, lang: 'en' | 'ar' = 'en'): string {
-  const types: Record<string, { en: string; ar: string }> = {
-    apartment: { en: 'Apartment', ar: 'شقة' },
-    villa: { en: 'Villa', ar: 'فيلا' },
-    office: { en: 'Office', ar: 'مكتب' },
-    shop: { en: 'Shop', ar: 'محل' },
-  }
-  return types[type]?.[lang] || type
-}
-
-export function getStatusColor(status: string): string {
-  switch (status) {
-    case 'active': return 'bg-emerald-100 text-emerald-800 border-emerald-200'
-    case 'inactive': return 'bg-gray-100 text-gray-800 border-gray-200'
-    case 'evicted': return 'bg-red-100 text-red-800 border-red-200'
-    default: return 'bg-gray-100 text-gray-800 border-gray-200'
-  }
-}
-
 export function getPaymentStatusColor(status: 'paid' | 'overdue' | 'partial' | 'inactive' | 'due-soon'): string {
   switch (status) {
     case 'paid': return 'bg-emerald-500 text-white'
@@ -72,6 +28,16 @@ export function getPaymentStatusColor(status: 'paid' | 'overdue' | 'partial' | '
     case 'due-soon': return 'bg-yellow-400 text-gray-900'
     case 'inactive': return 'bg-gray-300 text-gray-600'
     default: return 'bg-gray-300 text-gray-600'
+  }
+}
+
+export function getStatusColor(status: string): string {
+  switch (status) {
+    case 'active': return 'bg-emerald-100 text-emerald-800 border-emerald-200'
+    case 'inactive': return 'bg-gray-100 text-gray-800 border-gray-200'
+    case 'evicted': return 'bg-red-100 text-red-800 border-red-200'
+    case 'notice': return 'bg-amber-100 text-amber-800 border-amber-200'
+    default: return 'bg-gray-100 text-gray-800 border-gray-200'
   }
 }
 
@@ -96,11 +62,16 @@ export function getMaintenanceStatusColor(status: string): string {
 
 export function getCategoryIcon(category: string): string {
   switch (category) {
-    case 'utility': return '⚡'
-    case 'maintenance': return '🔧'
+    case 'utility': case 'utilities': return '⚡'
+    case 'maintenance': case 'Maintenance': return '🔧'
     case 'insurance': return '🛡️'
-    case 'salary': return '👤'
+    case 'salary': case 'manpower': return '👤'
     case 'other': return '📦'
     default: return '📦'
   }
+}
+
+// Helper for conditional class joining (lightweight)
+export function cn2(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ')
 }

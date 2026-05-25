@@ -42,11 +42,17 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
+  /* Islamic Bengali Color Palette */
   --color-emerald: #0D7C3D;
   --color-gold: #C5A028;
   --color-cream: #FFF8E7;
   --color-deep-teal: #0A5C4E;
   --color-terracotta: #C4653A;
+  --color-bengali-green: #006A4E;
+  --color-bengali-red: #C1272D;
+  --color-islamic-gold: #D4AF37;
+  --color-deep-maroon: #800020;
+  --color-warm-saffron: #F4C430;
 }
 
 :root {
@@ -73,7 +79,7 @@
   --chart-2: #C5A028;
   --chart-3: #0A5C4E;
   --chart-4: #C4653A;
-  --chart-5: #8b5cf6;
+  --chart-5: #800020;
   --sidebar: #0A5C4E;
   --sidebar-foreground: #ffffff;
   --sidebar-primary: #C5A028;
@@ -93,18 +99,42 @@
   }
 }
 
-/* Islamic geometric pattern for sidebar */
+/* Islamic geometric pattern for sidebar - enhanced with Bengali influences */
 .islamic-pattern {
   background-color: #0A5C4E;
   background-image:
+    /* 8-pointed star pattern - Islamic geometric motif */
+    radial-gradient(circle at 50% 50%, rgba(197,160,40,0.08) 0%, transparent 50%),
+    /* Diagonal lattice - Arabesque */
     linear-gradient(30deg, rgba(197,160,40,0.06) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.06) 87.5%, rgba(197,160,40,0.06)),
     linear-gradient(150deg, rgba(197,160,40,0.06) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.06) 87.5%, rgba(197,160,40,0.06)),
     linear-gradient(30deg, rgba(197,160,40,0.06) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.06) 87.5%, rgba(197,160,40,0.06)),
     linear-gradient(150deg, rgba(197,160,40,0.06) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.06) 87.5%, rgba(197,160,40,0.06)),
+    /* Bengali nakshi kantha inspired diagonal lines */
     linear-gradient(60deg, rgba(255,255,255,0.03) 25%, transparent 25.5%, transparent 75%, rgba(255,255,255,0.03) 75%, rgba(255,255,255,0.03)),
     linear-gradient(60deg, rgba(255,255,255,0.03) 25%, transparent 25.5%, transparent 75%, rgba(255,255,255,0.03) 75%, rgba(255,255,255,0.03));
-  background-size: 40px 70px;
+  background-size: 80px 140px, 40px 70px, 40px 70px, 40px 70px, 40px 70px, 40px 70px, 40px 70px;
   background-position: 0 0, 0 0, 20px 35px, 20px 35px, 0 0, 20px 35px;
+}
+
+/* Full-page Islamic pattern for login */
+.islamic-pattern-full {
+  background-color: #0A5C4E;
+  background-image:
+    /* Central medallion effect */
+    radial-gradient(ellipse at 50% 50%, rgba(197,160,40,0.12) 0%, transparent 60%),
+    /* Geometric star grid */
+    radial-gradient(circle at 25% 25%, rgba(197,160,40,0.06) 0%, transparent 30%),
+    radial-gradient(circle at 75% 75%, rgba(197,160,40,0.06) 0%, transparent 30%),
+    radial-gradient(circle at 75% 25%, rgba(212,175,55,0.04) 0%, transparent 25%),
+    radial-gradient(circle at 25% 75%, rgba(212,175,55,0.04) 0%, transparent 25%),
+    /* Arabesque lattice */
+    linear-gradient(30deg, rgba(197,160,40,0.05) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.05) 87.5%),
+    linear-gradient(150deg, rgba(197,160,40,0.05) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.05) 87.5%),
+    /* Nakshi kantha embroidery inspired pattern */
+    linear-gradient(60deg, rgba(255,255,255,0.02) 25%, transparent 25.5%, transparent 75%, rgba(255,255,255,0.02) 75%),
+    linear-gradient(-60deg, rgba(128,0,32,0.03) 25%, transparent 25.5%, transparent 75%, rgba(128,0,32,0.03) 75%);
+  background-size: 100% 100%, 120px 120px, 120px 120px, 80px 80px, 80px 80px, 50px 90px, 50px 90px, 50px 90px, 50px 90px;
 }
 
 /* Pulse animation for overdue alerts */
@@ -197,9 +227,65 @@
   box-shadow: 0 0 0 2px #f59e0b, 0 0 12px rgba(245,158,11,0.2);
 }
 
+/* Tenant score indicator */
+.score-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: currentColor;
+  border-right-color: currentColor;
+}
+
 /* Print styles for reports */
 @media print {
   .no-print { display: none !important; }
   .print-only { display: block !important; }
   body { background: white !important; }
+}
+
+/* Islamic decorative border */
+.islamic-border-top {
+  border-top: 3px solid transparent;
+  border-image: repeating-linear-gradient(
+    90deg,
+    #C5A028 0px,
+    #C5A028 8px,
+    transparent 8px,
+    transparent 12px,
+    #0A5C4E 12px,
+    #0A5C4E 20px,
+    transparent 20px,
+    transparent 24px
+  ) 3;
+}
+
+/* Bengali cultural accent - subtle red-green border inspired by Bangladesh flag */
+.bengali-accent {
+  border-left: 3px solid;
+  border-image: linear-gradient(to bottom, #006A4E, #C1272D) 1;
+}
+
+/* Geometric divider */
+.geometric-divider {
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    #C5A028 0px,
+    #C5A028 6px,
+    transparent 6px,
+    transparent 10px,
+    #0A5C4E 10px,
+    #0A5C4E 16px,
+    transparent 16px,
+    transparent 20px
+  );
 }

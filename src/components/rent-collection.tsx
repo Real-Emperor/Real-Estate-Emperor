@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import type { TenantData, PropertyData } from '@/lib/types'
-import { useAppStore } from '@/lib/store'
-import { formatAED, getMonthName, getPaymentStatusColor, getWhatsAppLink } from '@/lib/utils'
+import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
+import { formatAED, getPaymentStatusColor, cn2 } from '@/lib/utils'
+import { t, getMonthName, getNameByLang, getWhatsAppLink, type Language } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Banknote, MessageCircle, Check, AlertTriangle, Clock, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function RentCollection() {
-  const { language } = useAppStore()
+  const { language, authUser } = useAppStore()
   const [tenants, setTenants] = useState<TenantData[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
@@ -24,7 +25,7 @@ export default function RentCollection() {
   const [payingTenant, setPayingTenant] = useState<TenantData | null>(null)
   const [payForm, setPayForm] = useState({ amount: 0, method: 'cash', reference: '', notes: '' })
 
-  const t = (en: string, ar: string) => language === 'ar' ? ar : en
+  const canSeeRevenue = isOwnerOrAdmin(authUser?.role || '')
 
   const fetchData = useCallback(async () => {
     try {
@@ -118,7 +119,8 @@ export default function RentCollection() {
       return status === 'overdue' || status === 'partial'
     })
     for (const tenant of unpaid) {
-      window.open(getWhatsAppLink(tenant.phone, tenant.name, tenant.rentAmount, selectedMonth, selectedYear, language), '_blank')
+      const phone = tenant.whatsapp || tenant.phone
+      window.open(getWhatsAppLink(phone, getNameByLang(tenant, language), tenant.rentAmount, selectedMonth, selectedYear, language), '_blank')
     }
   }
 
@@ -130,11 +132,11 @@ export default function RentCollection() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold">{t('Rent Collection', 'تحصيل الإيجار')}</h1>
+          <h1 className="text-2xl font-bold">{t('rentCollection', language)}</h1>
         </div>
         <Button onClick={sendAllReminders} variant="outline" className="border-emerald text-emerald hover:bg-emerald/10">
           <MessageCircle className="w-4 h-4 mr-2" />
-          {t('Remind All Unpaid', 'تذكير الكل')}
+          {t('remindAllUnpaid', language)}
         </Button>
       </div>
 
@@ -147,9 +149,11 @@ export default function RentCollection() {
           <h2 className="text-xl font-bold">
             {getMonthName(selectedMonth, language)} {selectedYear}
           </h2>
-          <p className="text-sm text-muted-foreground">
-            {t(`${stats.collectedRevenue.toLocaleString()} / ${stats.expectedRevenue.toLocaleString()} AED collected`, `${stats.collectedRevenue.toLocaleString()} / ${stats.expectedRevenue.toLocaleString()} درهم محصّل`)}
-          </p>
+          {canSeeRevenue && (
+            <p className="text-sm text-muted-foreground">
+              {stats.collectedRevenue.toLocaleString()} / {stats.expectedRevenue.toLocaleString()} AED {t('collected', language)}
+            </p>
+          )}
         </div>
         <Button variant="ghost" size="icon" onClick={nextMonth} disabled={selectedMonth >= new Date().getMonth() + 1 && selectedYear >= new Date().getFullYear()}>
           <ChevronRight className="w-5 h-5" />
@@ -160,47 +164,49 @@ export default function RentCollection() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="card-hover">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">{t('Total Tenants', 'إجمالي المستأجرين')}</p>
+            <p className="text-xs text-muted-foreground">{t('activeTenants', language)}</p>
             <p className="text-2xl font-bold">{stats.total}</p>
           </CardContent>
         </Card>
         <Card className="card-hover border-l-4 border-l-emerald">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">{t('Paid', 'مدفوع')}</p>
+            <p className="text-xs text-muted-foreground">{t('paid', language)}</p>
             <p className="text-2xl font-bold text-emerald">{stats.paid}</p>
           </CardContent>
         </Card>
         <Card className="card-hover border-l-4 border-l-amber-500">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">{t('Partial', 'جزئي')}</p>
+            <p className="text-xs text-muted-foreground">{t('partial', language)}</p>
             <p className="text-2xl font-bold text-amber-600">{stats.partial}</p>
           </CardContent>
         </Card>
         <Card className="card-hover border-l-4 border-l-red-500">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">{t('Overdue', 'متأخر')}</p>
+            <p className="text-xs text-muted-foreground">{t('overdue', language)}</p>
             <p className="text-2xl font-bold text-red-600 overdue-pulse">{stats.overdue}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Collection progress */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">{t('Collection Progress', 'تقدم التحصيل')}</span>
-            <span className="text-sm font-bold text-emerald">
-              {stats.expectedRevenue > 0 ? Math.round((stats.collectedRevenue / stats.expectedRevenue) * 100) : 0}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div
-              className="bg-emerald h-3 rounded-full transition-all"
-              style={{ width: `${stats.expectedRevenue > 0 ? (stats.collectedRevenue / stats.expectedRevenue) * 100 : 0}%` }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {canSeeRevenue && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">{t('collectionProgress', language)}</span>
+              <span className="text-sm font-bold text-emerald">
+                {stats.expectedRevenue > 0 ? Math.round((stats.collectedRevenue / stats.expectedRevenue) * 100) : 0}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div
+                className="bg-emerald h-3 rounded-full transition-all"
+                style={{ width: `${stats.expectedRevenue > 0 ? (stats.collectedRevenue / stats.expectedRevenue) * 100 : 0}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filter */}
       <div className="flex gap-2 flex-wrap">
@@ -212,10 +218,10 @@ export default function RentCollection() {
             onClick={() => setFilter(f)}
             className={filter === f ? 'bg-emerald hover:bg-emerald/90 text-white' : ''}
           >
-            {f === 'all' && t('All', 'الكل')}
-            {f === 'paid' && t('Paid', 'مدفوع')}
-            {f === 'unpaid' && t('Unpaid', 'غير مدفوع')}
-            {f === 'overdue' && t('Overdue', 'متأخر')}
+            {f === 'all' && t('all', language)}
+            {f === 'paid' && t('paid', language)}
+            {f === 'unpaid' && t('unpaid', language)}
+            {f === 'overdue' && t('overdue', language)}
           </Button>
         ))}
       </div>
@@ -233,32 +239,34 @@ export default function RentCollection() {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <h3 className="font-semibold text-sm">
-                      {language === 'ar' && tenant.nameAr ? tenant.nameAr : tenant.name}
+                      {getNameByLang(tenant, language)}
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      {tenant.property?.name} • {tenant.unitNumber || '—'}
+                      {tenant.property ? getNameByLang(tenant.property, language) : ''} • {tenant.unitNumber || '—'}
                     </p>
                   </div>
                   <Badge className={cn2('text-xs', getPaymentStatusColor(status))}>
-                    {status === 'paid' && t('PAID', 'مدفوع')}
-                    {status === 'partial' && t('PARTIAL', 'جزئي')}
-                    {status === 'overdue' && t('OVERDUE', 'متأخر')}
-                    {status === 'due-soon' && t('DUE SOON', 'مستحق قريباً')}
+                    {status === 'paid' && t('paid', language)}
+                    {status === 'partial' && t('partial', language)}
+                    {status === 'overdue' && t('overdue', language)}
+                    {status === 'due-soon' && t('dueSoon', language)}
                   </Badge>
                 </div>
 
-                <div className="flex items-center justify-between mt-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t('Rent', 'الإيجار')}</p>
-                    <p className="font-bold text-sm">{formatAED(tenant.rentAmount)}</p>
-                  </div>
-                  {status !== 'paid' && (
+                {canSeeRevenue && (
+                  <div className="flex items-center justify-between mt-3">
                     <div>
-                      <p className="text-xs text-muted-foreground">{t('Remaining', 'المتبقي')}</p>
-                      <p className="font-bold text-sm text-red-600">{formatAED(remaining)}</p>
+                      <p className="text-xs text-muted-foreground">{t('rent', language)}</p>
+                      <p className="font-bold text-sm">{formatAED(tenant.rentAmount)}</p>
                     </div>
-                  )}
-                </div>
+                    {status !== 'paid' && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">{t('remaining', language)}</p>
+                        <p className="font-bold text-sm text-red-600">{formatAED(remaining)}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex gap-2 mt-3">
                   {status !== 'paid' && (
@@ -268,15 +276,16 @@ export default function RentCollection() {
                       className="flex-1 bg-emerald hover:bg-emerald/90 text-white h-8 text-xs"
                     >
                       <Check className="w-3 h-3 mr-1" />
-                      {t('Mark Paid', 'تسجيل دفع')}
+                      {t('markPaid', language)}
                     </Button>
                   )}
                   {status !== 'paid' && (
                     <a
-                      href={getWhatsAppLink(tenant.phone, tenant.name, remaining, selectedMonth, selectedYear, language)}
+                      href={getWhatsAppLink(tenant.whatsapp || tenant.phone, getNameByLang(tenant, language), remaining, selectedMonth, selectedYear, language)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-1 px-3 py-1 rounded-md text-xs border border-green-300 text-green-700 hover:bg-green-50"
+                      title={t('sendWhatsAppReminder', language)}
                     >
                       <MessageCircle className="w-3 h-3" />
                     </a>
@@ -290,7 +299,7 @@ export default function RentCollection() {
 
       {filteredTenants.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
-          {t('No tenants match the filter', 'لا يوجد مستأجرون مطابقون للفلتر')}
+          {t('noTenantsMatchFilter', language)}
         </div>
       )}
 
@@ -299,47 +308,43 @@ export default function RentCollection() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {t('Record Payment', 'تسجيل دفعة')} — {payingTenant && (language === 'ar' && payingTenant.nameAr ? payingTenant.nameAr : payingTenant.name)}
+              {t('recordPayment', language)} — {payingTenant && getNameByLang(payingTenant, language)}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>{t('Amount (AED)', 'المبلغ (درهم)')}</Label>
+              <Label>{t('amount', language)}</Label>
               <Input type="number" value={payForm.amount} onChange={e => setPayForm({ ...payForm, amount: Number(e.target.value) })} />
             </div>
             <div>
-              <Label>{t('Payment Method', 'طريقة الدفع')}</Label>
+              <Label>{t('paymentMethod', language)}</Label>
               <Select value={payForm.method} onValueChange={v => setPayForm({ ...payForm, method: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash">{t('Cash', 'نقدي')}</SelectItem>
-                  <SelectItem value="transfer">{t('Bank Transfer', 'تحويل بنكي')}</SelectItem>
-                  <SelectItem value="cheque">{t('Cheque', 'شيك')}</SelectItem>
+                  <SelectItem value="cash">{t('cash', language)}</SelectItem>
+                  <SelectItem value="transfer">{t('bankTransfer', language)}</SelectItem>
+                  <SelectItem value="cheque">{t('cheque', language)}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>{t('Reference / Receipt No.', 'المرجع / رقم الإيصال')}</Label>
+              <Label>{t('reference', language)}</Label>
               <Input value={payForm.reference} onChange={e => setPayForm({ ...payForm, reference: e.target.value })} />
             </div>
             <div>
-              <Label>{t('Notes', 'ملاحظات')}</Label>
+              <Label>{t('notes', language)}</Label>
               <Input value={payForm.notes} onChange={e => setPayForm({ ...payForm, notes: e.target.value })} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPayDialogOpen(false)}>{t('Cancel', 'إلغاء')}</Button>
+            <Button variant="outline" onClick={() => setPayDialogOpen(false)}>{t('cancel', language)}</Button>
             <Button onClick={handlePay} className="bg-emerald hover:bg-emerald/90 text-white" disabled={payForm.amount <= 0}>
               <Check className="w-4 h-4 mr-2" />
-              {t('Confirm Payment', 'تأكيد الدفع')}
+              {t('confirmPayment', language)}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   )
-}
-
-function cn2(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ')
 }

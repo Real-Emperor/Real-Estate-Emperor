@@ -1,11 +1,12 @@
-export type PageType = 'dashboard' | 'properties' | 'tenants' | 'rent' | 'maintenance' | 'expenses' | 'reports'
-export type Language = 'en' | 'ar'
+export type PageType = 'dashboard' | 'properties' | 'tenants' | 'rent' | 'maintenance' | 'expenses' | 'reports' | 'contracts'
 
 export interface DashboardData {
   company: {
     id: string
     name: string
     nameAr: string | null
+    nameBn: string | null
+    nameUr: string | null
     phone: string | null
     email: string | null
     address: string | null
@@ -21,16 +22,18 @@ export interface DashboardData {
     totalUnits: number
     occupiedUnits: number
     partialCount: number
+    netProfit: number
+    totalExpenses: number
   }
-  overdueTenants: any[]
-  partialTenants: any[]
-  dueSoon: any[]
-  activeTenantsList: any[]
-  recentPayments: any[]
+  overdueTenants: TenantData[]
+  partialTenants: TenantData[]
+  dueSoon: TenantData[]
+  activeTenantsList: TenantData[]
+  recentPayments: PaymentData[]
   chartData: { month: string; expected: number; collected: number }[]
-  properties: any[]
-  expenses: any[]
-  maintenanceItems: any[]
+  properties: PropertyData[]
+  expenses: ExpenseData[]
+  maintenanceItems: MaintenanceData[]
 }
 
 export interface PropertyData {
@@ -38,9 +41,13 @@ export interface PropertyData {
   companyId: string
   name: string
   nameAr: string | null
+  nameBn: string | null
+  nameUr: string | null
   type: string
   address: string | null
   totalUnits: number
+  floors: number
+  archived: boolean
   createdAt: string
   tenants: TenantData[]
 }
@@ -49,15 +56,35 @@ export interface TenantData {
   id: string
   companyId: string
   propertyId: string
+  unitId?: string | null
   name: string
   nameAr: string | null
+  nameBn: string | null
+  nameUr: string | null
   phone: string
+  whatsapp: string | null
   email: string | null
+  emiratesId: string | null
+  nationality: string | null
+  employer: string | null
+  emergencyContact: string | null
   unitNumber: string | null
+  unitType: string | null
+  floor: number | null
+  sizeSqft: number | null
   rentAmount: number
+  municipalityFee: number | null
+  securityDeposit: number | null
+  paymentMethod: string | null
   leaseStart: string | null
   leaseEnd: string | null
+  contractDuration: number | null
+  renewalStatus: string | null
+  newRent: number | null
   status: string
+  latePaymentCount: number
+  tenantScore: number
+  notes: string | null
   createdAt: string
   property?: PropertyData
   payments?: PaymentData[]
@@ -72,7 +99,10 @@ export interface PaymentData {
   year: number
   method: string | null
   reference: string | null
+  receiptNumber: string | null
   notes: string | null
+  isLate: boolean
+  daysLate: number
   createdAt: string
   tenant?: TenantData
 }
@@ -84,6 +114,10 @@ export interface ExpenseData {
   description: string
   amount: number
   date: string
+  vendor: string | null
+  invoiceNumber: string | null
+  recurring: boolean
+  building: string | null
   createdAt: string
 }
 
@@ -93,11 +127,14 @@ export interface MaintenanceData {
   propertyId: string | null
   title: string
   description: string
+  category: string | null
+  vendor: string | null
   priority: string
   status: string
-  cost: number | null
-  createdAt: string
+  estimatedCost: number | null
+  actualCost: number | null
   completedAt: string | null
+  createdAt: string
 }
 
 export interface ReportData {
@@ -114,4 +151,13 @@ export interface ReportData {
   expenseBreakdown: Record<string, number>
   monthlyExpenses: ExpenseData[]
   trend: { month: number; year: number; revenue: number; expenses: number; profit: number }[]
+  // P&L fields
+  rentalIncome: number
+  otherIncome: number
+  grossRevenue: number
+  vacancyLoss: number
+  badDebt: number
+  grossProfit: number
+  costOfOperations: number
+  netIncome: number
 }

@@ -23,8 +23,12 @@ export async function POST(req: NextRequest) {
         companyId: company.id,
         category: body.category,
         description: body.description,
-        amount: body.amount,
+        amount: Number(body.amount),
         date: new Date(body.date),
+        vendor: body.vendor || null,
+        invoiceNumber: body.invoiceNumber || null,
+        recurring: body.recurring || false,
+        building: body.building || null,
       },
     })
     return NextResponse.json(expense)
@@ -41,8 +45,12 @@ export async function PUT(req: NextRequest) {
       data: {
         category: body.category,
         description: body.description,
-        amount: body.amount,
+        amount: Number(body.amount),
         date: new Date(body.date),
+        vendor: body.vendor || null,
+        invoiceNumber: body.invoiceNumber || null,
+        recurring: body.recurring || false,
+        building: body.building || null,
       },
     })
     return NextResponse.json(expense)

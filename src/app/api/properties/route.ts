@@ -1,9 +1,13 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url)
+    const includeArchived = searchParams.get('includeArchived') === 'true'
+
     const properties = await db.property.findMany({
+      where: includeArchived ? {} : { archived: false },
       include: {
         tenants: {
           where: { status: 'active' },
@@ -28,9 +32,13 @@ export async function POST(req: NextRequest) {
         companyId: company.id,
         name: body.name,
         nameAr: body.nameAr || null,
+        nameBn: body.nameBn || null,
+        nameUr: body.nameUr || null,
         type: body.type,
         address: body.address || null,
         totalUnits: body.totalUnits || 1,
+        floors: body.floors || 1,
+        archived: body.archived || false,
       },
     })
     return NextResponse.json(property)
@@ -42,15 +50,23 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json()
+    const data: Record<string, unknown> = {
+      name: body.name,
+      nameAr: body.nameAr || null,
+      nameBn: body.nameBn || null,
+      nameUr: body.nameUr || null,
+      type: body.type,
+      address: body.address || null,
+      totalUnits: body.totalUnits,
+      floors: body.floors,
+    }
+    if (body.archived !== undefined) {
+      data.archived = body.archived
+    }
+
     const property = await db.property.update({
       where: { id: body.id },
-      data: {
-        name: body.name,
-        nameAr: body.nameAr || null,
-        type: body.type,
-        address: body.address || null,
-        totalUnits: body.totalUnits,
-      },
+      data,
     })
     return NextResponse.json(property)
   } catch (error) {

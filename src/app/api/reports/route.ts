@@ -28,6 +28,15 @@ export async function GET(req: NextRequest) {
     const totalRevenue = monthlyPayments.reduce((sum, p) => sum + p.amount, 0)
     const expectedRevenue = tenants.reduce((sum, t) => sum + t.rentAmount, 0)
 
+    // Rental income = total collected rent for the month
+    const rentalIncome = totalRevenue
+
+    // Other income (non-rent payments, if any - for now 0)
+    const otherIncome = 0
+
+    // Gross revenue
+    const grossRevenue = rentalIncome + otherIncome
+
     // Expenses for target month
     const monthlyExpenses = expenses.filter(e => {
       const d = new Date(e.date)
@@ -41,12 +50,26 @@ export async function GET(req: NextRequest) {
       expenseBreakdown[e.category] = (expenseBreakdown[e.category] || 0) + e.amount
     }
 
+    // Vacancy loss: expected revenue from vacant units
+    const properties = await db.property.findMany({ where: { companyId: company.id, archived: false } })
+    const totalUnits = properties.reduce((sum, p) => sum + p.totalUnits, 0)
+    const occupiedUnits = tenants.length
+    const vacantUnits = Math.max(0, totalUnits - occupiedUnits)
+    const avgRent = tenants.length > 0 ? tenants.reduce((sum, t) => sum + t.rentAmount, 0) / tenants.length : 0
+    const vacancyLoss = vacantUnits * avgRent
+
+    // Bad debt: uncollected rent from active tenants
+    const badDebt = Math.max(0, expectedRevenue - totalRevenue)
+
+    // Cost of operations = total expenses
+    const costOfOperations = totalExpenses
+
+    // Profit calculations
+    const grossProfit = grossRevenue - vacancyLoss - badDebt
+    const netIncome = grossProfit - costOfOperations
     const profitLoss = totalRevenue - totalExpenses
 
     // Occupancy
-    const properties = await db.property.findMany({ where: { companyId: company.id } })
-    const totalUnits = properties.reduce((sum, p) => sum + p.totalUnits, 0)
-    const occupiedUnits = tenants.length
     const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0
 
     // Collection rate
@@ -85,6 +108,15 @@ export async function GET(req: NextRequest) {
       expenseBreakdown,
       monthlyExpenses,
       trend,
+      // P&L fields
+      rentalIncome,
+      otherIncome,
+      grossRevenue,
+      vacancyLoss,
+      badDebt,
+      grossProfit,
+      costOfOperations,
+      netIncome,
     })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })
