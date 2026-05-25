@@ -82,9 +82,9 @@ interface DataState {
 
 const DEFAULT_COMPANY: CompanyInfo = {
   id: 'company-1',
-  name: 'Al Reef Al Janoubi Real Estate',
+  name: 'Al Reef Al Junoobi Real Estate',
   nameAr: 'الريف الجنوبي للعقارات',
-  nameBn: 'আল রিফ আল জানুবি রিয়েল এস্টেট',
+  nameBn: 'আল রিফ আল জুনুবি রিয়েল এস্টেট',
   nameUr: 'الریف الجنوبی ریئل اسٹیٹ',
   phone: '+971-2-555-0199',
   email: 'info@alreefjanoubi.ae',
@@ -96,9 +96,9 @@ const DEFAULT_USERS: LocalUser[] = [
     id: 'user-owner',
     email: 'owner@alreef.ae',
     password: 'owner123',
-    name: 'Ahmed Al Janoubi',
+    name: 'Ahmed Al Junoobi',
     nameAr: 'أحمد الجنوبي',
-    nameBn: 'আহমেদ আল জানুবি',
+    nameBn: 'আহমেদ আল জুনুবি',
     nameUr: 'احمد الجنوبی',
     role: 'owner',
     companyId: 'company-1',
