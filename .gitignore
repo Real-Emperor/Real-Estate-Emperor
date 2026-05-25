@@ -1,7 +1,5 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
-node_modules
+/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -30,53 +28,21 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files
+.env
+.env*.local
 
 # vercel
 .vercel
 
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-local-*
-.claude
-.z-ai-config
-*.log
-dev.log
-dev.out.log
-test
-prompt
 
-server.log
-# Skills directory
-/skills/
-
-# Sandbox and build artifacts
-.zscripts/
-.z-ai-config
-.claude
-agent-ctx/
-mini-services/
-
-# Database (will be created on first run)
+# prisma
 db/*.db
+db/*.db-journal
 
-# Dev logs
+# dev logs
 dev.log
-dev.out.log
-server.log
-
-# Old utility scripts from previous sessions
-/generate_*.js
-/generate_*.py
-/murjan_*.json
-/pos_search.json
-/create_pos.py
-
-# Download folder (generated files, not part of the app)
-/download/
-
-# Caddy config (server-specific)
-Caddyfile
+.zscripts/
