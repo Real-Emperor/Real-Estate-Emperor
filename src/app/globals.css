@@ -1,0 +1,205 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-emerald: #0D7C3D;
+  --color-gold: #C5A028;
+  --color-cream: #FFF8E7;
+  --color-deep-teal: #0A5C4E;
+  --color-terracotta: #C4653A;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #FFF8E7;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+  --primary: #0D7C3D;
+  --primary-foreground: #ffffff;
+  --secondary: #f0ebe0;
+  --secondary-foreground: #1a1a1a;
+  --muted: #f5f0e5;
+  --muted-foreground: #6b7280;
+  --accent: #C5A028;
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --border: #e5e0d5;
+  --input: #e5e0d5;
+  --ring: #0D7C3D;
+  --chart-1: #0D7C3D;
+  --chart-2: #C5A028;
+  --chart-3: #0A5C4E;
+  --chart-4: #C4653A;
+  --chart-5: #8b5cf6;
+  --sidebar: #0A5C4E;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #C5A028;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #0D7C3D;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255,255,255,0.1);
+  --sidebar-ring: #C5A028;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Islamic geometric pattern for sidebar */
+.islamic-pattern {
+  background-color: #0A5C4E;
+  background-image:
+    linear-gradient(30deg, rgba(197,160,40,0.06) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.06) 87.5%, rgba(197,160,40,0.06)),
+    linear-gradient(150deg, rgba(197,160,40,0.06) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.06) 87.5%, rgba(197,160,40,0.06)),
+    linear-gradient(30deg, rgba(197,160,40,0.06) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.06) 87.5%, rgba(197,160,40,0.06)),
+    linear-gradient(150deg, rgba(197,160,40,0.06) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.06) 87.5%, rgba(197,160,40,0.06)),
+    linear-gradient(60deg, rgba(255,255,255,0.03) 25%, transparent 25.5%, transparent 75%, rgba(255,255,255,0.03) 75%, rgba(255,255,255,0.03)),
+    linear-gradient(60deg, rgba(255,255,255,0.03) 25%, transparent 25.5%, transparent 75%, rgba(255,255,255,0.03) 75%, rgba(255,255,255,0.03));
+  background-size: 40px 70px;
+  background-position: 0 0, 0 0, 20px 35px, 20px 35px, 0 0, 20px 35px;
+}
+
+/* Pulse animation for overdue alerts */
+@keyframes overdue-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.overdue-pulse {
+  animation: overdue-pulse 1.5s ease-in-out infinite;
+}
+
+/* Fade in up animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+/* Stagger children animation */
+.stagger-children > * {
+  opacity: 0;
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.35s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.4s; }
+.stagger-children > *:nth-child(9) { animation-delay: 0.45s; }
+.stagger-children > *:nth-child(10) { animation-delay: 0.5s; }
+.stagger-children > *:nth-child(n+11) { animation-delay: 0.55s; }
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.25);
+}
+
+/* RTL support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Status card glow */
+.status-paid {
+  box-shadow: 0 0 0 2px #0D7C3D, 0 0 12px rgba(13,124,61,0.2);
+}
+
+.status-overdue {
+  box-shadow: 0 0 0 2px #dc2626, 0 0 12px rgba(220,38,38,0.3);
+}
+
+.status-partial {
+  box-shadow: 0 0 0 2px #f59e0b, 0 0 12px rgba(245,158,11,0.2);
+}
+
+/* Print styles for reports */
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  body { background: white !important; }
+}
