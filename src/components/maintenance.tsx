@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { MaintenanceData, PropertyData } from '@/lib/types'
 import { useAppStore } from '@/lib/store'
+import { useDataStore } from '@/lib/data-store'
 import { formatAED, formatDate, getPriorityColor, getMaintenanceStatusColor } from '@/lib/utils'
 import { t, getNameByLang, getMaintenanceCategoryLabel, type Language } from '@/lib/i18n'
 import { Card, CardContent } from '@/components/ui/card'
@@ -30,11 +31,11 @@ export default function Maintenance() {
     category: '', vendor: '', estimatedCost: 0, actualCost: 0, propertyId: '',
   })
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(() => {
     try {
-      const [mRes, pRes] = await Promise.all([fetch('/api/maintenance'), fetch('/api/properties')])
-      if (mRes.ok) setItems(await mRes.json())
-      if (pRes.ok) setProperties(await pRes.json())
+      const store = useDataStore.getState()
+      setItems(store.maintenanceItems)
+      setProperties(store.getPropertiesWithTenants())
     } catch (e) {
       console.error(e)
     } finally {
@@ -60,7 +61,8 @@ export default function Maintenance() {
     setDialogOpen(true)
   }
 
-  const handleSave = async () => {
+  const handleSave = () => {
+    const store = useDataStore.getState()
     const body = {
       ...form,
       category: form.category || null,
@@ -70,32 +72,26 @@ export default function Maintenance() {
       propertyId: form.propertyId && form.propertyId !== 'none' ? form.propertyId : null,
     }
     if (editing) {
-      await fetch('/api/maintenance', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editing.id, ...body }) })
+      store.updateMaintenance(editing.id, body)
     } else {
-      await fetch('/api/maintenance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      store.addMaintenance(body)
     }
     setDialogOpen(false)
     fetchData()
   }
 
-  const updateStatus = async (id: string, newStatus: string) => {
-    const item = items.find(i => i.id === id)
-    if (!item) return
-    await fetch('/api/maintenance', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id, title: item.title, description: item.description, priority: item.priority,
-        status: newStatus, category: item.category, vendor: item.vendor,
-        estimatedCost: item.estimatedCost, actualCost: item.actualCost, propertyId: item.propertyId,
-      }),
-    })
+  const updateStatus = (id: string, newStatus: string) => {
+    const updates: any = { status: newStatus }
+    if (newStatus === 'completed') {
+      updates.completedAt = new Date().toISOString()
+    }
+    useDataStore.getState().updateMaintenance(id, updates)
     fetchData()
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (!confirm(t('deleteTask', lang))) return
-    await fetch(`/api/maintenance?id=${id}`, { method: 'DELETE' })
+    useDataStore.getState().deleteMaintenance(id)
     fetchData()
   }
 

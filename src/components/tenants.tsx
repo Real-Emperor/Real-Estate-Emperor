@@ -5,6 +5,7 @@ import type { TenantData, PropertyData } from '@/lib/types'
 import { t, getNameByLang, getWhatsAppLink, getTenantScoreLabel, getTenantScoreColor, type Language } from '@/lib/i18n'
 import { cn2, formatAED, formatDate, getStatusColor } from '@/lib/utils'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
+import { useDataStore } from '@/lib/data-store'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -119,11 +120,11 @@ export default function Tenants() {
 
   const isPrivileged = authUser ? isOwnerOrAdmin(authUser.role) : true
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(() => {
     try {
-      const [tRes, pRes] = await Promise.all([fetch('/api/tenants'), fetch('/api/properties')])
-      if (tRes.ok) setTenants(await tRes.json())
-      if (pRes.ok) setProperties(await pRes.json())
+      const store = useDataStore.getState()
+      setTenants(store.getTenantsWithRelations())
+      setProperties(store.getPropertiesWithTenants())
     } catch (e) {
       console.error(e)
     } finally {
@@ -176,13 +177,13 @@ export default function Tenants() {
     setProfileOpen(true)
   }
 
-  const handleSave = async () => {
+  const handleSave = () => {
     setSaving(true)
     try {
+      const store = useDataStore.getState()
       const rentAmount = Number(form.rentAmount) || 0
-      // Auto-calculate municipality fee if empty
       const muniFee = form.municipalityFee ? Number(form.municipalityFee) : Math.round(rentAmount * 0.05)
-      const body = {
+      const body: any = {
         ...form,
         rentAmount,
         municipalityFee: muniFee,
@@ -192,17 +193,9 @@ export default function Tenants() {
         contractDuration: form.contractDuration ? Number(form.contractDuration) : null,
       }
       if (editing) {
-        await fetch('/api/tenants', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editing.id, ...body }),
-        })
+        store.updateTenant(editing.id, body)
       } else {
-        await fetch('/api/tenants', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        })
+        store.addTenant(body)
       }
       setDialogOpen(false)
       fetchData()
@@ -211,9 +204,9 @@ export default function Tenants() {
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (!confirm(t('deleteTenant', language))) return
-    await fetch(`/api/tenants?id=${id}`, { method: 'DELETE' })
+    useDataStore.getState().deleteTenant(id)
     fetchData()
   }
 

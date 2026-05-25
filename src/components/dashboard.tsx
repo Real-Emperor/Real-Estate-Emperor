@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { DashboardData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
+import { useDataStore } from '@/lib/data-store'
 import { formatAED, getPaymentStatusColor, cn2 } from '@/lib/utils'
 import { t, getMonthName, getNameByLang, getWhatsAppLink, type Language } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,12 +41,11 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(() => {
     try {
-      const res = await fetch('/api/dashboard')
-      if (res.ok) {
-        const json = await res.json()
-        setData(json)
+      const dashboardData = useDataStore.getState().getDashboardData()
+      if (dashboardData) {
+        setData(dashboardData)
       }
     } catch (e) {
       console.error('Dashboard fetch error:', e)
@@ -73,8 +73,8 @@ export default function Dashboard() {
           {t('noData', lang)}
         </p>
         <Button
-          onClick={async () => {
-            await fetch('/api/seed', { method: 'POST' })
+          onClick={() => {
+            useDataStore.getState().seedData()
             fetchData()
           }}
           className="bg-emerald hover:bg-emerald/90"

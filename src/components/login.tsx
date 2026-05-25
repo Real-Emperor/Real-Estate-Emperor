@@ -23,18 +23,27 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-
-      if (res.ok) {
-        const user = await res.json()
-        login(user)
+      // Use local data store instead of API
+      const { useDataStore } = await import('@/lib/data-store')
+      const user = useDataStore.getState().authenticate(email, password)
+      if (user) {
+        // Convert LocalUser to AuthUser format
+        login({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          nameAr: user.nameAr,
+          nameBn: user.nameBn,
+          nameUr: user.nameUr,
+          role: user.role,
+          companyId: user.companyId,
+        })
+        // Auto-seed data if not seeded
+        if (!useDataStore.getState().isSeeded) {
+          useDataStore.getState().seedData()
+        }
       } else {
-        const data = await res.json()
-        setError(data.error || t('loginError', language))
+        setError(t('loginError', language))
       }
     } catch {
       setError(t('loginError', language))

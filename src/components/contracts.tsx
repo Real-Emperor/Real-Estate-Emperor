@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { TenantData } from '@/lib/types'
 import { useAppStore } from '@/lib/store'
+import { useDataStore } from '@/lib/data-store'
 import { t, getNameByLang, getMonthName } from '@/lib/i18n'
 import { formatAED, formatDate, cn2 } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
@@ -18,10 +19,10 @@ export default function Contracts() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'expiring' | 'expired' | 'active'>('all')
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(() => {
     try {
-      const res = await fetch('/api/tenants')
-      if (res.ok) setTenants(await res.json())
+      const tenants = useDataStore.getState().getTenantsWithRelations()
+      setTenants(tenants)
     } catch (e) {
       console.error(e)
     } finally {

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { ExpenseData, PropertyData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
+import { useDataStore } from '@/lib/data-store'
 import { formatAED, formatDate, getCategoryIcon } from '@/lib/utils'
 import { t, getExpenseCategoryLabel, getNameByLang, type Language } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -36,11 +37,11 @@ export default function Expenses() {
   // Access control: Owner/Admin only
   const canAccess = authUser && isOwnerOrAdmin(authUser.role)
 
-  const fetchExpenses = useCallback(async () => {
+  const fetchExpenses = useCallback(() => {
     try {
-      const [eRes, pRes] = await Promise.all([fetch('/api/expenses'), fetch('/api/properties')])
-      if (eRes.ok) setExpenses(await eRes.json())
-      if (pRes.ok) setProperties(await pRes.json())
+      const store = useDataStore.getState()
+      setExpenses(store.expenses)
+      setProperties(store.getPropertiesWithTenants())
     } catch (e) {
       console.error(e)
     } finally {
@@ -71,7 +72,8 @@ export default function Expenses() {
     setDialogOpen(true)
   }
 
-  const handleSave = async () => {
+  const handleSave = () => {
+    const store = useDataStore.getState()
     const body = {
       ...form,
       amount: Number(form.amount),
@@ -81,17 +83,17 @@ export default function Expenses() {
       building: form.building || null,
     }
     if (editing) {
-      await fetch('/api/expenses', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editing.id, ...body }) })
+      store.updateExpense(editing.id, body)
     } else {
-      await fetch('/api/expenses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      store.addExpense(body)
     }
     setDialogOpen(false)
     fetchExpenses()
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (!confirm(t('deleteExpense', lang))) return
-    await fetch(`/api/expenses?id=${id}`, { method: 'DELETE' })
+    useDataStore.getState().deleteExpense(id)
     fetchExpenses()
   }
 

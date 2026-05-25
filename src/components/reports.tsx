@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { ReportData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
+import { useDataStore } from '@/lib/data-store'
 import { formatAED, getCategoryIcon } from '@/lib/utils'
 import { t, getMonthName, getExpenseCategoryLabel, type Language } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -55,10 +56,10 @@ export default function Reports() {
   // Access control: Owner/Admin only
   const canAccess = authUser && isOwnerOrAdmin(authUser.role)
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(() => {
     try {
-      const res = await fetch(`/api/reports?month=${selectedMonth}&year=${selectedYear}`)
-      if (res.ok) setData(await res.json())
+      const reportData = useDataStore.getState().getReportData(selectedMonth, selectedYear)
+      if (reportData) setData(reportData)
     } catch (e) {
       console.error(e)
     } finally {

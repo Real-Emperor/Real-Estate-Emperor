@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { TenantData, PropertyData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
+import { useDataStore } from '@/lib/data-store'
 import { formatAED, getPaymentStatusColor, cn2 } from '@/lib/utils'
 import { t, getMonthName, getNameByLang, getWhatsAppLink, type Language } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,10 +28,10 @@ export default function RentCollection() {
 
   const canSeeRevenue = isOwnerOrAdmin(authUser?.role || '')
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(() => {
     try {
-      const res = await fetch('/api/tenants')
-      if (res.ok) setTenants(await res.json())
+      const tenants = useDataStore.getState().getTenantsWithRelations()
+      setTenants(tenants)
     } catch (e) {
       console.error(e)
     } finally {
@@ -81,21 +82,20 @@ export default function RentCollection() {
     setPayDialogOpen(true)
   }
 
-  const handlePay = async () => {
+  const handlePay = () => {
     if (!payingTenant) return
-    await fetch('/api/payments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tenantId: payingTenant.id,
-        amount: payForm.amount,
-        date: new Date().toISOString(),
-        month: selectedMonth,
-        year: selectedYear,
-        method: payForm.method,
-        reference: payForm.reference,
-        notes: payForm.notes,
-      }),
+    useDataStore.getState().addPayment({
+      tenantId: payingTenant.id,
+      amount: payForm.amount,
+      date: new Date().toISOString(),
+      month: selectedMonth,
+      year: selectedYear,
+      method: payForm.method,
+      reference: payForm.reference || null,
+      receiptNumber: null,
+      notes: payForm.notes || null,
+      isLate: false,
+      daysLate: 0,
     })
     setPayDialogOpen(false)
     fetchData()

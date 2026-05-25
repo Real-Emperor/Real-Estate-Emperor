@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { PropertyData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
+import { useDataStore } from '@/lib/data-store'
 import { formatAED, cn2 } from '@/lib/utils'
 import { t, getPropertyTypeLabel, getNameByLang, type Language } from '@/lib/i18n'
 import { Card, CardContent } from '@/components/ui/card'
@@ -34,13 +35,10 @@ export default function Properties() {
 
   const canSeeRevenue = isOwnerOrAdmin(authUser?.role || '')
 
-  const fetchProperties = useCallback(async () => {
+  const fetchProperties = useCallback(() => {
     try {
-      const res = await fetch(`/api/properties${showArchived ? '?includeArchived=true' : ''}`)
-      if (res.ok) {
-        const data = await res.json()
-        setProperties(data)
-      }
+      const data = useDataStore.getState().getPropertiesWithTenants(showArchived)
+      setProperties(data)
     } catch (e) {
       console.error(e)
     } finally {
@@ -71,29 +69,25 @@ export default function Properties() {
     setDialogOpen(true)
   }
 
-  const handleSave = async () => {
+  const handleSave = () => {
     const body = { ...form, totalUnits: Number(form.totalUnits), floors: Number(form.floors) }
     if (editing) {
-      await fetch('/api/properties', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editing.id, ...body }) })
+      useDataStore.getState().updateProperty(editing.id, body)
     } else {
-      await fetch('/api/properties', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      useDataStore.getState().addProperty(body)
     }
     setDialogOpen(false)
     fetchProperties()
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (!confirm(t('deleteProperty', language))) return
-    await fetch(`/api/properties?id=${id}`, { method: 'DELETE' })
+    useDataStore.getState().deleteProperty(id)
     fetchProperties()
   }
 
-  const handleArchive = async (id: string, archived: boolean) => {
-    await fetch('/api/properties', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, archived }),
-    })
+  const handleArchive = (id: string, archived: boolean) => {
+    useDataStore.getState().archiveProperty(id, archived)
     fetchProperties()
   }
 
