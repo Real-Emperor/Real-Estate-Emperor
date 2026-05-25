@@ -52,3 +52,31 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Sandbox and build artifacts
+.zscripts/
+.z-ai-config
+.claude
+agent-ctx/
+mini-services/
+
+# Database (will be created on first run)
+db/*.db
+
+# Dev logs
+dev.log
+dev.out.log
+server.log
+
+# Old utility scripts from previous sessions
+/generate_*.js
+/generate_*.py
+/murjan_*.json
+/pos_search.json
+/create_pos.py
+
+# Download folder (generated files, not part of the app)
+/download/
+
+# Caddy config (server-specific)
+Caddyfile
