@@ -19,7 +19,7 @@ export const translations = {
   // Auth
   login: { en: 'Sign In', ar: 'تسجيل الدخول', bn: 'সাইন ইন', ur: 'سائن ان' },
   loginTitle: { en: 'Property Dashboard', ar: 'لوحة التحكم العقارية', bn: 'সম্পত্তি ড্যাশবোর্ড', ur: 'پراپرٹی ڈیش بورڈ' },
-  loginSubtitle: { en: 'Al Reef Al Junoobi Real Estate', ar: 'الريف الجنوبي للعقارات', bn: 'আল রিফ আল জুনুবি রিয়েল এস্টেট', ur: 'الریف الجنوبی ریئل اسٹیٹ' },
+  loginSubtitle: { en: 'Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.', ar: 'الريف الجنوبي للعقارات والصيانة العامة ذ.م.م', bn: 'আল রিফ আল জুনুবি রিয়েল এস্টেট অ্যান্ড জেনারেল মেইনটেন্যান্স এলএলসি', ur: 'الریف الجنوبی ریئل اسٹیٹ اینڈ جنرل مینٹیننس لمیٹڈ' },
   email: { en: 'Email Address', ar: 'البريد الإلكتروني', bn: 'ইমেইল ঠিকানা', ur: 'ای میل ایڈریس' },
   password: { en: 'Password', ar: 'كلمة المرور', bn: 'পাসওয়ার্ড', ur: 'پاس ورڈ' },
   signInButton: { en: 'Sign In', ar: 'دخول', bn: 'সাইন ইন', ur: 'سائن ان' },
@@ -309,10 +309,10 @@ export function getWhatsAppLink(phone: string, name: string, amount: number, mon
   const amountStr = new Intl.NumberFormat('en-AE').format(amount) + ' AED'
 
   const messages: Record<Language, string> = {
-    en: `Dear ${name}, this is a reminder that your rent of ${amountStr} for ${monthName} ${year} is overdue. Please arrange payment at your earliest convenience. — Al Reef Al Junoobi Real Estate`,
-    ar: `عزيزي ${name}، تذكير بأن إيجارك بمبلغ ${amountStr} لشهر ${monthName} ${year} متأخر. يرجى ترتيب الدفع في أقرب وقت ممكن. — الريف الجنوبي`,
-    bn: `প্রিয় ${name}, এটি স্মরণ করিয়ে দিচ্ছে যে আপনার ${monthName} ${year} এর জন্য ${amountStr} ভাড়া বকেয়া রয়েছে। দয়া করে শীঘ্রই পেমেন্টের ব্যবস্থা করুন। — আল রিফ আল জুনুবি রিয়েল এস্টেট`,
-    ur: `محترم ${name}، یہ یاد دہانی ہے کہ آپ کا ${monthName} ${year} کے لیے ${amountStr} کرایہ باقاعدہ ہے۔ براہ کرم جلد ادائیگی کا بندوبست کریں۔ — الريف الجنوبی`,
+    en: `Dear ${name}, this is a reminder that your rent of ${amountStr} for ${monthName} ${year} is overdue. Please arrange payment at your earliest convenience. — Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.`,
+    ar: `عزيزي ${name}، تذكير بأن إيجارك بمبلغ ${amountStr} لشهر ${monthName} ${year} متأخر. يرجى ترتيب الدفع في أقرب وقت ممكن. — الريف الجنوبي للعقارات والصيانة العامة ذ.م.م`,
+    bn: `প্রিয় ${name}, এটি স্মরণ করিয়ে দিচ্ছে যে আপনার ${monthName} ${year} এর জন্য ${amountStr} ভাড়া বকেয়া রয়েছে। দয়া করে শীঘ্রই পেমেন্টের ব্যবস্থা করুন। — আল রিফ আল জুনুবি রিয়েল এস্টেট অ্যান্ড জেনারেল মেইনটেন্যান্স এলএলসি`,
+    ur: `محترم ${name}، یہ یاد دہانی ہے کہ آپ کا ${monthName} ${year} کے لیے ${amountStr} کرایہ باقاعدہ ہے۔ براہ کرم جلد ادائیگی کا بندوبست کریں۔ — الريف الجنوبی للعقارات والصيانة العامة ذ.م.م`,
   }
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(messages[lang] || messages.en)}`
