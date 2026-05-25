@@ -308,7 +308,7 @@ for i, label in enumerate(setup_labels):
         run.font.size = Pt(14)
 
 # Monthly fee row
-monthly_labels = ["Monthly (Hosting, Maintenance & Updates)", "1,500 AED", "800 AED"]
+monthly_labels = ["Monthly (Hosting, Maintenance & Updates)", "1,500 AED", "1,000 AED"]
 for i, label in enumerate(monthly_labels):
     cell = pricing_table.cell(2, i)
     if i == 0:
@@ -350,7 +350,7 @@ p = cell_savings.paragraphs[0]
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_before = Pt(6)
 p.paragraph_format.space_after = Pt(6)
-run = p.add_run("2,000 AED setup + 700 AED/month = 10,400 AED saved in Year 1")
+run = p.add_run("2,000 AED setup + 500 AED/month = 8,000 AED saved in Year 1")
 run.font.size = Pt(11)
 run.font.bold = True
 run.font.color.rgb = GOLD_DARK
@@ -514,7 +514,7 @@ for i, label in enumerate(bn_setup):
         run.font.size = Pt(14)
 
 # Monthly fee row
-bn_monthly = ["মাসিক (হোস্টিং, রক্ষণাবেক্ষণ ও আপডেট)", "১,৫০০ AED", "৮০০ AED"]
+bn_monthly = ["মাসিক (হোস্টিং, রক্ষণাবেক্ষণ ও আপডেট)", "১,৫০০ AED", "১,০০০ AED"]
 for i, label in enumerate(bn_monthly):
     cell = pricing_table2.cell(2, i)
     if i == 0:
@@ -555,7 +555,7 @@ p = cell_savings2.paragraphs[0]
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_before = Pt(6)
 p.paragraph_format.space_after = Pt(6)
-run = p.add_run("২,০০০ AED সেটআপ + ৭০০ AED/মাস = প্রথম বছরে ১০,৪০০ AED সাশ্রয়")
+run = p.add_run("২,০০০ AED সেটআপ + ৫০০ AED/মাস = প্রথম বছরে ৮,০০০ AED সাশ্রয়")
 run.font.size = Pt(11)
 run.font.bold = True
 run.font.color.rgb = GOLD_DARK
