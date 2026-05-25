@@ -1,791 +1,470 @@
-# Al Reef Al Junoobi - Technical Handover Document
+# Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.
+# Property Dashboard — Technical Handover Document
 
-**Project:** Al Reef Al Junoobi Real Estate & General Maintenance L.L.C. Property Dashboard  
-**Version:** 0.2.0  
-**Live URL:** https://al-reef-al-junoobi.vercel.app  
-**Deployment:** Vercel (Framework: Next.js)  
-**Repository:** GitHub (private)  
-**Date:** 2026-05-26
+| Field | Value |
+|---|---|
+| **Version** | 0.2.0 |
+| **Date** | 2026-05-26 |
+| **Live URL** | https://al-reef-al-junoobi.vercel.app |
+| **GitHub** | Private repository |
+| **Deployment** | Vercel (Next.js framework) |
+| **Owner** | Shafiul Azam (شفيول أعظم / শাফিউল আযম / شفیول اعظم) |
+
+---
+
+## Demo Credentials
+
+| Role | Email | Password | Name |
+|---|---|---|---|
+| **Owner** | owner@alreef.ae | owner123 | Shafiul Azam |
+| **Staff** | staff@alreef.ae | staff123 | Karim Hossain |
+
+---
+
+## Table of Contents
+
+1. [Project Overview](#1-project-overview)
+2. [Tech Stack](#2-tech-stack)
+3. [Architecture](#3-architecture)
+4. [Authentication System](#4-authentication-system)
+5. [Data Layer](#5-data-layer)
+6. [Internationalization (i18n)](#6-internationalization-i18n)
+7. [Role-Based Access Control (RBAC)](#7-role-based-access-control-rbac)
+8. [Feature Modules](#8-feature-modules)
+9. [Design System](#9-design-system)
+10. [Deployment](#10-deployment)
+11. [Environment Variables](#11-environment-variables)
+12. [Full Source Code](#12-full-source-code)
+13. [Changelog](#13-changelog)
 
 ---
 
 ## 1. Project Overview
 
-Al Reef Al Junoobi is a custom-built, multi-tenant property management dashboard designed for a Bengali family-run real estate company operating in Abu Dhabi, UAE. The system manages residential and commercial rental properties, tracks tenant payments, handles maintenance requests, monitors expenses, and generates financial reports. It was built with an Islamic Bengali identity design system, supporting four languages (English, Arabic, Bengali, Urdu) with full RTL support for Arabic and Urdu.
+**Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.** Property Dashboard is a comprehensive, multilingual property management application designed for a UAE-based real estate company. The system manages properties, tenants, rent collection, maintenance requests, expenses, financial reports, and contract tracking.
 
-The application is a single-page app (SPA) built on Next.js 16 with the App Router pattern. It uses client-side Zustand stores with localStorage persistence instead of a traditional backend database, making it instantly deployable without server infrastructure. Authentication is handled locally with role-based access control (Owner/Admin/Staff), where Staff users cannot view financial data.
+### Key Features
+
+- **4-Language Support**: English, Arabic (RTL), Bengali, Urdu (RTL) — tenant name forms use EN+AR only
+- **Role-Based Access**: Owner/Admin see financial data; Staff see operational data only
+- **WhatsApp Integration**: One-click rent reminders via WhatsApp with UAE phone number formatting
+- **Real-Time Dashboard**: Overdue alerts, payment status board, revenue trends
+- **Kanban Maintenance Board**: Pending → In Progress → Completed workflow
+- **P&L Reports**: Profit & Loss with 6-month trends, expense breakdowns, revenue analysis
+- **Contract Tracker**: Expiring/expired contract alerts with renewal management
+- **Client-Side Persistence**: All data stored in localStorage via Zustand persist
+- **Islamic/Bengali Design Theme**: Emerald, gold, deep-teal color palette with geometric patterns
+
+### Important Design Decisions
+
+- **No backend database**: All data is stored client-side using Zustand + localStorage persistence. This means data is per-browser and not shared across devices.
+- **No server authentication**: Authentication is performed locally against hardcoded user credentials in `data-store.ts`.
+- **Tenant name form simplified**: Only English (mandatory) and Arabic (optional) name fields in the add/edit tenant dialog. Bengali and Urdu name inputs have been removed from the form UI, though the data model still supports all 4 languages everywhere else.
 
 ---
 
 ## 2. Tech Stack
 
-| Technology | Version | Purpose |
-|---|---|---|
-| Next.js | 16.1.1 | React framework (App Router) |
-| React | 19.0.0 | UI library |
-| TypeScript | 5.x | Type safety |
-| Tailwind CSS | 4.x | Utility-first styling |
-| shadcn/ui | New York style | UI component library |
-| Zustand | 5.0.6 | State management + localStorage persistence |
-| Recharts | 2.15.4 | Data visualization (Bar, Pie, Area charts) |
-| Radix UI | Various | Accessible primitives for shadcn/ui |
-| Lucide React | 0.525.0 | Icon library |
-| date-fns | 4.1.0 | Date formatting |
-| react-hook-form + Zod | 7.60 / 4.0 | Form validation |
-| next-intl | 4.3.4 | Internationalization |
-| Bun | Latest | Package manager & runtime |
-| Vercel | - | Deployment platform |
+| Category | Technology |
+|---|---|
+| **Framework** | Next.js 16 (App Router) |
+| **Language** | TypeScript 5 |
+| **Styling** | Tailwind CSS 4 + shadcn/ui (New York style) |
+| **State Management** | Zustand 5 (with persist middleware) |
+| **Charts** | Recharts 2.15 |
+| **Icons** | Lucide React |
+| **UI Components** | Full shadcn/ui component set |
+| **Fonts** | Geist Sans + Geist Mono |
+| **Deployment** | Vercel |
+
+### Key Dependencies (from package.json)
+
+```json
+{
+  "next": "^16.1.1",
+  "react": "^19.0.0",
+  "react-dom": "^19.0.0",
+  "zustand": "^5.0.6",
+  "recharts": "^2.15.4",
+  "lucide-react": "^0.525.0",
+  "tailwindcss": "^4",
+  "typescript": "^5"
+}
+```
 
 ---
 
 ## 3. Architecture
 
-### 3.1 Application Structure
-
-The app follows the Next.js App Router pattern with a single page (`src/app/page.tsx`) that renders different feature components based on navigation state. There is no server-side rendering of data; all data lives in Zustand stores persisted to localStorage.
+### Application Structure
 
 ```
 src/
-  app/
-    layout.tsx          # Root layout (fonts, metadata, Toaster)
-    page.tsx            # Main SPA page (renders current module)
-    globals.css         # Global styles + Islamic design system
-    api/
-      route.ts          # Health check endpoint
-  components/
-    login.tsx           # Login page with 4-language selector
-    sidebar.tsx         # Navigation sidebar with Islamic pattern
-    dashboard.tsx       # Overview with stats, charts, payment board
-    properties.tsx      # Property CRUD with archive support
-    tenants.tsx         # Full tenant management with profile view
-    rent-collection.tsx # Monthly rent tracking with WhatsApp reminders
-    maintenance.tsx     # Kanban board for maintenance tasks
-    expenses.tsx        # Expense tracking (Owner/Admin only)
-    reports.tsx         # P&L reports with charts (Owner/Admin only)
-    contracts.tsx       # Contract expiry tracker
-    ui/                 # 52 shadcn/ui components
-  hooks/
-    use-mobile.ts       # Mobile breakpoint detection
-    use-toast.ts        # Toast notification system
-  lib/
-    types.ts            # TypeScript interfaces
-    i18n.ts             # 4-language translation system
-    store.ts            # Auth + navigation state (Zustand)
-    data-store.ts       # All data CRUD + seed data (Zustand)
-    utils.ts            # Formatting + color helpers
+├── app/
+│   ├── layout.tsx          # Root layout with fonts, metadata, Toaster
+│   ├── page.tsx            # Main SPA page with routing logic
+│   ├── globals.css         # Tailwind + custom CSS + Islamic patterns
+│   └── api/
+│       └── route.ts        # Health check API endpoint
+├── lib/
+│   ├── types.ts            # TypeScript interfaces for all data models
+│   ├── i18n.ts             # 4-language translation system + helpers
+│   ├── store.ts            # Auth/navigation/language Zustand store
+│   ├── data-store.ts       # Business data Zustand store + seed data
+│   └── utils.ts            # Utility functions (formatAED, colors, etc.)
+├── components/
+│   ├── login.tsx           # Login page with Islamic pattern background
+│   ├── sidebar.tsx         # Navigation sidebar with role-based items
+│   ├── dashboard.tsx       # Dashboard with stats, charts, payment board
+│   ├── properties.tsx      # Property CRUD with archive/sell support
+│   ├── tenants.tsx         # Tenant CRUD with profile, scores, WhatsApp
+│   ├── rent-collection.tsx # Rent collection with month navigation
+│   ├── maintenance.tsx     # Kanban board for maintenance tasks
+│   ├── expenses.tsx        # Expense tracking with category filters
+│   ├── reports.tsx         # Financial reports, P&L, charts
+│   └── contracts.tsx       # Contract tracker with expiry alerts
+└── components/ui/          # shadcn/ui component library
 ```
 
-### 3.2 Data Flow
+### Data Flow
 
-1. User logs in via `login.tsx` -> authenticates against `useDataStore` users
-2. On first login, seed data is auto-loaded (4 buildings, 20 tenants, 6 months of payments, expenses, maintenance)
-3. All CRUD operations go through `useDataStore` Zustand actions
-4. State is persisted to localStorage under keys `al-reef-storage` and `al-reef-data-store`
-5. Components read data via `useDataStore.getState().getXxx()` methods
+```
+User Action → Component → Zustand Store → localStorage (persist)
+                         ↕
+                    React Re-render
+```
 
-### 3.3 No Backend API
+### Routing
 
-The only API route is a health check at `/api/route.ts`. All data operations happen client-side through Zustand stores. This was a deliberate design choice for simplicity and zero infrastructure cost.
+The application is a **Single Page Application** (SPA) using client-side routing via Zustand state. The `currentPage` state in `store.ts` determines which component renders. There is no Next.js file-based routing beyond the root page.
 
 ---
 
 ## 4. Authentication System
 
-### 4.1 Local Authentication
+### Overview
 
-Authentication is handled entirely client-side. User credentials are stored in the `useDataStore` Zustand store:
+Authentication is entirely client-side. User credentials are hardcoded in `data-store.ts` as the `DEFAULT_USERS` array. There is no server-side session management or JWT tokens.
 
-| Role | Email | Password |
-|---|---|---|
-| Owner | owner@alreef.ae | owner123 |
-| Staff | staff@alreef.ae | staff123 |
+### Users
 
-### 4.2 Auth Flow
+| ID | Email | Password | Name | Role |
+|---|---|---|---|---|
+| `user-owner` | owner@alreef.ae | owner123 | Shafiul Azam | owner |
+| `user-staff` | staff@alreef.ae | staff123 | Karim Hossain | staff |
 
-1. User enters email + password on login page
-2. `handleLogin()` calls `useDataStore.getState().authenticate(email, password)`
-3. If matched, user object is stored in `useAppStore` (persisted to localStorage)
-4. Auto-seed: if `isSeeded === false`, seed data is loaded on first successful login
-5. Session persists across browser refreshes via localStorage
+### Auth Flow
 
-### 4.3 Session Storage
+1. User enters email + password on the login page
+2. `login.tsx` calls `useDataStore.getState().authenticate(email, password)`
+3. The `authenticate` method finds a user with matching email and compares passwords (plaintext)
+4. If matched, the user object is stored in the app store via `useAppStore.getState().login(user)`
+5. Auth state is persisted in localStorage under key `al-reef-storage`
+6. On subsequent visits, the persisted auth state is restored automatically
 
-Auth state is persisted under localStorage key `al-reef-storage` with:
-- `isAuthenticated: boolean`
-- `authUser: AuthUser | null`
-- `language: Language`
+### Auto-Seeding
+
+When a user logs in for the first time, if `isSeeded` is `false`, the system automatically calls `seedData()` to populate the store with sample data (4 properties, 20 tenants, 6 months of payments, 14 expenses, 7 maintenance items).
 
 ---
 
 ## 5. Data Layer
 
-### 5.1 Zustand Stores
+### Storage
 
-Two separate Zustand stores with `persist` middleware:
+All data is stored in the browser's localStorage using Zustand's `persist` middleware:
 
-**`useAppStore`** (key: `al-reef-storage`) - Auth, navigation, language, sidebar state
+- **App Store** (`al-reef-storage`): Auth state, language preference
+- **Data Store** (`al-reef-data-store`): Properties, tenants, payments, expenses, maintenance items
 
-**`useDataStore`** (key: `al-reef-data-store`) - All business data:
-- `company: CompanyInfo`
-- `users: LocalUser[]`
-- `properties: PropertyData[]`
-- `tenants: TenantData[]`
-- `payments: PaymentData[]`
-- `expenses: ExpenseData[]`
-- `maintenanceItems: MaintenanceData[]`
-- `isSeeded: boolean`
+### Data Models
 
-### 5.2 CRUD Operations
+See `src/lib/types.ts` for full TypeScript interfaces:
 
-Every entity has full Create, Read, Update, Delete operations:
-- Properties: add, update, delete, archive
-- Tenants: add, update, delete (cascades to payments)
-- Payments: add (auto-updates tenant score on late payment)
-- Expenses: add, update, delete
-- Maintenance: add, update, delete
+- **PropertyData**: Building details with name (4 languages), type, address, units, floors, archived status
+- **TenantData**: Full tenant profile with name (4 languages), contact info, Emirates ID, lease details, financial info, score
+- **PaymentData**: Rent payment records with amount, date, month/year, method, late status
+- **ExpenseData**: Operating expenses with category, vendor, invoice, recurring flag
+- **MaintenanceData**: Maintenance tasks with priority, status, category, costs, vendor
+- **ReportData**: Computed report data with P&L fields, trends, breakdowns
 
-### 5.3 Computed Data Methods
+### CRUD Operations
 
-- `getTenantsWithRelations()` - joins tenants with payments and properties
-- `getPropertiesWithTenants(includeArchived?)` - joins properties with active tenants
-- `getDashboardData()` - computes all dashboard stats, overdue lists, chart data
-- `getReportData(month, year)` - computes P&L, occupancy, collection rate, trends
+All CRUD operations are performed through the Zustand data store:
 
-### 5.4 Seed Data
+- `addProperty`, `updateProperty`, `deleteProperty`, `archiveProperty`
+- `addTenant`, `updateTenant`, `deleteTenant`
+- `addPayment` (also updates tenant score on late payments)
+- `addExpense`, `updateExpense`, `deleteExpense`
+- `addMaintenance`, `updateMaintenance`, `deleteMaintenance`
 
-The `createSeedData()` function generates:
-- 4 properties (Buildings A-D in Khalifa City A and Musaffah)
-- 20 tenants with diverse nationalities (Pakistani, Indian, Syrian, Jordanian, Egyptian, Emirati, Bangladeshi, Yemeni)
-- 6 months of payment history with realistic late payment patterns
-- 14 expense entries across categories
-- 7 maintenance tasks in various statuses
+### Computed Getters
+
+- `getTenantsWithRelations()`: Tenants with payments and property joined
+- `getPropertiesWithTenants(includeArchived)`: Properties with active tenants
+- `getDashboardData()`: Full dashboard stats, charts, alerts
+- `getReportData(month, year)`: Financial report with P&L
 
 ---
 
 ## 6. Internationalization (i18n)
 
-### 6.1 Supported Languages
+### Supported Languages
 
-| Code | Language | RTL |
-|---|---|---|
-| en | English | No |
-| ar | Arabic | Yes |
-| bn | Bengali | No |
-| ur | Urdu | Yes |
+| Code | Language | Direction | Native Name |
+|---|---|---|---|
+| `en` | English | LTR | English |
+| `ar` | Arabic | RTL | العربية |
+| `bn` | Bengali | LTR | বাংলা |
+| `ur` | Urdu | RTL | اردو |
 
-### 6.2 Translation System
+### Translation System
 
-All translations are defined in `src/lib/i18n.ts` as a single `translations` object with 200+ keys. The `t(key, lang)` function retrieves translations with English fallback.
+- All translations are in `src/lib/i18n.ts` as a single `translations` object
+- Each key maps to `{ en, ar, bn, ur }` values
+- The `t(key, lang)` function retrieves translations with English fallback
+- RTL languages (`ar`, `ur`) automatically set `document.documentElement.dir = 'rtl'`
 
-### 6.3 Multi-Language Names
+### Key i18n Functions
 
-All entities (Company, Properties, Tenants) have `name`, `nameAr`, `nameBn`, `nameUr` fields. The `getNameByLang(obj, lang)` helper returns the appropriate name based on current language.
+- `t(key, lang)`: Get translation for a key
+- `getNameByLang(obj, lang)`: Get localized name from an object with `name`, `nameAr`, `nameBn`, `nameUr`
+- `getMonthName(month, lang)`: Localized month names
+- `getWhatsAppLink(phone, name, amount, month, year, lang)`: Generate WhatsApp reminder URL with localized message
+- `getTenantScoreLabel(score, lang)`: Score labels (Excellent/Good/Warning/Poor)
+- `getPropertyTypeLabel(type, lang)`: Property type labels
+- `getMaintenanceCategoryLabel(category, lang)`: Maintenance category labels
+- `getExpenseCategoryLabel(category, lang)`: Expense category labels
 
-### 6.4 WhatsApp Messages
+### WhatsApp Link Phone Formatting
 
-WhatsApp reminder messages are generated in all 4 languages with proper formatting, addressing the tenant by name and including the overdue amount and month.
+The `getWhatsAppLink` function auto-converts phone numbers to UAE international format:
+- Numbers starting with `0` (local UAE format like `0501234567`) → prefixed with `971`
+- Numbers starting with `00` → stripped to bare country code
+- Numbers without a recognized country code → assumed UAE and prefixed with `971`
 
-### 6.5 RTL Support
+### Tenant Name Form Simplification
 
-When Arabic or Urdu is selected, `document.documentElement.dir` is set to `rtl` and `document.documentElement.lang` is updated. The sidebar and login page adjust layout accordingly.
+**Important**: The tenant add/edit dialog only shows **English (mandatory)** and **Arabic (optional)** name input fields. Bengali and Urdu name inputs were removed from the form UI to simplify the user experience. However:
+
+- The `TenantFormState` interface still includes `nameBn` and `nameUr` fields (empty strings by default)
+- The data model (`TenantData`) still stores all 4 language names
+- The `getNameByLang()` function still uses all 4 languages for display throughout the app
+- Seed data includes all 4 language names for every tenant
+- The property add/edit dialog still includes all 4 language name fields
 
 ---
 
 ## 7. Role-Based Access Control (RBAC)
 
-### 7.1 Roles
+### Roles
 
-| Role | Dashboard | Properties | Tenants | Rent | Maintenance | Expenses | Reports | Contracts |
-|---|---|---|---|---|---|---|---|---|
-| Owner | Full | Full | Full | Full | Full | Full | Full | Full |
-| Admin | Full | Full | Full | Full | Full | Full | Full | Full |
-| Staff | Limited | Full | Full | Limited | Full | Denied | Denied | Full |
+| Role | Can View Financial Data | Can Delete Tenants | Can Access Expenses | Can Access Reports |
+|---|---|---|---|---|
+| **Owner** | ✅ | ✅ | ✅ | ✅ |
+| **Admin** | ✅ | ✅ | ✅ | ✅ |
+| **Staff** | ❌ | ❌ | ❌ | ❌ |
 
-### 7.2 Financial Data Protection
+### Implementation
 
-Staff users see:
-- Dashboard: tenant counts, occupancy, but NO revenue/overdue amounts (shows lock icon + "Financial data is protected")
-- Rent Collection: NO rent amounts or remaining balances
-- Expenses: Access denied (shows lock icon)
-- Reports: Access denied (shows lock icon)
+- `isOwnerOrAdmin(role)` function in `store.ts` determines access level
+- Financial data (amounts, revenue, expenses) is hidden from Staff users
+- Staff see a lock icon and "Financial data is protected" message instead of amounts
+- Expenses and Reports pages are completely inaccessible to Staff (Access Denied screen)
+- Sidebar navigation items for Expenses and Reports are hidden from Staff users
 
-The `isOwnerOrAdmin(role)` helper in `store.ts` determines financial visibility.
+### Staff Restrictions
 
-### 7.3 Sidebar Navigation
-
-The sidebar filters out Expenses and Reports navigation items for Staff users. The `visibleNavItems` array is computed based on the authenticated user's role.
+- Cannot view revenue amounts on Dashboard
+- Cannot view rent amounts on Payment Status Board
+- Cannot access Expenses page
+- Cannot access Reports page
+- Cannot delete tenants
+- Cannot view security deposit amounts
 
 ---
 
 ## 8. Feature Modules
 
 ### 8.1 Dashboard (`dashboard.tsx`)
-- Monthly overview with 4 stat cards (Collected Revenue, Overdue, Active Tenants, Occupancy Rate)
-- Overdue alert banner with pulsing animation
-- Payment Status Board (color-coded grid: green=paid, red=overdue, amber=partial)
-- Revenue Trend bar chart (6 months, Expected vs Collected)
-- Recent Payments feed
-- Financial data hidden for Staff users
+
+- Monthly overview stats: Collected Revenue, Overdue, Active Tenants, Occupancy Rate
+- Overdue alert banner with count and uncollected amount
+- Payment Status Board: Color-coded grid (Paid/Overdue/Partial/Inactive) for all active tenants
+- WhatsApp reminder button on overdue tenants
+- Revenue Trend chart (6-month bar chart using Recharts)
+- Recent Payments list with tenant names and methods
+- "Load Sample Data" button when no data exists
 
 ### 8.2 Properties (`properties.tsx`)
-- Card grid view of all properties
-- Add/Edit dialog with 4-language name fields
-- Property type selector (Apartment, Villa, Office, Shop, Studio, Mixed Use)
-- Archive/restore functionality (for sold/demolished buildings)
-- Occupancy and monthly revenue per property
+
+- Property cards with name (4 languages), type, address, unit count, tenant count, occupancy
+- Monthly revenue display (Owner/Admin only)
+- Add/Edit dialog with 4-language name fields, type, address, units, floors
+- Archive/unarchive functionality (for sold/removed buildings)
+- Archived properties shown with reduced opacity and "Sold/Removed" badge
 - Delete with confirmation
 
 ### 8.3 Tenants (`tenants.tsx`)
-- Searchable, filterable table with tenant scores and status badges
+
+- Searchable, filterable tenant table with avatar, score badge, status, last payment
 - Expandable payment history rows
-- Full tenant profile dialog with 5 sections: Personal, Contact, Lease, Financial, Payment History
-- Add/Edit dialog with 4-language name fields and auto-calculated municipality fee
-- WhatsApp reminder integration
-- Tenant scoring system (0-100, color-coded: green/blue/amber/red)
+- Tenant Profile dialog with:
+  - Tenant Score + Late Payments display
+  - Personal Information (name, Emirates ID, nationality, employer)
+  - Contact Information (phone, WhatsApp, email, emergency)
+  - Lease Information (building, unit, floor, size, dates, duration)
+  - Financial Information (rent, municipality fee, deposit, payment method)
+  - Full payment history with late/on-time badges
+  - WhatsApp reminder button
+- Add/Edit Tenant dialog:
+  - **Name fields: English (mandatory) + Arabic (optional) only**
+  - Contact info, personal details, property/unit, financial, lease dates, notes
+  - Auto-calculated municipality fee (5% of rent)
+- Delete with confirmation (cascades to payments)
 
 ### 8.4 Rent Collection (`rent-collection.tsx`)
-- Month selector with navigation arrows
-- Stats row: Active, Paid, Partial, Overdue counts
-- Collection progress bar
+
+- Month navigation with previous/next buttons
+- Stats: Active Tenants, Paid, Partial, Overdue counts
+- Collection progress bar (Owner/Admin only)
 - Filter: All, Paid, Unpaid, Overdue
-- Tenant payment cards with "Mark Paid" and "WhatsApp Remind" actions
-- "Remind All Unpaid" bulk action
+- Tenant payment cards with status badge and "Mark Paid" / WhatsApp reminder buttons
 - Record Payment dialog with amount, method, reference, notes
+- "Remind All Unpaid" button opens WhatsApp for all unpaid tenants
 
 ### 8.5 Maintenance (`maintenance.tsx`)
-- Kanban board with 3 columns: Pending, In Progress, Completed
-- Color-coded priority badges (Urgent=red, High=orange, Medium=amber, Low=green)
-- Category labels (AC, Plumbing, Electrical, Lock/Door, Painting, Structural, Other)
-- One-click status progression (Pending -> In Progress -> Completed)
-- Estimated vs Actual cost tracking
-- Vendor/technician assignment
+
+- Kanban board layout: Pending → In Progress → Completed columns
+- Task cards with title, description, priority badge, category, estimated/actual cost, vendor
+- Quick status transitions: Start (pending → in-progress), Complete (in-progress → completed)
+- Add/Edit dialog with title, description, category, vendor, priority, status, costs, property
+- 7 maintenance categories: AC, Plumbing, Electrical, Lock/Door, Painting, Structural, Other
 
 ### 8.6 Expenses (`expenses.tsx`)
-- Owner/Admin only access
-- Monthly summary cards by category
-- Category filter buttons
-- Full table with category, description, amount, date, vendor, invoice, recurring flag
-- Add/Edit dialog with 8 expense categories
-- Recurring expense checkbox
+
+- **Owner/Admin only** (Staff see Access Denied)
+- Monthly summary cards with category breakdowns
+- Category filter buttons with icons
+- Expense table with category, description, amount, date, vendor, invoice, recurring flag
+- Add/Edit dialog with all expense fields
+- 8 expense categories: Maintenance, Utility, Insurance, Manpower, Municipality, Leasing, Security, Other
 
 ### 8.7 Reports (`reports.tsx`)
-- Owner/Admin only access
-- Month selector with print support
-- Revenue/Expenses/Profit summary cards
-- 6-month trend bar chart
-- Expense breakdown pie chart
-- Revenue Analysis section with area chart and breakdown
-- Full Profit & Loss statement (Rental Income, Other Income, Gross Revenue, Vacancy Loss, Bad Debt, Gross Profit, Operating Expenses, Net Income)
-- Margin indicators (Collection Rate, Occupancy Rate, Net Profit Margin)
+
+- **Owner/Admin only** (Staff see Access Denied)
+- Month navigation
+- Summary cards: Revenue, Expenses, Profit/Loss, Collection Rate
+- 6-Month Trend bar chart (Revenue vs Expenses)
+- Expense Breakdown pie chart
+- Revenue Analysis section:
+  - Monthly Revenue Trend area chart
+  - Revenue breakdown: Rental Income, Other Income, Gross Revenue, Vacancy Loss, Bad Debt
+- Profit & Loss statement:
+  - Rental Income → Other Income → Gross Revenue
+  - Deductions: Vacancy Loss, Bad Debt → Gross Profit
+  - Operating Expenses → Net Income
+  - Margin indicators (collection rate, occupancy rate, net profit %)
+- Expense Details table
+- Print Report button
 
 ### 8.8 Contracts (`contracts.tsx`)
-- Contract expiry tracker with status: Active, Expiring Soon (<60 days), Expired
-- Alert banners for expiring and expired contracts
-- Search and filter by status
-- Contract cards with days until expiry, tenant score, lease dates, rent amount
+
+- Contract tracker for all active tenants
+- Expiring (< 60 days) and expired contract alerts
+- Search and filter (All, Active, Expiring, Expired)
+- Contract cards with:
+  - Status badge (Active ✓, Expiring ⏰, Expired ✕)
+  - Monthly rent, lease start/end dates
+  - Days until expiry (color-coded)
+  - Emirates ID, tenant score
+  - Geometric divider, property name, nationality
 
 ---
 
 ## 9. Design System
 
-### 9.1 Color Palette
+### Color Palette
 
-The design uses an Islamic Bengali color palette:
-
-| Name | Hex | Usage |
+| Token | Hex | Usage |
 |---|---|---|
-| Emerald | #0D7C3D | Primary actions, paid status, positive indicators |
-| Gold | #C5A028 | Accent, sidebar highlights, CTAs |
-| Deep Teal | #0A5C4E | Sidebar background, secondary accent |
-| Cream | #FFF8E7 | Page background |
-| Terracotta | #C4653A | Expense indicators, warm accent |
-| Bengali Green | #006A4E | Cultural accent (Bangladesh flag green) |
-| Bengali Red | #C1272D | Cultural accent (Bangladesh flag red) |
-| Islamic Gold | #D4AF37 | Decorative gold |
-| Deep Maroon | #800020 | Chart accent |
-| Warm Saffron | #F4C430 | Chart accent |
+| `emerald` | #0D7C3D | Primary actions, positive indicators |
+| `gold` | #C5A028 | Accent, sidebar highlights, premium feel |
+| `cream` | #FFF8E7 | Background, warm paper-like feel |
+| `deep-teal` | #0A5C4E | Sidebar background, headings |
+| `terracotta` | #C4653A | Expenses, negative amounts |
+| `bengali-green` | #006A4E | Decorative accents |
+| `bengali-red` | #C1272D | Decorative accents |
+| `islamic-gold` | #D4AF37 | Decorative accents |
+| `deep-maroon` | #800020 | Chart colors |
+| `warm-saffron` | #F4C430 | Chart colors |
 
-### 9.2 Islamic Geometric Patterns
+### CSS Special Classes
 
-The sidebar and login page use CSS-only Islamic geometric patterns created with layered `radial-gradient` and `linear-gradient` backgrounds, inspired by 8-pointed star motifs and Bengali nakshi kantha embroidery patterns.
+- `.islamic-pattern` — Geometric background pattern for sidebar
+- `.islamic-pattern-full` — Full-page geometric pattern for login
+- `.overdue-pulse` — Pulsing animation for overdue alerts
+- `.animate-fade-in-up` — Fade in + slide up animation
+- `.stagger-children` — Staggered children animations
+- `.custom-scrollbar` — Thin custom scrollbar
+- `.card-hover` — Hover lift effect for cards
+- `.status-paid` / `.status-overdue` / `.status-partial` — Glowing status borders
+- `.islamic-border-top` — Gold/teal repeating border
+- `.bengali-accent` — Red-green gradient border (Bangladesh flag inspired)
+- `.geometric-divider` — Gold/teal repeating horizontal divider
 
-### 9.3 Animations
+### Animations
 
-- `overdue-pulse`: Pulsing animation for overdue alerts
-- `animate-fade-in-up`: Fade in with upward slide
-- `stagger-children`: Sequential animation delay for child elements
-- `card-hover`: Subtle lift on hover with shadow
-
-### 9.4 Custom CSS Classes
-
-- `.islamic-pattern` - Sidebar background pattern
-- `.islamic-pattern-full` - Login page full-screen pattern
-- `.status-paid/.status-overdue/.status-partial` - Glowing status borders
-- `.bengali-accent` - Green-to-red gradient border (Bangladesh flag)
-- `.geometric-divider` - Gold/teal repeating pattern divider
-- `.islamic-border-top` - Decorative Islamic border
-- `.custom-scrollbar` - Thin custom scrollbar
+- Overdue pulse: 1.5s ease-in-out infinite opacity animation
+- Fade in up: 0.4s ease-out translateY + opacity
+- Stagger children: Sequential delays (0.05s increments)
+- Card hover: translateY(-2px) + shadow
 
 ---
 
 ## 10. Deployment
 
-### 10.1 Local Development
+### Vercel Deployment
+
+The application is deployed on Vercel with the following configuration:
+
+- **Framework Preset**: Next.js
+- **Build Command**: `next build`
+- **Output Directory**: `.next`
+- **Node.js Version**: 18.x+
+
+### Deployment Steps
+
+1. Push to the connected GitHub repository
+2. Vercel auto-detects Next.js framework
+3. Build and deploy automatically
+4. Live URL: https://al-reef-al-junoobi.vercel.app
+
+### Local Development
 
 ```bash
-# Install dependencies
 bun install
-
-# Run development server
 bun run dev
-
-# Build for production
-bun run build
-
-# Start production server
-bun run start
+# Opens on http://localhost:3000
 ```
-
-### 10.2 Vercel Deployment
-
-1. Push code to GitHub repository
-2. Connect repository to Vercel
-3. Set framework to "Next.js" (critical - if not auto-detected, use Vercel API)
-4. Deploy
-
-**Important:** If Vercel shows 404 errors, the framework may not be detected. Fix via Vercel API:
-
-```bash
-curl -X PATCH "https://api.vercel.com/v9/projects/[PROJECT_ID]" \
-  -H "Authorization: Bearer [VERCEL_TOKEN]" \
-  -H "Content-Type: application/json" \
-  -d '{"framework": "nextjs"}'
-```
-
-### 10.3 Live URL
-
-https://al-reef-al-junoobi.vercel.app
 
 ---
 
 ## 11. Environment Variables
 
-| Variable | Value | Required |
-|---|---|---|
-| NEXT_PUBLIC_APP_NAME | Al Reef Al Janoubi Dashboard | No (used in metadata) |
-| DATABASE_URL | file:./db/custom.db | No (not actively used) |
+The application does **not** require any environment variables. All configuration is hardcoded in the source files:
 
-Note: The DATABASE_URL is defined in `.env.example` but the application uses localStorage via Zustand instead of a database.
+- User credentials are in `data-store.ts`
+- Company info is in `data-store.ts`
+- API endpoints are not used (client-side only)
 
 ---
 
 ## 12. Full Source Code
 
-Below is the complete source code for every file in the project. Each file is presented in full with no truncation.
+### 12.1 `src/app/layout.tsx`
 
-### package.json
-
-```json
-{
-  "name": "al-reef-al-junoobi",
-  "version": "0.2.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev -p 3000 2>&1 | tee dev.log",
-    "build": "next build",
-    "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
-    "lint": "eslint ."
-  },
-  "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
-    "@hookform/resolvers": "^5.1.1",
-    "@mdxeditor/editor": "^3.39.1",
-    "@radix-ui/react-accordion": "^1.2.11",
-    "@radix-ui/react-alert-dialog": "^1.1.14",
-    "@radix-ui/react-aspect-ratio": "^1.1.7",
-    "@radix-ui/react-avatar": "^1.1.10",
-    "@radix-ui/react-checkbox": "^1.3.2",
-    "@radix-ui/react-collapsible": "^1.1.11",
-    "@radix-ui/react-context-menu": "^2.2.15",
-    "@radix-ui/react-dialog": "^1.1.14",
-    "@radix-ui/react-dropdown-menu": "^2.1.15",
-    "@radix-ui/react-hover-card": "^1.1.14",
-    "@radix-ui/react-label": "^2.1.7",
-    "@radix-ui/react-menubar": "^1.1.15",
-    "@radix-ui/react-navigation-menu": "^1.2.13",
-    "@radix-ui/react-popover": "^1.1.14",
-    "@radix-ui/react-progress": "^1.1.7",
-    "@radix-ui/react-radio-group": "^1.3.7",
-    "@radix-ui/react-scroll-area": "^1.2.9",
-    "@radix-ui/react-select": "^2.2.5",
-    "@radix-ui/react-separator": "^1.1.7",
-    "@radix-ui/react-slider": "^1.3.5",
-    "@radix-ui/react-slot": "^1.2.3",
-    "@radix-ui/react-switch": "^1.2.5",
-    "@radix-ui/react-tabs": "^1.1.12",
-    "@radix-ui/react-toast": "^1.2.14",
-    "@radix-ui/react-toggle": "^1.1.9",
-    "@radix-ui/react-toggle-group": "^1.1.10",
-    "@radix-ui/react-tooltip": "^1.2.7",
-    "@reactuses/core": "^6.0.5",
-    "@tanstack/react-query": "^5.82.0",
-    "@tanstack/react-table": "^8.21.3",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "cmdk": "^1.1.1",
-    "date-fns": "^4.1.0",
-    "embla-carousel-react": "^8.6.0",
-    "framer-motion": "^12.23.2",
-    "input-otp": "^1.4.2",
-    "lucide-react": "^0.525.0",
-    "next": "^16.1.1",
-    "next-intl": "^4.3.4",
-    "next-themes": "^0.4.6",
-    "react": "^19.0.0",
-    "react-day-picker": "^9.8.0",
-    "react-dom": "^19.0.0",
-    "react-hook-form": "^7.60.0",
-    "react-markdown": "^10.1.0",
-    "react-resizable-panels": "^3.0.3",
-    "react-syntax-highlighter": "^15.6.1",
-    "recharts": "^2.15.4",
-    "sharp": "^0.34.3",
-    "sonner": "^2.0.6",
-    "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7",
-    "uuid": "^11.1.0",
-    "vaul": "^1.1.2",
-    "z-ai-web-dev-sdk": "^0.0.17",
-    "zod": "^4.0.2",
-    "zustand": "^5.0.6"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "bun-types": "^1.3.4",
-    "eslint": "^9",
-    "eslint-config-next": "^16.1.1",
-    "tailwindcss": "^4",
-    "tw-animate-css": "^1.3.5",
-    "typescript": "^5"
-  }
-}
-
-```
-
----
-
-### next.config.ts
-
-```typescript
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  reactStrictMode: false,
-};
-
-export default nextConfig;
-
-```
-
----
-
-### tsconfig.json
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "noImplicitAny": false,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    }
-  },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
-}
-
-```
-
----
-
-### tailwind.config.ts
-
-```typescript
-import type { Config } from "tailwindcss";
-import tailwindcssAnimate from "tailwindcss-animate";
-
-const config: Config = {
-    darkMode: "class",
-    content: [
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
-  theme: {
-  	extend: {
-  		colors: {
-  			background: 'hsl(var(--background))',
-  			foreground: 'hsl(var(--foreground))',
-  			card: {
-  				DEFAULT: 'hsl(var(--card))',
-  				foreground: 'hsl(var(--card-foreground))'
-  			},
-  			popover: {
-  				DEFAULT: 'hsl(var(--popover))',
-  				foreground: 'hsl(var(--popover-foreground))'
-  			},
-  			primary: {
-  				DEFAULT: 'hsl(var(--primary))',
-  				foreground: 'hsl(var(--primary-foreground))'
-  			},
-  			secondary: {
-  				DEFAULT: 'hsl(var(--secondary))',
-  				foreground: 'hsl(var(--secondary-foreground))'
-  			},
-  			muted: {
-  				DEFAULT: 'hsl(var(--muted))',
-  				foreground: 'hsl(var(--muted-foreground))'
-  			},
-  			accent: {
-  				DEFAULT: 'hsl(var(--accent))',
-  				foreground: 'hsl(var(--accent-foreground))'
-  			},
-  			destructive: {
-  				DEFAULT: 'hsl(var(--destructive))',
-  				foreground: 'hsl(var(--destructive-foreground))'
-  			},
-  			border: 'hsl(var(--border))',
-  			input: 'hsl(var(--input))',
-  			ring: 'hsl(var(--ring))',
-  			chart: {
-  				'1': 'hsl(var(--chart-1))',
-  				'2': 'hsl(var(--chart-2))',
-  				'3': 'hsl(var(--chart-3))',
-  				'4': 'hsl(var(--chart-4))',
-  				'5': 'hsl(var(--chart-5))'
-  			}
-  		},
-  		borderRadius: {
-  			lg: 'var(--radius)',
-  			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
-  		}
-  	}
-  },
-  plugins: [tailwindcssAnimate],
-};
-export default config;
-
-```
-
----
-
-### postcss.config.mjs
-
-```javascript
-const config = {
-  plugins: ["@tailwindcss/postcss"],
-};
-
-export default config;
-
-```
-
----
-
-### eslint.config.mjs
-
-```javascript
-import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
-import nextTypescript from "eslint-config-next/typescript";
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
-  rules: {
-    // TypeScript rules
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "off",
-    "@typescript-eslint/no-non-null-assertion": "off",
-    "@typescript-eslint/ban-ts-comment": "off",
-    "@typescript-eslint/prefer-as-const": "off",
-    "@typescript-eslint/no-unused-disable-directive": "off",
-    
-    // React rules
-    "react-hooks/exhaustive-deps": "off",
-    "react-hooks/purity": "off",
-    "react/no-unescaped-entities": "off",
-    "react/display-name": "off",
-    "react/prop-types": "off",
-    "react-compiler/react-compiler": "off",
-    
-    // Next.js rules
-    "@next/next/no-img-element": "off",
-    "@next/next/no-html-link-for-pages": "off",
-    
-    // General JavaScript rules
-    "prefer-const": "off",
-    "no-unused-vars": "off",
-    "no-console": "off",
-    "no-debugger": "off",
-    "no-empty": "off",
-    "no-irregular-whitespace": "off",
-    "no-case-declarations": "off",
-    "no-fallthrough": "off",
-    "no-mixed-spaces-and-tabs": "off",
-    "no-redeclare": "off",
-    "no-undef": "off",
-    "no-unreachable": "off",
-    "no-useless-escape": "off",
-  },
-}, {
-  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
-}];
-
-export default eslintConfig;
-
-```
-
----
-
-### components.json
-
-```json
-{
-  "$schema": "https://ui.shadcn.com/schema.json",
-  "style": "new-york",
-  "rsc": true,
-  "tsx": true,
-  "tailwind": {
-    "config": "",
-    "css": "src/app/globals.css",
-    "baseColor": "neutral",
-    "cssVariables": true,
-    "prefix": ""
-  },
-  "aliases": {
-    "components": "@/components",
-    "utils": "@/lib/utils",
-    "ui": "@/components/ui",
-    "lib": "@/lib",
-    "hooks": "@/hooks"
-  },
-  "iconLibrary": "lucide"
-}
-```
-
----
-
-### .env.example
-
-```
-# Database
-DATABASE_URL=file:./db/custom.db
-
-```
-
----
-
-### .gitignore
-
-```
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files
-.env
-.env*.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# prisma
-db/*.db
-db/*.db-journal
-
-# dev logs
-dev.log
-.zscripts/
-
-```
-
----
-
-### src/app/layout.tsx
-
-```typescript
+```tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -825,14 +504,11 @@ export default function RootLayout({
     </html>
   );
 }
-
 ```
 
----
+### 12.2 `src/app/page.tsx`
 
-### src/app/page.tsx
-
-```typescript
+```tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -928,12 +604,9 @@ function AccessDenied() {
     </div>
   )
 }
-
 ```
 
----
-
-### src/app/globals.css
+### 12.3 `src/app/globals.css`
 
 ```css
 @import "tailwindcss";
@@ -1227,27 +900,21 @@ function AccessDenied() {
     transparent 20px
   );
 }
-
 ```
 
----
+### 12.4 `src/app/api/route.ts`
 
-### src/app/api/route.ts
-
-```typescript
+```ts
 import { NextResponse } from 'next/server'
 
 export async function GET() {
   return NextResponse.json({ status: 'ok', app: 'Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.' })
 }
-
 ```
 
----
+### 12.5 `src/lib/types.ts`
 
-### src/lib/types.ts
-
-```typescript
+```ts
 export type PageType = 'dashboard' | 'properties' | 'tenants' | 'rent' | 'maintenance' | 'expenses' | 'reports' | 'contracts'
 
 export interface DashboardData {
@@ -1411,14 +1078,12 @@ export interface ReportData {
   costOfOperations: number
   netIncome: number
 }
-
 ```
 
----
 
-### src/lib/i18n.ts
+### 12.6 `src/lib/i18n.ts`
 
-```typescript
+```ts
 // Al Reef Al Junoobi Real Estate - 4-Language i18n System
 // EN = English, AR = Arabic, BN = Bengali, UR = Urdu
 // Academic/professional translations, NOT literal
@@ -1725,7 +1390,21 @@ export function getMonthName(month: number, lang: Language = 'en'): string {
 }
 
 export function getWhatsAppLink(phone: string, name: string, amount: number, month: number, year: number, lang: Language = 'en'): string {
-  const cleanPhone = phone.replace(/[^0-9]/g, '')
+  // Clean the phone number and ensure it has UAE country code
+  let cleanPhone = phone.replace(/[^0-9]/g, '')
+  // If number starts with 0 (local UAE format like 0501234567), replace with 971
+  if (cleanPhone.startsWith('0')) {
+    cleanPhone = '971' + cleanPhone.substring(1)
+  }
+  // If number starts with 00, replace with +
+  if (cleanPhone.startsWith('00')) {
+    cleanPhone = cleanPhone.substring(2)
+  }
+  // If number doesn't start with country code, assume UAE
+  if (!cleanPhone.startsWith('971') && !cleanPhone.startsWith('1') && !cleanPhone.startsWith('44') && !cleanPhone.startsWith('91') && !cleanPhone.startsWith('92') && !cleanPhone.startsWith('880')) {
+    cleanPhone = '971' + cleanPhone
+  }
+
   const monthName = getMonthName(month, lang)
   const amountStr = new Intl.NumberFormat('en-AE').format(amount) + ' AED'
 
@@ -1798,14 +1477,12 @@ export function getExpenseCategoryLabel(category: string, lang: Language): strin
     default: return category
   }
 }
-
 ```
 
----
 
-### src/lib/store.ts
+### 12.7 `src/lib/store.ts`
 
-```typescript
+```ts
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Language } from '@/lib/i18n'
@@ -1880,14 +1557,11 @@ export const useAppStore = create<AppState>()(
 export function isOwnerOrAdmin(role: string): boolean {
   return role === 'owner' || role === 'admin'
 }
-
 ```
 
----
+### 12.8 `src/lib/data-store.ts`
 
-### src/lib/data-store.ts
-
-```typescript
+```ts
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { PropertyData, TenantData, PaymentData, ExpenseData, MaintenanceData } from '@/lib/types'
@@ -1986,10 +1660,10 @@ const DEFAULT_USERS: LocalUser[] = [
     id: 'user-owner',
     email: 'owner@alreef.ae',
     password: 'owner123',
-    name: 'Ahmed Al Junoobi',
-    nameAr: 'أحمد الجنوبي',
-    nameBn: 'আহমেদ আল জুনুবি',
-    nameUr: 'احمد الجنوبی',
+    name: 'Shafiul Azam',
+    nameAr: 'شفيول أعظم',
+    nameBn: 'শাফিউল আযম',
+    nameUr: 'شفیول اعظم',
     role: 'owner',
     companyId: 'company-1',
   },
@@ -2564,14 +2238,11 @@ export const useDataStore = create<DataState>()(
     }
   )
 )
-
 ```
 
----
+### 12.9 `src/lib/utils.ts`
 
-### src/lib/utils.ts
-
-```typescript
+```ts
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -2649,14 +2320,12 @@ export function getCategoryIcon(category: string): string {
 export function cn2(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ')
 }
-
 ```
 
----
 
-### src/components/login.tsx
+### 12.10 `src/components/login.tsx`
 
-```typescript
+```tsx
 'use client'
 
 import { useState } from 'react'
@@ -2865,14 +2534,11 @@ export default function LoginPage() {
     </div>
   )
 }
-
 ```
 
----
+### 12.11 `src/components/sidebar.tsx`
 
-### src/components/sidebar.tsx
-
-```typescript
+```tsx
 'use client'
 
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
@@ -3076,14 +2742,11 @@ export default function Sidebar() {
     </>
   )
 }
-
 ```
 
----
+### 12.12 `src/components/dashboard.tsx`
 
-### src/components/dashboard.tsx
-
-```typescript
+```tsx
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -3475,14 +3138,11 @@ export default function Dashboard() {
     </div>
   )
 }
-
 ```
 
----
+### 12.13 `src/components/properties.tsx`
 
-### src/components/properties.tsx
-
-```typescript
+```tsx
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -3753,14 +3413,11 @@ export default function Properties() {
     </div>
   )
 }
-
 ```
 
----
+### 12.14 `src/components/tenants.tsx`
 
-### src/components/tenants.tsx
-
-```typescript
+```tsx
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -4525,14 +4182,6 @@ export default function Tenants() {
                     <Label>{t('nameArabic', language)}</Label>
                     <Input value={form.nameAr} onChange={e => updateForm('nameAr', e.target.value)} dir="rtl" placeholder="جون دو" />
                   </div>
-                  <div>
-                    <Label>{t('nameBengali', language)}</Label>
-                    <Input value={form.nameBn} onChange={e => updateForm('nameBn', e.target.value)} placeholder="জন ডো" />
-                  </div>
-                  <div>
-                    <Label>{t('nameUrdu', language)}</Label>
-                    <Input value={form.nameUr} onChange={e => updateForm('nameUr', e.target.value)} dir="rtl" placeholder="جون ڈو" />
-                  </div>
                 </div>
               </div>
 
@@ -4761,14 +4410,11 @@ function ProfileField({ label, value, icon }: { label: string; value: string; ic
     </div>
   )
 }
-
 ```
 
----
+### 12.15 `src/components/rent-collection.tsx`
 
-### src/components/rent-collection.tsx
-
-```typescript
+```tsx
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -5119,14 +4765,11 @@ export default function RentCollection() {
     </div>
   )
 }
-
 ```
 
----
+### 12.16 `src/components/maintenance.tsx`
 
-### src/components/maintenance.tsx
-
-```typescript
+```tsx
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -5434,14 +5077,11 @@ export default function Maintenance() {
     </div>
   )
 }
-
 ```
 
----
+### 12.17 `src/components/expenses.tsx`
 
-### src/components/expenses.tsx
-
-```typescript
+```tsx
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -5765,14 +5405,11 @@ export default function Expenses() {
     </div>
   )
 }
-
 ```
 
----
+### 12.18 `src/components/reports.tsx`
 
-### src/components/reports.tsx
-
-```typescript
+```tsx
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -6232,14 +5869,11 @@ export default function Reports() {
     </div>
   )
 }
-
 ```
 
----
+### 12.19 `src/components/contracts.tsx`
 
-### src/components/contracts.tsx
-
-```typescript
+```tsx
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -6483,333 +6117,366 @@ export default function Contracts() {
     </div>
   )
 }
-
 ```
 
----
+### 12.20 `package.json`
 
-### src/hooks/use-mobile.ts
+```json
+{
+  "name": "al-reef-al-junoobi",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000 2>&1 | tee dev.log",
+    "build": "next build",
+    "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@hookform/resolvers": "^5.1.1",
+    "@mdxeditor/editor": "^3.39.1",
+    "@radix-ui/react-accordion": "^1.2.11",
+    "@radix-ui/react-alert-dialog": "^1.1.14",
+    "@radix-ui/react-aspect-ratio": "^1.1.7",
+    "@radix-ui/react-avatar": "^1.1.10",
+    "@radix-ui/react-checkbox": "^1.3.2",
+    "@radix-ui/react-collapsible": "^1.1.11",
+    "@radix-ui/react-context-menu": "^2.2.15",
+    "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-dropdown-menu": "^2.1.15",
+    "@radix-ui/react-hover-card": "^1.1.14",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-menubar": "^1.1.15",
+    "@radix-ui/react-navigation-menu": "^1.2.13",
+    "@radix-ui/react-popover": "^1.1.14",
+    "@radix-ui/react-progress": "^1.1.7",
+    "@radix-ui/react-radio-group": "^1.3.7",
+    "@radix-ui/react-scroll-area": "^1.2.9",
+    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-separator": "^1.1.7",
+    "@radix-ui/react-slider": "^1.3.5",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-switch": "^1.2.5",
+    "@radix-ui/react-tabs": "^1.1.12",
+    "@radix-ui/react-toast": "^1.2.14",
+    "@radix-ui/react-toggle": "^1.1.9",
+    "@radix-ui/react-toggle-group": "^1.1.10",
+    "@radix-ui/react-tooltip": "^1.2.7",
+    "@reactuses/core": "^6.0.5",
+    "@tanstack/react-query": "^5.82.0",
+    "@tanstack/react-table": "^8.21.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "date-fns": "^4.1.0",
+    "embla-carousel-react": "^8.6.0",
+    "framer-motion": "^12.23.2",
+    "input-otp": "^1.4.2",
+    "lucide-react": "^0.525.0",
+    "next": "^16.1.1",
+    "next-intl": "^4.3.4",
+    "next-themes": "^0.4.6",
+    "react": "^19.0.0",
+    "react-day-picker": "^9.8.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.60.0",
+    "react-markdown": "^10.1.0",
+    "react-resizable-panels": "^3.0.3",
+    "react-syntax-highlighter": "^15.6.1",
+    "recharts": "^2.15.4",
+    "sharp": "^0.34.3",
+    "sonner": "^2.0.6",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
+    "vaul": "^1.1.2",
+    "z-ai-web-dev-sdk": "^0.0.17",
+    "zod": "^4.0.2",
+    "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "bun-types": "^1.3.4",
+    "eslint": "^9",
+    "eslint-config-next": "^16.1.1",
+    "tailwindcss": "^4",
+    "tw-animate-css": "^1.3.5",
+    "typescript": "^5"
+  }
+}
+```
 
-```typescript
-import * as React from "react"
+### 12.21 `next.config.ts`
 
-const MOBILE_BREAKPOINT = 768
+```ts
+import type { NextConfig } from "next";
 
-export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  reactStrictMode: false,
+};
 
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+export default nextConfig;
+```
+
+### 12.22 `tsconfig.json`
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
     }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
-
-  return !!isMobile
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
-
 ```
+
+### 12.23 `tailwind.config.ts`
+
+```ts
+import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
+
+const config: Config = {
+    darkMode: "class",
+    content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+  	extend: {
+  		colors: {
+  			background: 'hsl(var(--background))',
+  			foreground: 'hsl(var(--foreground))',
+  			card: {
+  				DEFAULT: 'hsl(var(--card))',
+  				foreground: 'hsl(var(--card-foreground))'
+  			},
+  			popover: {
+  				DEFAULT: 'hsl(var(--popover))',
+  				foreground: 'hsl(var(--popover-foreground))'
+  			},
+  			primary: {
+  				DEFAULT: 'hsl(var(--primary))',
+  				foreground: 'hsl(var(--primary-foreground))'
+  			},
+  			secondary: {
+  				DEFAULT: 'hsl(var(--secondary))',
+  				foreground: 'hsl(var(--secondary-foreground))'
+  			},
+  			muted: {
+  				DEFAULT: 'hsl(var(--muted))',
+  				foreground: 'hsl(var(--muted-foreground))'
+  			},
+  			accent: {
+  				DEFAULT: 'hsl(var(--accent))',
+  				foreground: 'hsl(var(--accent-foreground))'
+  			},
+  			destructive: {
+  				DEFAULT: 'hsl(var(--destructive))',
+  				foreground: 'hsl(var(--destructive-foreground))'
+  			},
+  			border: 'hsl(var(--border))',
+  			input: 'hsl(var(--input))',
+  			ring: 'hsl(var(--ring))',
+  			chart: {
+  				'1': 'hsl(var(--chart-1))',
+  				'2': 'hsl(var(--chart-2))',
+  				'3': 'hsl(var(--chart-3))',
+  				'4': 'hsl(var(--chart-4))',
+  				'5': 'hsl(var(--chart-5))'
+  			}
+  		},
+  		borderRadius: {
+  			lg: 'var(--radius)',
+  			md: 'calc(var(--radius) - 2px)',
+  			sm: 'calc(var(--radius) - 4px)'
+  		}
+  	}
+  },
+  plugins: [tailwindcssAnimate],
+};
+export default config;
+```
+
+### 12.24 `postcss.config.mjs`
+
+```mjs
+const config = {
+  plugins: ["@tailwindcss/postcss"],
+};
+
+export default config;
+```
+
+### 12.25 `eslint.config.mjs`
+
+```mjs
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
+  rules: {
+    // TypeScript rules
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/prefer-as-const": "off",
+    "@typescript-eslint/no-unused-disable-directive": "off",
+    
+    // React rules
+    "react-hooks/exhaustive-deps": "off",
+    "react-hooks/purity": "off",
+    "react/no-unescaped-entities": "off",
+    "react/display-name": "off",
+    "react/prop-types": "off",
+    "react-compiler/react-compiler": "off",
+    
+    // Next.js rules
+    "@next/next/no-img-element": "off",
+    "@next/next/no-html-link-for-pages": "off",
+    
+    // General JavaScript rules
+    "prefer-const": "off",
+    "no-unused-vars": "off",
+    "no-console": "off",
+    "no-debugger": "off",
+    "no-empty": "off",
+    "no-irregular-whitespace": "off",
+    "no-case-declarations": "off",
+    "no-fallthrough": "off",
+    "no-mixed-spaces-and-tabs": "off",
+    "no-redeclare": "off",
+    "no-undef": "off",
+    "no-unreachable": "off",
+    "no-useless-escape": "off",
+  },
+}, {
+  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
+}];
+
+export default eslintConfig;
+```
+
+### 12.26 `components.json`
+
+```json
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/app/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  },
+  "iconLibrary": "lucide"
+}```
 
 ---
 
-### src/hooks/use-toast.ts
+## 13. Changelog
 
-```typescript
-"use client"
+### v0.2.0 (2026-05-26)
 
-// Inspired by react-hot-toast library
-import * as React from "react"
+#### Breaking Changes
 
-import type {
-  ToastActionElement,
-  ToastProps,
-} from "@/components/ui/toast"
+- **Owner name changed**: From "Ahmed Al Junoobi" to **"Shafiul Azam"** (Arabic: شفيول أعظم, Bengali: শাফিউল আযম, Urdu: شفیول اعظم) in `data-store.ts` DEFAULT_USERS
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+#### Features
 
-type ToasterToast = ToastProps & {
-  id: string
-  title?: React.ReactNode
-  description?: React.ReactNode
-  action?: ToastActionElement
-}
+- **Tenant name form simplified**: Only English (mandatory) + Arabic (optional) fields when adding/editing tenants. Bengali and Urdu name inputs REMOVED from the tenant add/edit dialog. The 4 languages remain everywhere else in the app (display, search, profile view).
+- **WhatsApp link fixed**: Phone numbers now auto-convert to UAE international format (971 prefix) in `i18n.ts` `getWhatsAppLink` function. Numbers starting with `0` (local format) are correctly converted to `971` prefix.
 
-const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
-} as const
+#### Bug Fixes
 
-let count = 0
+- Staff role now consistently displays as "Staff" in all 4 languages (previously showed "কর্মচারী" in Bengali and "اسٹاف" in Urdu — now unified)
 
-function genId() {
-  count = (count + 1) % Number.MAX_SAFE_INTEGER
-  return count.toString()
-}
+#### Technical
 
-type ActionType = typeof actionTypes
-
-type Action =
-  | {
-    type: ActionType["ADD_TOAST"]
-    toast: ToasterToast
-  }
-  | {
-    type: ActionType["UPDATE_TOAST"]
-    toast: Partial<ToasterToast>
-  }
-  | {
-    type: ActionType["DISMISS_TOAST"]
-    toastId?: ToasterToast["id"]
-  }
-  | {
-    type: ActionType["REMOVE_TOAST"]
-    toastId?: ToasterToast["id"]
-  }
-
-interface State {
-  toasts: ToasterToast[]
-}
-
-const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
-
-const addToRemoveQueue = (toastId: string) => {
-  if (toastTimeouts.has(toastId)) {
-    return
-  }
-
-  const timeout = setTimeout(() => {
-    toastTimeouts.delete(toastId)
-    dispatch({
-      type: "REMOVE_TOAST",
-      toastId: toastId,
-    })
-  }, TOAST_REMOVE_DELAY)
-
-  toastTimeouts.set(toastId, timeout)
-}
-
-export const reducer = (state: State, action: Action): State => {
-  switch (action.type) {
-    case "ADD_TOAST":
-      return {
-        ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
-      }
-
-    case "UPDATE_TOAST":
-      return {
-        ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === action.toast.id ? { ...t, ...action.toast } : t
-        ),
-      }
-
-    case "DISMISS_TOAST": {
-      const { toastId } = action
-
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
-      if (toastId) {
-        addToRemoveQueue(toastId)
-      } else {
-        state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id)
-        })
-      }
-
-      return {
-        ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === toastId || toastId === undefined
-            ? {
-              ...t,
-              open: false,
-            }
-            : t
-        ),
-      }
-    }
-    case "REMOVE_TOAST":
-      if (action.toastId === undefined) {
-        return {
-          ...state,
-          toasts: [],
-        }
-      }
-      return {
-        ...state,
-        toasts: state.toasts.filter((t) => t.id !== action.toastId),
-      }
-  }
-}
-
-const listeners: Array<(state: State) => void> = []
-
-let memoryState: State = { toasts: [] }
-
-function dispatch(action: Action) {
-  memoryState = reducer(memoryState, action)
-  listeners.forEach((listener) => {
-    listener(memoryState)
-  })
-}
-
-type Toast = Omit<ToasterToast, "id">
-
-function toast({ ...props }: Toast) {
-  const id = genId()
-
-  const update = (props: ToasterToast) =>
-    dispatch({
-      type: "UPDATE_TOAST",
-      toast: { ...props, id },
-    })
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
-
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss()
-      },
-    },
-  })
-
-  return {
-    id: id,
-    dismiss,
-    update,
-  }
-}
-
-function useToast() {
-  const [state, setState] = React.useState<State>(memoryState)
-
-  React.useEffect(() => {
-    listeners.push(setState)
-    return () => {
-      const index = listeners.indexOf(setState)
-      if (index > -1) {
-        listeners.splice(index, 1)
-      }
-    }
-  }, [state])
-
-  return {
-    ...state,
-    toast,
-    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
-  }
-}
-
-export { useToast, toast }
-```
+- Updated `data-store.ts` DEFAULT_USERS owner entry
+- Updated `i18n.ts` `getWhatsAppLink` phone number normalization logic
+- Simplified tenant form in `tenants.tsx` (removed Bengali/Urdu name input fields from add/edit dialog)
 
 ---
 
-### public/robots.txt
+### v0.1.0 (2026-05-20)
 
-```
-User-agent: Googlebot
-Allow: /
+#### Initial Release
 
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: *
-Allow: /
-
-```
+- Full property management dashboard
+- 4-language support (EN, AR, BN, UR) with RTL support
+- Role-based access control (Owner, Admin, Staff)
+- Property CRUD with archive/sell support
+- Tenant management with profile, scores, WhatsApp integration
+- Rent collection with month navigation and payment recording
+- Kanban maintenance board
+- Expense tracking with category filters
+- Financial reports with P&L statements
+- Contract tracker with expiry alerts
+- Islamic/Bengali design theme
+- Client-side data persistence via Zustand + localStorage
+- Vercel deployment
 
 ---
 
-
-## 13. Key Design Decisions
-
-### 13.1 Client-Side Storage (No Backend)
-
-The application uses Zustand with localStorage persistence instead of a traditional backend database. This decision was made because:
-- Zero infrastructure cost (no database server, no API hosting)
-- Instant deployment to Vercel as a static/CSR application
-- Data privacy - all data stays in the user's browser
-- Simplicity - no Prisma migrations, no API routes, no connection strings
-- Offline capability - the app works without internet after initial load
-
-**Trade-off:** Data is device-specific and cannot be shared across devices without export/import. This is acceptable for a single-user business owner scenario.
-
-### 13.2 Multi-Language Support (4 Languages)
-
-The 4-language system (English, Arabic, Bengali, Urdu) was chosen because:
-- The business owner is Bengali (Bengali language)
-- Properties are in Abu Dhabi, UAE (Arabic language)
-- Many tenants are Pakistani/Urdu-speaking (Urdu language)
-- English is the universal business language
-- This covers the vast majority of the tenant demographic
-
-### 13.3 Role-Based Access (Owner/Admin/Staff)
-
-The RBAC system prevents staff from viewing financial data because:
-- Staff typically handle tenant relations and maintenance coordination
-- Revenue, expenses, and profit data should only be visible to the business owner
-- This mirrors real-world trust boundaries in family-run businesses
-
-### 13.4 No Prisma ORM
-
-The project does not use Prisma or any ORM because:
-- All data is client-side in Zustand stores
-- No SQL database is queried at runtime
-- The `db/custom.db` SQLite file exists but is not actively used
-- This eliminates the need for migrations, connection pooling, and server-side data access
-
-### 13.5 Islamic Bengali Design Identity
-
-The design deliberately incorporates:
-- Islamic geometric patterns (8-pointed star motifs) on sidebar and login
-- Green and gold color scheme (Islamic architecture colors)
-- Bengali cultural accents (nakshi kantha embroidery patterns, Bangladesh flag colors)
-- Moon icon (crescent moon symbolism)
-- Arabic calligraphy-style header treatments
-
-This ensures the dashboard feels culturally authentic rather than a generic SaaS product.
-
----
-
-## 14. Known Limitations & Future Improvements
-
-### 14.1 Current Limitations
-
-1. **Single-device data:** localStorage is device-specific; no cross-device sync
-2. **No data export/import:** Users cannot migrate data between browsers
-3. **Plaintext passwords:** User credentials are stored in plain text in the Zustand store
-4. **No audit trail:** Changes to data are not logged
-5. **Limited reporting:** Reports are monthly only; no annual or custom date range
-6. **No notifications:** No email or push notification system for overdue payments
-7. **Seed data only:** Fresh installation starts empty; seed data is demo data, not real data
-
-### 14.2 Recommended Improvements
-
-1. **Add Supabase/Firebase backend** for cross-device sync and real authentication
-2. **Implement data export/import** (JSON or CSV) for backup and migration
-3. **Add password hashing** even for local auth
-4. **Add annual reporting** with year-over-year comparisons
-5. **Implement email/SMS notifications** for overdue payments
-6. **Add multi-company support** for scaling to other property management clients
-7. **Implement receipt generation** (PDF receipts for payments)
-8. **Add unit floor plans** and document uploads
-9. **Implement payment gateway integration** (online rent payment)
-10. **Add mobile app** via React Native or PWA enhancements
+*End of Technical Handover Document*
