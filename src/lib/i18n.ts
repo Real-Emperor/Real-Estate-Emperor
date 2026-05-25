@@ -304,7 +304,21 @@ export function getMonthName(month: number, lang: Language = 'en'): string {
 }
 
 export function getWhatsAppLink(phone: string, name: string, amount: number, month: number, year: number, lang: Language = 'en'): string {
-  const cleanPhone = phone.replace(/[^0-9]/g, '')
+  // Clean the phone number and ensure it has UAE country code
+  let cleanPhone = phone.replace(/[^0-9]/g, '')
+  // If number starts with 0 (local UAE format like 0501234567), replace with 971
+  if (cleanPhone.startsWith('0')) {
+    cleanPhone = '971' + cleanPhone.substring(1)
+  }
+  // If number starts with 00, replace with +
+  if (cleanPhone.startsWith('00')) {
+    cleanPhone = cleanPhone.substring(2)
+  }
+  // If number doesn't start with country code, assume UAE
+  if (!cleanPhone.startsWith('971') && !cleanPhone.startsWith('1') && !cleanPhone.startsWith('44') && !cleanPhone.startsWith('91') && !cleanPhone.startsWith('92') && !cleanPhone.startsWith('880')) {
+    cleanPhone = '971' + cleanPhone
+  }
+
   const monthName = getMonthName(month, lang)
   const amountStr = new Intl.NumberFormat('en-AE').format(amount) + ' AED'
 

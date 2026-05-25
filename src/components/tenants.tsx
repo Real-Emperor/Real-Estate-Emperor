@@ -762,14 +762,6 @@ export default function Tenants() {
                     <Label>{t('nameArabic', language)}</Label>
                     <Input value={form.nameAr} onChange={e => updateForm('nameAr', e.target.value)} dir="rtl" placeholder="جون دو" />
                   </div>
-                  <div>
-                    <Label>{t('nameBengali', language)}</Label>
-                    <Input value={form.nameBn} onChange={e => updateForm('nameBn', e.target.value)} placeholder="জন ডো" />
-                  </div>
-                  <div>
-                    <Label>{t('nameUrdu', language)}</Label>
-                    <Input value={form.nameUr} onChange={e => updateForm('nameUr', e.target.value)} dir="rtl" placeholder="جون ڈو" />
-                  </div>
                 </div>
               </div>
 
