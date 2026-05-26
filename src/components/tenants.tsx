@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import type { TenantData, PropertyData } from '@/lib/types'
-import { t, getNameByLang, getWhatsAppLink, getWhatsAppLinkBilingual, getTenantScoreLabel, getTenantScoreColor, type Language } from '@/lib/i18n'
+import { t, getNameByLang, getWhatsAppLink, getTenantScoreLabel, getTenantScoreColor, type Language, type WhatsAppLanguage } from '@/lib/i18n'
 import { cn2, formatAED, formatDate, getStatusColor } from '@/lib/utils'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
@@ -1000,15 +1000,37 @@ export default function Tenants() {
                 {t('sendEnglish', language)}
               </Button>
               <Button
-                className="w-full justify-start bg-deep-teal hover:bg-deep-teal/90 text-white"
+                className="w-full justify-start bg-teal-600 hover:bg-teal-700 text-white"
                 onClick={() => {
                   if (whatsappTargetTenant) {
-                    window.open(getWhatsAppLinkBilingual(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, language), whatsappTargetTenant.rentAmount, currentMonth, currentYear), '_blank')
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, language), whatsappTargetTenant.rentAmount, currentMonth, currentYear, 'ur'), '_blank')
                   }
                   setWhatsappLangDialogOpen(false)
                 }}
               >
-                {t('sendBilingual', language)}
+                {t('sendUrdu', language)}
+              </Button>
+              <Button
+                className="w-full justify-start bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={() => {
+                  if (whatsappTargetTenant) {
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, language), whatsappTargetTenant.rentAmount, currentMonth, currentYear, 'hi'), '_blank')
+                  }
+                  setWhatsappLangDialogOpen(false)
+                }}
+              >
+                {t('sendHindi', language)}
+              </Button>
+              <Button
+                className="w-full justify-start bg-purple-600 hover:bg-purple-700 text-white"
+                onClick={() => {
+                  if (whatsappTargetTenant) {
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, language), whatsappTargetTenant.rentAmount, currentMonth, currentYear, 'bn'), '_blank')
+                  }
+                  setWhatsappLangDialogOpen(false)
+                }}
+              >
+                {t('sendBengali', language)}
               </Button>
             </div>
           </div>

@@ -5,7 +5,7 @@ import type { TenantData, PropertyData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { formatAED, getPaymentStatusColor, cn2 } from '@/lib/utils'
-import { t, getMonthName, getNameByLang, getWhatsAppLink, getWhatsAppLinkBilingual, type Language } from '@/lib/i18n'
+import { t, getMonthName, getNameByLang, getWhatsAppLink, type WhatsAppLanguage } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -151,7 +151,7 @@ export default function RentCollection() {
     setWhatsappLangDialogOpen(true)
   }
 
-  const sendAllRemindersWithLang = (lang: Language) => {
+  const sendAllRemindersWithLang = (lang: WhatsAppLanguage) => {
     const unpaid = activeTenants.filter(t => {
       const status = getTenantPaymentStatus(t)
       return status === 'overdue' || status === 'unpaid' || status === 'partial'
@@ -159,17 +159,6 @@ export default function RentCollection() {
     for (const tenant of unpaid) {
       const phone = tenant.whatsapp || tenant.phone
       window.open(getWhatsAppLink(phone, getNameByLang(tenant, language), tenant.rentAmount, selectedMonth, selectedYear, lang), '_blank')
-    }
-  }
-
-  const sendAllRemindersBilingual = () => {
-    const unpaid = activeTenants.filter(t => {
-      const status = getTenantPaymentStatus(t)
-      return status === 'overdue' || status === 'unpaid' || status === 'partial'
-    })
-    for (const tenant of unpaid) {
-      const phone = tenant.whatsapp || tenant.phone
-      window.open(getWhatsAppLinkBilingual(phone, getNameByLang(tenant, language), tenant.rentAmount, selectedMonth, selectedYear), '_blank')
     }
   }
 
@@ -443,17 +432,43 @@ export default function RentCollection() {
                 {t('sendEnglish', language)}
               </Button>
               <Button
-                className="w-full justify-start bg-deep-teal hover:bg-deep-teal/90 text-white"
+                className="w-full justify-start bg-teal-600 hover:bg-teal-700 text-white"
                 onClick={() => {
                   if (whatsappRemindAll) {
-                    sendAllRemindersBilingual()
+                    sendAllRemindersWithLang('ur')
                   } else if (whatsappTargetTenant) {
-                    window.open(getWhatsAppLinkBilingual(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, language), whatsappTargetTenant.rentAmount, selectedMonth, selectedYear), '_blank')
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, language), whatsappTargetTenant.rentAmount, selectedMonth, selectedYear, 'ur'), '_blank')
                   }
                   setWhatsappLangDialogOpen(false)
                 }}
               >
-                {t('sendBilingual', language)}
+                {t('sendUrdu', language)}
+              </Button>
+              <Button
+                className="w-full justify-start bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={() => {
+                  if (whatsappRemindAll) {
+                    sendAllRemindersWithLang('hi')
+                  } else if (whatsappTargetTenant) {
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, language), whatsappTargetTenant.rentAmount, selectedMonth, selectedYear, 'hi'), '_blank')
+                  }
+                  setWhatsappLangDialogOpen(false)
+                }}
+              >
+                {t('sendHindi', language)}
+              </Button>
+              <Button
+                className="w-full justify-start bg-purple-600 hover:bg-purple-700 text-white"
+                onClick={() => {
+                  if (whatsappRemindAll) {
+                    sendAllRemindersWithLang('bn')
+                  } else if (whatsappTargetTenant) {
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, language), whatsappTargetTenant.rentAmount, selectedMonth, selectedYear, 'bn'), '_blank')
+                  }
+                  setWhatsappLangDialogOpen(false)
+                }}
+              >
+                {t('sendBengali', language)}
               </Button>
             </div>
           </div>
