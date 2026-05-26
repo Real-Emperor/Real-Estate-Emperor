@@ -265,13 +265,10 @@ export default function LoginPage() {
                       <Mail className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-sm font-medium text-amber-800">
-                          {language === 'en' && 'A reset request will be emailed to the system administrator'}
-                          {language === 'ar' && 'سيتم إرسال طلب إعادة التعيين بالبريد الإلكتروني إلى مسؤول النظام'}
-                          {language === 'bn' && 'সিস্টেম প্রশাসককে একটি রিসেট অনুরোধ ইমেইল করা হবে'}
-                          {language === 'ur' && 'سسٹم ایڈمن کو ری سیٹ کی درخواست ای میل کی جائے گی'}
-                        </p>
-                        <p className="text-xs text-amber-600 mt-1">
-                          {ADMIN_EMAIL}
+                          {language === 'en' && 'A reset request will be emailed to the system administrator. Kindly contact your System Administrator.'}
+                          {language === 'ar' && 'سيتم إرسال طلب إعادة التعيين بالبريد الإلكتروني إلى مسؤول النظام. يرجى التواصل مع مسؤول النظام.'}
+                          {language === 'bn' && 'সিস্টেম প্রশাসককে একটি রিসেট অনুরোধ ইমেইল করা হবে। অনুগ্রহ করে আপনার সিস্টেম প্রশাসকের সাথে যোগাযোগ করুন।'}
+                          {language === 'ur' && 'سسٹم ایڈمن کو ری سیٹ کی درخواست ای میل کی جائے گی۔ براہ کرم اپنے سسٹم ایڈمن سے رابطہ کریں۔'}
                         </p>
                       </div>
                     </div>
