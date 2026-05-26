@@ -1,6 +1,6 @@
 'use client'
 
-import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
+import { useAppStore, isOwnerOrAdmin, isAdminOnly } from '@/lib/store'
 import type { PageType } from '@/lib/store'
 import { t, languageNames, rtlLanguages } from '@/lib/i18n'
 import type { Language } from '@/lib/i18n'
@@ -27,28 +27,33 @@ import {
   Settings,
 } from 'lucide-react'
 
-const navItems: { page: PageType; icon: React.ElementType; key: string; ownerOnly?: boolean }[] = [
+const navItems: { page: PageType; icon: React.ElementType; key: string; financialOnly?: boolean; adminOnly?: boolean }[] = [
   { page: 'dashboard', icon: LayoutDashboard, key: 'dashboard' },
   { page: 'properties', icon: Building2, key: 'properties' },
   { page: 'tenants', icon: Users, key: 'tenants' },
   { page: 'rent', icon: Banknote, key: 'rentCollection' },
   { page: 'maintenance', icon: Wrench, key: 'maintenance' },
-  { page: 'expenses', icon: Receipt, key: 'expenses', ownerOnly: true },
-  { page: 'reports', icon: BarChart3, key: 'reports', ownerOnly: true },
+  { page: 'expenses', icon: Receipt, key: 'expenses', financialOnly: true },
+  { page: 'reports', icon: BarChart3, key: 'reports', financialOnly: true },
   { page: 'contracts', icon: FileText, key: 'contracts' },
-  { page: 'settings', icon: Settings, key: 'settings', ownerOnly: true },
+  { page: 'settings', icon: Settings, key: 'settings', adminOnly: true },
 ]
 
 export default function Sidebar() {
   const { currentPage, setCurrentPage, language, setLanguage, sidebarOpen, toggleSidebar, authUser, logout } = useAppStore()
   const pendingResetCount = useDataStore(s => s.resetRequests.filter(r => r.status === 'pending').length)
   const isFinancialUser = authUser ? isOwnerOrAdmin(authUser.role) : false
+  const isSystemAdmin = authUser ? isAdminOnly(authUser.role) : false
 
-  const visibleNavItems = navItems.filter(item => !item.ownerOnly || isFinancialUser)
+  const visibleNavItems = navItems.filter(item => {
+    if (item.adminOnly) return isSystemAdmin
+    if (item.financialOnly) return isFinancialUser
+    return true
+  })
 
   const getRoleIcon = (role: string) => {
-    if (role === 'owner') return <ShieldCheck className="w-3 h-3" />
     if (role === 'admin') return <Shield className="w-3 h-3" />
+    if (role === 'owner') return <ShieldCheck className="w-3 h-3" />
     return <User className="w-3 h-3" />
   }
 
@@ -119,7 +124,7 @@ export default function Sidebar() {
               {sidebarOpen && (
                 <span className="truncate flex-1">{t(item.key as any, language)}</span>
               )}
-              {item.page === 'settings' && pendingResetCount > 0 && isFinancialUser && (
+              {item.page === 'settings' && pendingResetCount > 0 && isSystemAdmin && (
                 <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none">
                   {pendingResetCount}
                 </span>

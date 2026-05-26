@@ -119,6 +119,17 @@ const DEFAULT_COMPANY: CompanyInfo = {
 
 const DEFAULT_USERS: LocalUser[] = [
   {
+    id: 'user-admin',
+    email: 'admin@alreef.ae',
+    password: 'admin2024',
+    name: 'Ahmed Mahmoud',
+    nameAr: 'أحمد محمود',
+    nameBn: 'আহমেদ মাহমুদ',
+    nameUr: 'احمد محمود',
+    role: 'admin',
+    companyId: 'company-1',
+  },
+  {
     id: 'user-owner',
     email: 'owner@alreef.ae',
     password: 'owner123',
@@ -771,6 +782,34 @@ export const useDataStore = create<DataState>()(
         maintenanceItems: state.maintenanceItems,
         isSeeded: state.isSeeded,
       }),
+      migrate: (persistedState: any) => {
+        // Migration: Ensure admin user always exists
+        if (persistedState && persistedState.users) {
+          const adminExists = persistedState.users.some((u: LocalUser) => u.role === 'admin')
+          if (!adminExists) {
+            persistedState.users = [
+              {
+                id: 'user-admin',
+                email: 'admin@alreef.ae',
+                password: 'admin2024',
+                name: 'Ahmed Mahmoud',
+                nameAr: 'أحمد محمود',
+                nameBn: 'আহমেদ মাহমুদ',
+                nameUr: 'احمد محمود',
+                role: 'admin',
+                companyId: 'company-1',
+              },
+              ...persistedState.users,
+            ]
+          }
+        }
+        // Migration: Add resetRequests if missing
+        if (persistedState && !persistedState.resetRequests) {
+          persistedState.resetRequests = []
+        }
+        return persistedState
+      },
+      version: 1,
     }
   )
 )

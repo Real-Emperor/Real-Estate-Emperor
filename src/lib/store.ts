@@ -72,3 +72,7 @@ export const useAppStore = create<AppState>()(
 export function isOwnerOrAdmin(role: string): boolean {
   return role === 'owner' || role === 'admin'
 }
+
+export function isAdminOnly(role: string): boolean {
+  return role === 'admin'
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
+import { useAppStore, isOwnerOrAdmin, isAdminOnly } from '@/lib/store'
 import { t, rtlLanguages } from '@/lib/i18n'
 import Login from '@/components/login'
 import Sidebar from '@/components/sidebar'
@@ -47,6 +47,7 @@ export default function Home() {
   }
 
   const isFinancialUser = isOwnerOrAdmin(authUser.role)
+  const isSystemAdmin = isAdminOnly(authUser.role)
 
   const renderPage = () => {
     switch (currentPage) {
@@ -58,7 +59,7 @@ export default function Home() {
       case 'expenses': return isFinancialUser ? <Expenses /> : <AccessDenied />
       case 'reports': return isFinancialUser ? <Reports /> : <AccessDenied />
       case 'contracts': return <Contracts />
-      case 'settings': return isFinancialUser ? <UserManagement /> : <AccessDenied />
+      case 'settings': return isSystemAdmin ? <UserManagement /> : <AccessDenied type="admin" />
       default: return <Dashboard />
     }
   }
@@ -80,7 +81,7 @@ export default function Home() {
   )
 }
 
-function AccessDenied() {
+function AccessDenied({ type = 'financial' }: { type?: 'financial' | 'admin' }) {
   const { language } = useAppStore()
 
   return (
@@ -91,7 +92,12 @@ function AccessDenied() {
         </svg>
       </div>
       <h2 className="text-xl font-bold text-foreground">{t('accessDenied', language)}</h2>
-      <p className="text-muted-foreground text-sm text-center max-w-md">{t('financialDataProtected', language)}</p>
+      <p className="text-muted-foreground text-sm text-center max-w-md">
+        {type === 'admin'
+          ? t('adminDataProtected', language)
+          : t('financialDataProtected', language)
+        }
+      </p>
     </div>
   )
 }

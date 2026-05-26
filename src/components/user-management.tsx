@@ -89,8 +89,8 @@ export default function UserManagement() {
   const resolvedRequests = resetRequests.filter(r => r.status !== 'pending')
 
   const getRoleIcon = (role: string) => {
+    if (role === 'admin') return <Shield className="w-4 h-4 text-purple-600" />
     if (role === 'owner') return <ShieldCheck className="w-4 h-4 text-emerald-600" />
-    if (role === 'admin') return <Shield className="w-4 h-4 text-blue-600" />
     return <User className="w-4 h-4 text-muted-foreground" />
   }
 
@@ -101,8 +101,8 @@ export default function UserManagement() {
   }
 
   const getRoleBadgeClass = (role: string) => {
+    if (role === 'admin') return 'bg-purple-100 text-purple-700 border-purple-200'
     if (role === 'owner') return 'bg-emerald-100 text-emerald-700 border-emerald-200'
-    if (role === 'admin') return 'bg-blue-100 text-blue-700 border-blue-200'
     return 'bg-gray-100 text-gray-700 border-gray-200'
   }
 
@@ -160,7 +160,7 @@ export default function UserManagement() {
 
   const handleDeleteUser = () => {
     if (!selectedUser) return
-    if (selectedUser.role === 'owner') {
+    if (selectedUser.role === 'owner' || selectedUser.role === 'admin') {
       alert(t('ownerCannotBeDeleted', lang))
       return
     }
@@ -390,7 +390,7 @@ export default function UserManagement() {
                           >
                             <KeyRound className="w-4 h-4 text-amber-600" />
                           </button>
-                          {user.role !== 'owner' && (
+                          {user.role !== 'owner' && user.role !== 'admin' && (
                             <button
                               onClick={() => {
                                 setSelectedUser(user)
@@ -644,7 +644,7 @@ export default function UserManagement() {
               <Label>{t('username', lang)} *</Label>
               <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="mt-1" type="email" />
             </div>
-            {selectedUser?.role !== 'owner' && (
+            {selectedUser?.role !== 'owner' && selectedUser?.role !== 'admin' && (
               <div>
                 <Label>{t('role', lang)} *</Label>
                 <Select value={editRole} onValueChange={(v) => setEditRole(v as 'owner' | 'admin' | 'staff')}>

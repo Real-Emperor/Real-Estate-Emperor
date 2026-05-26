@@ -226,6 +226,14 @@ export default function LoginPage() {
                 <div className="space-y-1.5">
                   <button
                     type="button"
+                    onClick={() => { setEmail('admin@alreef.ae'); setPassword('admin2024') }}
+                    className="w-full text-left px-3 py-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-xs transition-colors"
+                  >
+                    <span className="font-semibold text-purple-600">{t('adminRole', language)}:</span>
+                    <span className="text-muted-foreground ml-2">admin@alreef.ae / admin2024</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => { setEmail('owner@alreef.ae'); setPassword('owner123') }}
                     className="w-full text-left px-3 py-2 rounded-lg bg-emerald/5 hover:bg-emerald/10 text-xs transition-colors"
                   >
