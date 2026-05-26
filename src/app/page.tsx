@@ -50,7 +50,9 @@ export default function Home() {
   const isSystemAdmin = isAdminOnly(authUser.role)
 
   const renderPage = () => {
-    switch (currentPage) {
+    // Add page slide animation wrapper
+    const pageContent = (() => {
+      switch (currentPage) {
       case 'dashboard': return <Dashboard />
       case 'properties': return <Properties />
       case 'tenants': return <Tenants />
@@ -62,6 +64,13 @@ export default function Home() {
       case 'settings': return isSystemAdmin ? <UserManagement /> : <AccessDenied type="admin" />
       default: return <Dashboard />
     }
+    })()
+
+    return (
+      <div key={currentPage} className="animate-page-slide">
+        {pageContent}
+      </div>
+    )
   }
 
   return (

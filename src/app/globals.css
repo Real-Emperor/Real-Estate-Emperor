@@ -289,3 +289,141 @@
     transparent 20px
   );
 }
+
+/* ===== Real Estate Business Animations ===== */
+
+/* Floating building skyline - subtle background animation */
+@keyframes skylineFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-skyline-float {
+  animation: skylineFloat 6s ease-in-out infinite;
+}
+
+/* Gold shimmer effect for important elements */
+@keyframes goldShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-gold-shimmer {
+  background: linear-gradient(90deg, #C5A028 0%, #D4AF37 25%, #F4C430 50%, #D4AF37 75%, #C5A028 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: goldShimmer 3s ease-in-out infinite;
+}
+
+/* Building rise animation - for cards appearing */
+@keyframes buildingRise {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-building-rise {
+  animation: buildingRise 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Door open effect for dialogs */
+@keyframes doorOpen {
+  0% {
+    opacity: 0;
+    transform: perspective(800px) rotateY(-8deg) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(800px) rotateY(0deg) scale(1);
+  }
+}
+
+.animate-door-open {
+  animation: doorOpen 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Key turn animation for login */
+@keyframes keyTurn {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-15deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(15deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-key-turn {
+  animation: keyTurn 2s ease-in-out infinite;
+}
+
+/* Smooth slide in from left for sidebar */
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Property card hover with building lift effect */
+.property-card-hover {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.property-card-hover:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(10, 92, 78, 0.15), 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Stat counter animation */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-count-up {
+  animation: countUp 0.6s ease-out forwards;
+}
+
+/* Subtle pulse for notification badges */
+@keyframes notifyPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.animate-notify-pulse {
+  animation: notifyPulse 2s ease-in-out infinite;
+}
+
+/* Smooth page transition */
+@keyframes pageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-page-slide {
+  animation: pageSlideIn 0.3s ease-out forwards;
+}
+
+/* Income flow animation for revenue numbers */
+@keyframes incomeFlow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-income-flow {
+  animation: incomeFlow 2s ease-in-out infinite;
+}

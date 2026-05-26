@@ -125,7 +125,7 @@ export default function Sidebar() {
                 <span className="truncate flex-1">{t(item.key as any, language)}</span>
               )}
               {item.page === 'settings' && pendingResetCount > 0 && isSystemAdmin && (
-                <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none">
+                <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none animate-notify-pulse">
                   {pendingResetCount}
                 </span>
               )}

@@ -128,7 +128,7 @@ export default function Properties() {
           const totalRent = (p.tenants || []).filter(t => t.status === 'active').reduce((s, t) => s + t.rentAmount, 0)
 
           return (
-            <Card key={p.id} className={cn2('card-hover', p.archived && 'opacity-60')}>
+            <Card key={p.id} className={cn2('property-card-hover', p.archived && 'opacity-60')}>
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">

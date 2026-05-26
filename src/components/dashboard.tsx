@@ -130,8 +130,8 @@ export default function Dashboard() {
       )}
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="card-hover border-l-4 border-l-emerald">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
+        <Card className="property-card-hover border-l-4 border-l-emerald">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Banknote className="w-5 h-5 text-emerald" />
@@ -165,7 +165,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className={cn2('card-hover', s.overdueCount > 0 && 'border-l-4 border-l-red-500')}>
+        <Card className={cn2('property-card-hover', s.overdueCount > 0 && 'border-l-4 border-l-red-500')}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <AlertTriangle className={cn2('w-5 h-5', s.overdueCount > 0 ? 'text-red-500' : 'text-gray-400')} />
@@ -187,7 +187,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="card-hover border-l-4 border-l-gold">
+        <Card className="property-card-hover border-l-4 border-l-gold">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Users className="w-5 h-5 text-gold" />
@@ -207,7 +207,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="card-hover border-l-4 border-l-deep-teal">
+        <Card className="property-card-hover border-l-4 border-l-deep-teal">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Home className="w-5 h-5 text-deep-teal" />

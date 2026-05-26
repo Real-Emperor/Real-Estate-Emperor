@@ -69,7 +69,7 @@ export default function UserManagement() {
   const [newNameBn, setNewNameBn] = useState('')
   const [newNameUr, setNewNameUr] = useState('')
   const [newEmail, setNewEmail] = useState('')
-  const [newRole, setNewRole] = useState<'staff' | 'admin'>('staff')
+  const [newRole, setNewRole] = useState<'owner' | 'admin' | 'staff'>('staff')
   const [newPassword, setNewPassword] = useState('')
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string; name: string } | null>(null)
 
@@ -160,8 +160,9 @@ export default function UserManagement() {
 
   const handleDeleteUser = () => {
     if (!selectedUser) return
-    if (selectedUser.role === 'owner' || selectedUser.role === 'admin') {
-      alert(t('ownerCannotBeDeleted', lang))
+    // Admin can delete anyone except themselves
+    if (selectedUser.id === authUser?.id) {
+      alert(lang === 'en' ? 'You cannot delete your own account' : lang === 'ar' ? 'لا يمكنك حذف حسابك الخاص' : lang === 'bn' ? 'আপনি নিজের অ্যাকাউন্ট মুছতে পারবেন না' : 'آپ اپنا اکاؤنٹ حذف نہیں کر سکتے')
       return
     }
     deleteUser(selectedUser.id)
@@ -390,7 +391,7 @@ export default function UserManagement() {
                           >
                             <KeyRound className="w-4 h-4 text-amber-600" />
                           </button>
-                          {user.role !== 'owner' && user.role !== 'admin' && (
+                          {user.id !== authUser?.id && (
                             <button
                               onClick={() => {
                                 setSelectedUser(user)
@@ -575,13 +576,14 @@ export default function UserManagement() {
             </div>
             <div>
               <Label>{t('role', lang)} *</Label>
-              <Select value={newRole} onValueChange={(v) => setNewRole(v as 'staff' | 'admin')}>
+              <Select value={newRole} onValueChange={(v) => setNewRole(v as 'owner' | 'admin' | 'staff')}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="staff">{t('staffRole', lang)}</SelectItem>
+                  <SelectItem value="owner">{t('ownerRole', lang)}</SelectItem>
                   <SelectItem value="admin">{t('adminRole', lang)}</SelectItem>
+                  <SelectItem value="staff">{t('staffRole', lang)}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -644,20 +646,19 @@ export default function UserManagement() {
               <Label>{t('username', lang)} *</Label>
               <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="mt-1" type="email" />
             </div>
-            {selectedUser?.role !== 'owner' && selectedUser?.role !== 'admin' && (
-              <div>
-                <Label>{t('role', lang)} *</Label>
-                <Select value={editRole} onValueChange={(v) => setEditRole(v as 'owner' | 'admin' | 'staff')}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="staff">{t('staffRole', lang)}</SelectItem>
-                    <SelectItem value="admin">{t('adminRole', lang)}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div>
+              <Label>{t('role', lang)} *</Label>
+              <Select value={editRole} onValueChange={(v) => setEditRole(v as 'owner' | 'admin' | 'staff')}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="owner">{t('ownerRole', lang)}</SelectItem>
+                  <SelectItem value="admin">{t('adminRole', lang)}</SelectItem>
+                  <SelectItem value="staff">{t('staffRole', lang)}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>{t('cancel', lang)}</Button>

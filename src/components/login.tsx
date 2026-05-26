@@ -85,7 +85,7 @@ export default function LoginPage() {
         <div className="absolute top-1/3 right-20 w-24 h-24 rounded-full border border-white/5" />
 
         <div className="relative z-10 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-gold/20 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-gold/10">
+          <div className="w-20 h-20 rounded-2xl bg-gold/20 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-gold/10 animate-skyline-float">
             <Moon className="w-10 h-10 text-gold" />
           </div>
           <h1 className="text-3xl font-bold mb-2">
@@ -144,7 +144,7 @@ export default function LoginPage() {
 
           {/* Login form */}
           {!showForgotPassword ? (
-            <div className="bg-white rounded-2xl shadow-lg border border-border p-8">
+            <div className="bg-white rounded-2xl shadow-lg border border-border p-8 animate-door-open">
               <h2 className="text-2xl font-bold mb-2">{t('login', language)}</h2>
               <p className="text-muted-foreground text-sm mb-6">
                 {language === 'en' && 'Enter your credentials to access the dashboard'}
@@ -213,42 +213,6 @@ export default function LoginPage() {
                   <KeyRound className="w-3.5 h-3.5" />
                   {t('forgotPassword', language)}
                 </button>
-              </div>
-
-              {/* Demo credentials */}
-              <div className="mt-4 pt-4 border-t">
-                <p className="text-xs text-muted-foreground mb-2">
-                  {language === 'en' && 'Demo Credentials:'}
-                  {language === 'ar' && 'بيانات تجريبية:'}
-                  {language === 'bn' && 'ডেমো পরিচয়পত্র:'}
-                  {language === 'ur' && 'ڈیمو اسناد:'}
-                </p>
-                <div className="space-y-1.5">
-                  <button
-                    type="button"
-                    onClick={() => { setEmail('admin@alreef.ae'); setPassword('admin2024') }}
-                    className="w-full text-left px-3 py-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-xs transition-colors"
-                  >
-                    <span className="font-semibold text-purple-600">{t('adminRole', language)}:</span>
-                    <span className="text-muted-foreground ml-2">admin@alreef.ae / admin2024</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setEmail('owner@alreef.ae'); setPassword('owner123') }}
-                    className="w-full text-left px-3 py-2 rounded-lg bg-emerald/5 hover:bg-emerald/10 text-xs transition-colors"
-                  >
-                    <span className="font-semibold text-emerald">{t('ownerRole', language)}:</span>
-                    <span className="text-muted-foreground ml-2">owner@alreef.ae / owner123</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setEmail('staff@alreef.ae'); setPassword('staff123') }}
-                    className="w-full text-left px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-xs transition-colors"
-                  >
-                    <span className="font-semibold text-blue-600">{t('staffRole', language)}:</span>
-                    <span className="text-muted-foreground ml-2">staff@alreef.ae / staff123</span>
-                  </button>
-                </div>
               </div>
             </div>
           ) : (
