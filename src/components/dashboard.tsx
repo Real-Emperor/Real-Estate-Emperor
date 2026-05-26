@@ -5,10 +5,11 @@ import type { DashboardData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { formatAED, getPaymentStatusColor, cn2 } from '@/lib/utils'
-import { t, getMonthName, getNameByLang, getWhatsAppLink, type Language } from '@/lib/i18n'
+import { t, getMonthName, getNameByLang, getWhatsAppLink, type Language, type WhatsAppLanguage } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   Banknote,
   AlertTriangle,
@@ -40,6 +41,10 @@ export default function Dashboard() {
 
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // WhatsApp language selection dialog
+  const [whatsappLangDialogOpen, setWhatsappLangDialogOpen] = useState(false)
+  const [whatsappTargetTenant, setWhatsappTargetTenant] = useState<any>(null)
 
   const fetchData = useCallback(() => {
     try {
@@ -287,16 +292,17 @@ export default function Dashboard() {
                     {status === 'due-soon' && t('dueSoon', lang)}
                   </p>
                   {(status === 'overdue' || status === 'unpaid') && (
-                    <a
-                      href={getWhatsAppLink(tenant.phone, tenant.name, tenant.rentAmount, currentMonth, currentYear, lang)}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setWhatsappTargetTenant(tenant)
+                        setWhatsappLangDialogOpen(true)
+                      }}
                       className="inline-flex items-center gap-1 mt-1 text-xs bg-white/20 rounded px-1.5 py-0.5 hover:bg-white/30"
-                      onClick={(e) => e.stopPropagation()}
                     >
                       <MessageCircle className="w-3 h-3" />
                       {t('remind', lang)}
-                    </a>
+                    </button>
                   )}
                 </div>
               )
@@ -304,6 +310,78 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* WhatsApp Language Selection Dialog */}
+      <Dialog open={whatsappLangDialogOpen} onOpenChange={setWhatsappLangDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-green-600" />
+              {t('selectReminderLanguage', lang)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <p className="text-sm text-muted-foreground">{t('reminderLanguageDesc', lang)}</p>
+            <div className="space-y-2">
+              <Button
+                className="w-full justify-start bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => {
+                  if (whatsappTargetTenant) {
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, lang), whatsappTargetTenant.rentAmount, currentMonth, currentYear, 'ar' as WhatsAppLanguage), '_blank')
+                  }
+                  setWhatsappLangDialogOpen(false)
+                }}
+              >
+                {t('sendArabic', lang)}
+              </Button>
+              <Button
+                className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => {
+                  if (whatsappTargetTenant) {
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, lang), whatsappTargetTenant.rentAmount, currentMonth, currentYear, 'en' as WhatsAppLanguage), '_blank')
+                  }
+                  setWhatsappLangDialogOpen(false)
+                }}
+              >
+                {t('sendEnglish', lang)}
+              </Button>
+              <Button
+                className="w-full justify-start bg-teal-600 hover:bg-teal-700 text-white"
+                onClick={() => {
+                  if (whatsappTargetTenant) {
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, lang), whatsappTargetTenant.rentAmount, currentMonth, currentYear, 'ur' as WhatsAppLanguage), '_blank')
+                  }
+                  setWhatsappLangDialogOpen(false)
+                }}
+              >
+                {t('sendUrdu', lang)}
+              </Button>
+              <Button
+                className="w-full justify-start bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={() => {
+                  if (whatsappTargetTenant) {
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, lang), whatsappTargetTenant.rentAmount, currentMonth, currentYear, 'hi' as WhatsAppLanguage), '_blank')
+                  }
+                  setWhatsappLangDialogOpen(false)
+                }}
+              >
+                {t('sendHindi', lang)}
+              </Button>
+              <Button
+                className="w-full justify-start bg-purple-600 hover:bg-purple-700 text-white"
+                onClick={() => {
+                  if (whatsappTargetTenant) {
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, lang), whatsappTargetTenant.rentAmount, currentMonth, currentYear, 'bn' as WhatsAppLanguage), '_blank')
+                  }
+                  setWhatsappLangDialogOpen(false)
+                }}
+              >
+                {t('sendBengali', lang)}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Revenue Chart + Recent Activity */}
       <div className="grid lg:grid-cols-5 gap-6">
