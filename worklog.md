@@ -42,3 +42,43 @@ Stage Summary:
 - Login page no longer shows any credentials publicly
 - Added 10+ subtle animations fitting the real estate theme
 - All changes live at al-reef-al-junoobi.vercel.app
+
+---
+Task ID: 2-3-4
+Agent: Main Agent
+Task: 3 Features - Calendar-Based Payment Status, Payment Date Field, WhatsApp Language Selection
+
+Work Log:
+- Read and analyzed all relevant source files: rent-collection.tsx, dashboard.tsx, tenants.tsx, utils.ts, i18n.ts
+- Feature 1: Calendar-Based Payment Status Tracker
+  - Updated `getTenantPaymentStatus` in rent-collection.tsx to use calendar-day logic: days 1-2 = due-soon, days 3-4 = unpaid, day 5+ = overdue, past months = overdue, future months = due-soon
+  - Added 'unpaid' status type alongside 'paid', 'partial', 'overdue', 'due-soon'
+  - Updated `getPaymentStatusColor` in utils.ts to handle 'unpaid' status (orange-500 color)
+  - Added 'unpaid' stat card in rent-collection.tsx stats grid (changed to grid-cols-5)
+  - Updated filter logic: 'unpaid' filter now shows overdue + unpaid + due-soon + partial; 'overdue' shows only overdue
+  - Added 'unpaid' Badge display in tenant cards
+  - Updated ring styling to apply to both 'overdue' and 'unpaid' statuses
+  - Updated dashboard.tsx Payment Status Board to use same calendar-based logic (day 1-2: due-soon, day 3-4: unpaid, day 5+: overdue)
+  - Added 'unpaid' status display in dashboard tenant cards
+  - Extended WhatsApp remind button to show for both 'overdue' and 'unpaid' statuses in dashboard
+- Feature 2: Payment Date Field in Mark as Paid Dialog
+  - Added `paymentDate` field to payForm state (defaults to today's date in YYYY-MM-DD format)
+  - Added date input field in the pay dialog
+  - Updated `handlePay` to use the selected payment date instead of `new Date().toISOString()`
+  - Added `isLate` and `daysLate` calculation based on payment date vs 5th of month
+  - Added `paymentDate` i18n translation key (EN/AR/BN/UR)
+- Feature 3: WhatsApp Reminder Language Selection Popup
+  - Added `getWhatsAppLinkBilingual` function in i18n.ts that generates bilingual (Arabic + English) WhatsApp messages
+  - Added 5 new i18n keys: selectReminderLanguage, reminderLanguageDesc, sendArabic, sendEnglish, sendBilingual
+  - Updated rent-collection.tsx: WhatsApp icon and "Remind All Unpaid" button now open language selection dialog with 3 options (Arabic, English, Arabic + English)
+  - Updated tenants.tsx: WhatsApp icon in table and profile dialog now open same language selection dialog
+  - Added WhatsApp language selection Dialog component in both rent-collection.tsx and tenants.tsx
+  - Imported `getWhatsAppLinkBilingual` in both components
+  - Removed direct `href={getWhatsAppLink(...)}` patterns, replaced with onClick handlers that open the dialog
+- Build verified: `npm run build` succeeded, `eslint` passed on all modified files
+
+Stage Summary:
+- Payment statuses now follow calendar-based rules with 'unpaid' as distinct from 'overdue'
+- Payment dialog includes date picker with automatic late payment calculation
+- WhatsApp reminders offer language selection: Arabic, English, or Bilingual (Arabic + English)
+- All 3 features working across rent-collection, dashboard, and tenants components

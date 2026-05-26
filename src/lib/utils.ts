@@ -20,10 +20,11 @@ export function formatDate(date: string | Date): string {
   })
 }
 
-export function getPaymentStatusColor(status: 'paid' | 'overdue' | 'partial' | 'inactive' | 'due-soon'): string {
+export function getPaymentStatusColor(status: 'paid' | 'overdue' | 'unpaid' | 'partial' | 'inactive' | 'due-soon'): string {
   switch (status) {
     case 'paid': return 'bg-emerald-500 text-white'
     case 'overdue': return 'bg-red-500 text-white'
+    case 'unpaid': return 'bg-orange-500 text-white'
     case 'partial': return 'bg-amber-500 text-white'
     case 'due-soon': return 'bg-yellow-400 text-gray-900'
     case 'inactive': return 'bg-gray-300 text-gray-600'

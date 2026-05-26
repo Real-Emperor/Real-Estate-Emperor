@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import type { TenantData, PropertyData } from '@/lib/types'
-import { t, getNameByLang, getWhatsAppLink, getTenantScoreLabel, getTenantScoreColor, type Language } from '@/lib/i18n'
+import { t, getNameByLang, getWhatsAppLink, getWhatsAppLinkBilingual, getTenantScoreLabel, getTenantScoreColor, type Language } from '@/lib/i18n'
 import { cn2, formatAED, formatDate, getStatusColor } from '@/lib/utils'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
@@ -117,6 +117,11 @@ export default function Tenants() {
   // Profile dialog
   const [profileOpen, setProfileOpen] = useState(false)
   const [profileTenant, setProfileTenant] = useState<TenantData | null>(null)
+
+  // WhatsApp language selection dialog
+  const [whatsappLangDialogOpen, setWhatsappLangDialogOpen] = useState(false)
+  const [whatsappTargetTenant, setWhatsappTargetTenant] = useState<TenantData | null>(null)
+  const [whatsappRemindAll, setWhatsappRemindAll] = useState(false)
 
   const isPrivileged = authUser ? isOwnerOrAdmin(authUser.role) : true
 
@@ -384,15 +389,13 @@ export default function Tenants() {
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                             {tenant.status === 'active' && !currentMonthPaid && (
-                              <a
-                                href={getWhatsAppLink(tenant.phone, displayName, tenant.rentAmount, currentMonth, currentYear, language)}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setWhatsappTargetTenant(tenant); setWhatsappRemindAll(false); setWhatsappLangDialogOpen(true) }}
                                 className="p-1.5 rounded hover:bg-green-50 text-green-600"
                                 title={t('sendWhatsAppReminder', language)}
                               >
                                 <MessageCircle className="w-4 h-4" />
-                              </a>
+                              </button>
                             )}
                             <button
                               onClick={(e) => { e.stopPropagation(); openEdit(tenant) }}
@@ -710,24 +713,11 @@ export default function Tenants() {
                 {/* WhatsApp Reminder Button */}
                 {profileTenant.status === 'active' && (
                   <div className="pt-2">
-                    <a
-                      href={getWhatsAppLink(
-                        profileTenant.whatsapp || profileTenant.phone,
-                        getNameByLang(profileTenant, language),
-                        profileTenant.rentAmount,
-                        currentMonth,
-                        currentYear,
-                        language
-                      )}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button variant="outline" className="w-full border-green-300 text-green-700 hover:bg-green-50">
+                      <Button variant="outline" className="w-full border-green-300 text-green-700 hover:bg-green-50" onClick={() => { setWhatsappTargetTenant(profileTenant); setWhatsappRemindAll(false); setWhatsappLangDialogOpen(true) }}>
                         <MessageCircle className="w-4 h-4 mr-2" />
                         {t('sendWhatsAppReminder', language)}
                         <ExternalLink className="w-3.5 h-3.5 ml-2" />
                       </Button>
-                    </a>
                   </div>
                 )}
               </div>
@@ -972,6 +962,56 @@ export default function Tenants() {
               {t('save', language)}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===================== WHATSAPP LANGUAGE SELECTION DIALOG ===================== */}
+      <Dialog open={whatsappLangDialogOpen} onOpenChange={setWhatsappLangDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-green-600" />
+              {t('selectReminderLanguage', language)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <p className="text-sm text-muted-foreground">{t('reminderLanguageDesc', language)}</p>
+            <div className="space-y-2">
+              <Button
+                className="w-full justify-start bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => {
+                  if (whatsappTargetTenant) {
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, language), whatsappTargetTenant.rentAmount, currentMonth, currentYear, 'ar'), '_blank')
+                  }
+                  setWhatsappLangDialogOpen(false)
+                }}
+              >
+                {t('sendArabic', language)}
+              </Button>
+              <Button
+                className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => {
+                  if (whatsappTargetTenant) {
+                    window.open(getWhatsAppLink(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, language), whatsappTargetTenant.rentAmount, currentMonth, currentYear, 'en'), '_blank')
+                  }
+                  setWhatsappLangDialogOpen(false)
+                }}
+              >
+                {t('sendEnglish', language)}
+              </Button>
+              <Button
+                className="w-full justify-start bg-deep-teal hover:bg-deep-teal/90 text-white"
+                onClick={() => {
+                  if (whatsappTargetTenant) {
+                    window.open(getWhatsAppLinkBilingual(whatsappTargetTenant.whatsapp || whatsappTargetTenant.phone, getNameByLang(whatsappTargetTenant, language), whatsappTargetTenant.rentAmount, currentMonth, currentYear), '_blank')
+                  }
+                  setWhatsappLangDialogOpen(false)
+                }}
+              >
+                {t('sendBilingual', language)}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

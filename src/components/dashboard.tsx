@@ -5,7 +5,7 @@ import type { DashboardData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { formatAED, getPaymentStatusColor, cn2 } from '@/lib/utils'
-import { t, getMonthName, getNameByLang, getWhatsAppLink, type Language } from '@/lib/i18n'
+import { t, getMonthName, getNameByLang, getWhatsAppLink, getWhatsAppLinkBilingual, type Language } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -245,7 +245,7 @@ export default function Dashboard() {
               const monthPayments = payments.filter((p: any) => p.month === currentMonth && p.year === currentYear)
               const totalPaid = monthPayments.reduce((sum: number, p: any) => sum + p.amount, 0)
 
-              let status: 'paid' | 'overdue' | 'partial' | 'inactive' | 'due-soon'
+              let status: 'paid' | 'overdue' | 'unpaid' | 'partial' | 'inactive' | 'due-soon'
               if (tenant.status !== 'active') {
                 status = 'inactive'
               } else if (totalPaid >= tenant.rentAmount) {
@@ -253,7 +253,15 @@ export default function Dashboard() {
               } else if (totalPaid > 0) {
                 status = 'partial'
               } else {
-                status = 'overdue'
+                // Calendar-based status for unpaid tenants
+                const dayOfMonth = now.getDate()
+                if (dayOfMonth <= 2) {
+                  status = 'due-soon'
+                } else if (dayOfMonth <= 4) {
+                  status = 'unpaid'
+                } else {
+                  status = 'overdue'
+                }
               }
 
               return (
@@ -273,11 +281,12 @@ export default function Dashboard() {
                   <p className="text-xs font-bold mt-1">
                     {status === 'paid' && t('paid', lang)}
                     {status === 'overdue' && t('overdue', lang)}
+                    {status === 'unpaid' && t('unpaid', lang)}
                     {status === 'partial' && t('partial', lang)}
                     {status === 'inactive' && t('inactive', lang)}
                     {status === 'due-soon' && t('dueSoon', lang)}
                   </p>
-                  {status === 'overdue' && (
+                  {(status === 'overdue' || status === 'unpaid') && (
                     <a
                       href={getWhatsAppLink(tenant.phone, tenant.name, tenant.rentAmount, currentMonth, currentYear, lang)}
                       target="_blank"

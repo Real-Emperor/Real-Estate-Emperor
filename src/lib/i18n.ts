@@ -318,6 +318,16 @@ export const translations = {
   salary: { en: 'Salary / Wages', ar: 'الرواتب / الأجور', bn: 'বেতন / মজুরি', ur: 'تنخواہ / اجرت' },
   yes: { en: 'Yes', ar: 'نعم', bn: 'হ্যাঁ', ur: 'ہاں' },
   no: { en: 'No', ar: 'لا', bn: 'না', ur: 'نہیں' },
+
+  // Payment Date
+  paymentDate: { en: 'Payment Date', ar: 'تاريخ الدفع', bn: 'পেমেন্ট তারিখ', ur: 'ادائیگی کی تاریخ' },
+
+  // WhatsApp Language Selection
+  selectReminderLanguage: { en: 'Select Reminder Language', ar: 'اختر لغة التذكير', bn: 'রিমাইন্ডারের ভাষা নির্বাচন করুন', ur: 'یاد دہانی کی زبان منتخب کریں' },
+  reminderLanguageDesc: { en: 'Choose the language for the WhatsApp reminder message', ar: 'اختر لغة رسالة التذكير عبر واتساب', bn: 'হোয়াটসঅ্যাপ রিমাইন্ডার বার্তার জন্য ভাষা নির্বাচন করুন', ur: 'واٹس ایپ یاد دہانی پیغام کے لیے زبان منتخب کریں' },
+  sendArabic: { en: 'Arabic', ar: 'العربية', bn: 'আরবি', ur: 'عربی' },
+  sendEnglish: { en: 'English', ar: 'الإنجليزية', bn: 'ইংরেজি', ur: 'انگریزی' },
+  sendBilingual: { en: 'Arabic + English', ar: 'العربية + الإنجليزية', bn: 'আরবি + ইংরেজি', ur: 'عربی + انگریزی' },
 } as const
 
 export type TranslationKey = keyof typeof translations
@@ -370,6 +380,28 @@ export function getWhatsAppLink(phone: string, name: string, amount: number, mon
   }
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(messages[lang] || messages.en)}`
+}
+
+export function getWhatsAppLinkBilingual(phone: string, name: string, amount: number, month: number, year: number): string {
+  // Clean the phone number (same logic as getWhatsAppLink)
+  let cleanPhone = phone.replace(/[^0-9]/g, '')
+  if (cleanPhone.startsWith('0')) {
+    cleanPhone = '971' + cleanPhone.substring(1)
+  }
+  if (cleanPhone.startsWith('00')) {
+    cleanPhone = cleanPhone.substring(2)
+  }
+  if (!cleanPhone.startsWith('971') && !cleanPhone.startsWith('1') && !cleanPhone.startsWith('44') && !cleanPhone.startsWith('91') && !cleanPhone.startsWith('92') && !cleanPhone.startsWith('880')) {
+    cleanPhone = '971' + cleanPhone
+  }
+
+  const monthNameAr = getMonthName(month, 'ar')
+  const monthNameEn = getMonthName(month, 'en')
+  const amountStr = new Intl.NumberFormat('en-AE').format(amount) + ' AED'
+
+  const message = `Dear ${name} / عزيزي ${name}،\n\nThis is a reminder that your rent of ${amountStr} for ${monthNameEn} ${year} is overdue. Please arrange payment at your earliest convenience.\n\nتذكير بأن إيجارك بمبلغ ${amountStr} لشهر ${monthNameAr} ${year} متأخر. يرجى ترتيب الدفع في أقرب وقت ممكن.\n\n— Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.\nالريف الجنوبي للعقارات والصيانة العامة ذ.م.م`
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
 }
 
 export function getTenantScoreLabel(score: number, lang: Language): string {
