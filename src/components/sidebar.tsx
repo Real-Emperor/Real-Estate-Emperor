@@ -23,6 +23,7 @@ import {
   Shield,
   ShieldCheck,
   User,
+  Settings,
 } from 'lucide-react'
 
 const navItems: { page: PageType; icon: React.ElementType; key: string; ownerOnly?: boolean }[] = [
@@ -34,6 +35,7 @@ const navItems: { page: PageType; icon: React.ElementType; key: string; ownerOnl
   { page: 'expenses', icon: Receipt, key: 'expenses', ownerOnly: true },
   { page: 'reports', icon: BarChart3, key: 'reports', ownerOnly: true },
   { page: 'contracts', icon: FileText, key: 'contracts' },
+  { page: 'settings', icon: Settings, key: 'settings', ownerOnly: true },
 ]
 
 export default function Sidebar() {

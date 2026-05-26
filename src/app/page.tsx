@@ -13,6 +13,7 @@ import Maintenance from '@/components/maintenance'
 import Expenses from '@/components/expenses'
 import Reports from '@/components/reports'
 import Contracts from '@/components/contracts'
+import UserManagement from '@/components/user-management'
 
 export default function Home() {
   const { isAuthenticated, authUser, currentPage, sidebarOpen, language, setSidebarOpen } = useAppStore()
@@ -57,6 +58,7 @@ export default function Home() {
       case 'expenses': return isFinancialUser ? <Expenses /> : <AccessDenied />
       case 'reports': return isFinancialUser ? <Reports /> : <AccessDenied />
       case 'contracts': return <Contracts />
+      case 'settings': return isFinancialUser ? <UserManagement /> : <AccessDenied />
       default: return <Dashboard />
     }
   }

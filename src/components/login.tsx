@@ -7,7 +7,9 @@ import type { Language } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Moon, Languages, Loader2, Shield } from 'lucide-react'
+import { Moon, Languages, Loader2, Shield, KeyRound, ArrowLeft, Mail, CheckCircle2 } from 'lucide-react'
+
+const ADMIN_EMAIL = 'ahmedmahmoudsaeed98@gmail.com'
 
 export default function LoginPage() {
   const { login, language, setLanguage } = useAppStore()
@@ -15,6 +17,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetSent, setResetSent] = useState(false)
   const isRtl = rtlLanguages.includes(language)
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -50,6 +55,28 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleForgotPassword = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!resetEmail) return
+
+    // Compose email to admin with reset request
+    const subject = encodeURIComponent(t('resetSubject', language))
+    const body = encodeURIComponent(
+      `${t('resetEmailBody', language)}\n\n` +
+      `Email: ${resetEmail}\n` +
+      `Dashboard: Al Reef Al Junoobi Property Dashboard\n\n` +
+      `---\n` +
+      `Please reset the credentials for this user and send them the new username and password.\n\n` +
+      `New Username: \n` +
+      `New Password: \n` +
+      `Staff Name: `
+    )
+
+    // Open default email client with pre-filled email to admin
+    window.open(`mailto:${ADMIN_EMAIL}?subject=${subject}&body=${body}`, '_blank')
+    setResetSent(true)
   }
 
   return (
@@ -120,87 +147,191 @@ export default function LoginPage() {
           </div>
 
           {/* Login form */}
-          <div className="bg-white rounded-2xl shadow-lg border border-border p-8">
-            <h2 className="text-2xl font-bold mb-2">{t('login', language)}</h2>
-            <p className="text-muted-foreground text-sm mb-6">
-              {language === 'en' && 'Enter your credentials to access the dashboard'}
-              {language === 'ar' && 'أدخل بيانات الاعتماد الخاصة بك للوصول إلى لوحة التحكم'}
-              {language === 'bn' && 'ড্যাশবোর্ড অ্যাক্সেস করতে আপনার পরিচয়পত্র লিখুন'}
-              {language === 'ur' && 'ڈیش بورڈ تک رسائی کے لیے اپنی اسناد درج کریں'}
-            </p>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4 animate-fade-in-up">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <Label htmlFor="email">{t('email', language)}</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="owner@alreefjanoubi.ae"
-                  className="mt-1.5"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="password">{t('password', language)}</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="mt-1.5"
-                  required
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full bg-deep-teal hover:bg-deep-teal/90 text-white h-11"
-                disabled={loading || !email || !password}
-              >
-                {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  t('signInButton', language)
-                )}
-              </Button>
-            </form>
-
-            {/* Demo credentials */}
-            <div className="mt-6 pt-4 border-t">
-              <p className="text-xs text-muted-foreground mb-2">
-                {language === 'en' && 'Demo Credentials:'}
-                {language === 'ar' && 'بيانات تجريبية:'}
-                {language === 'bn' && 'ডেমো পরিচয়পত্র:'}
-                {language === 'ur' && 'ڈیمو اسناد:'}
+          {!showForgotPassword ? (
+            <div className="bg-white rounded-2xl shadow-lg border border-border p-8">
+              <h2 className="text-2xl font-bold mb-2">{t('login', language)}</h2>
+              <p className="text-muted-foreground text-sm mb-6">
+                {language === 'en' && 'Enter your credentials to access the dashboard'}
+                {language === 'ar' && 'أدخل بيانات الاعتماد الخاصة بك للوصول إلى لوحة التحكم'}
+                {language === 'bn' && 'ড্যাশবোর্ড অ্যাক্সেস করতে আপনার পরিচয়পত্র লিখুন'}
+                {language === 'ur' && 'ڈیش بورڈ تک رسائی کے لیے اپنی اسناد درج کریں'}
               </p>
-              <div className="space-y-1.5">
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4 animate-fade-in-up">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <Label htmlFor="email">{t('email', language)}</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="owner@alreefjanoubi.ae"
+                    className="mt-1.5"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="password">{t('password', language)}</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="mt-1.5"
+                    required
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full bg-deep-teal hover:bg-deep-teal/90 text-white h-11"
+                  disabled={loading || !email || !password}
+                >
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    t('signInButton', language)
+                  )}
+                </Button>
+              </form>
+
+              {/* Forgot Password Link */}
+              <div className="mt-4 text-center">
                 <button
                   type="button"
-                  onClick={() => { setEmail('owner@alreef.ae'); setPassword('owner123') }}
-                  className="w-full text-left px-3 py-2 rounded-lg bg-emerald/5 hover:bg-emerald/10 text-xs transition-colors"
+                  onClick={() => {
+                    setShowForgotPassword(true)
+                    setResetSent(false)
+                    setResetEmail('')
+                  }}
+                  className="text-sm text-deep-teal hover:text-deep-teal/80 font-medium flex items-center justify-center gap-1.5 mx-auto transition-colors"
                 >
-                  <span className="font-semibold text-emerald">{t('ownerRole', language)}:</span>
-                  <span className="text-muted-foreground ml-2">owner@alreef.ae / owner123</span>
+                  <KeyRound className="w-3.5 h-3.5" />
+                  {t('forgotPassword', language)}
                 </button>
+              </div>
+
+              {/* Demo credentials */}
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-xs text-muted-foreground mb-2">
+                  {language === 'en' && 'Demo Credentials:'}
+                  {language === 'ar' && 'بيانات تجريبية:'}
+                  {language === 'bn' && 'ডেমো পরিচয়পত্র:'}
+                  {language === 'ur' && 'ڈیمو اسناد:'}
+                </p>
+                <div className="space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('owner@alreef.ae'); setPassword('owner123') }}
+                    className="w-full text-left px-3 py-2 rounded-lg bg-emerald/5 hover:bg-emerald/10 text-xs transition-colors"
+                  >
+                    <span className="font-semibold text-emerald">{t('ownerRole', language)}:</span>
+                    <span className="text-muted-foreground ml-2">owner@alreef.ae / owner123</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('staff@alreef.ae'); setPassword('staff123') }}
+                    className="w-full text-left px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-xs transition-colors"
+                  >
+                    <span className="font-semibold text-blue-600">{t('staffRole', language)}:</span>
+                    <span className="text-muted-foreground ml-2">staff@alreef.ae / staff123</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Forgot Password Form */
+            <div className="bg-white rounded-2xl shadow-lg border border-border p-8">
+              {!resetSent ? (
+                <>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                      <KeyRound className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">{t('forgotPasswordTitle', language)}</h2>
+                      <p className="text-muted-foreground text-sm mt-0.5">{t('forgotPasswordDesc', language)}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                    <div className="flex items-start gap-3">
+                      <Mail className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-amber-800">
+                          {language === 'en' && 'A reset request will be emailed to the system administrator'}
+                          {language === 'ar' && 'سيتم إرسال طلب إعادة التعيين بالبريد الإلكتروني إلى مسؤول النظام'}
+                          {language === 'bn' && 'সিস্টেম প্রশাসককে একটি রিসেট অনুরোধ ইমেইল করা হবে'}
+                          {language === 'ur' && 'سسٹم ایڈمن کو ری سیٹ کی درخواست ای میل کی جائے گی'}
+                        </p>
+                        <p className="text-xs text-amber-600 mt-1">
+                          {ADMIN_EMAIL}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <div>
+                      <Label htmlFor="reset-email">{t('yourEmail', language)}</Label>
+                      <Input
+                        id="reset-email"
+                        type="email"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        placeholder="your.email@example.com"
+                        className="mt-1.5"
+                        required
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white h-11"
+                      disabled={!resetEmail}
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      {t('sendResetRequest', language)}
+                    </Button>
+                  </form>
+                </>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h2 className="text-xl font-bold mb-2">{t('resetRequestSent', language)}</h2>
+                  <p className="text-muted-foreground text-sm mb-6">
+                    {language === 'en' && 'Your email client has been opened with a pre-filled reset request. Send the email to the administrator, and you will receive new credentials shortly.'}
+                    {language === 'ar' && 'تم فتح عميل البريد الإلكتروني الخاص بك بطلب إعادة تعيين مُعبأ مسبقًا. أرسل البريد إلى المسؤول وستتلقى بيانات اعتماد جديدة قريبًا.'}
+                    {language === 'bn' && 'আপনার ইমেইল ক্লায়েন্ট একটি পূর্ব-পূরণ করা রিসেট অনুরোধ সহ খোলা হয়েছে। প্রশাসককে ইমেইল পাঠান এবং আপনি শীঘ্রই নতুন পরিচয়পত্র পাবেন।'}
+                    {language === 'ur' && 'آپ کا ای میل کلائنٹ پہلے سے بھری ہوئی ری سیٹ درخواست کے ساتھ کھول دیا گیا ہے۔ ایڈمن کو ای میل بھیجیں اور آپ کو جلد نئی اسناد ملیں گی۔'}
+                  </p>
+                </div>
+              )}
+
+              {/* Back to Login */}
+              <div className="mt-4 pt-4 border-t text-center">
                 <button
                   type="button"
-                  onClick={() => { setEmail('staff@alreef.ae'); setPassword('staff123') }}
-                  className="w-full text-left px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-xs transition-colors"
+                  onClick={() => {
+                    setShowForgotPassword(false)
+                    setResetSent(false)
+                    setResetEmail('')
+                  }}
+                  className="text-sm text-deep-teal hover:text-deep-teal/80 font-medium flex items-center justify-center gap-1.5 mx-auto transition-colors"
                 >
-                  <span className="font-semibold text-blue-600">{t('staffRole', language)}:</span>
-                  <span className="text-muted-foreground ml-2">staff@alreef.ae / staff123</span>
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  {t('backToLogin', language)}
                 </button>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

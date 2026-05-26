@@ -45,6 +45,13 @@ interface DataState {
   // Auth
   authenticate: (email: string, password: string) => LocalUser | null
 
+  // User Management (Owner/Admin only)
+  addUser: (data: Omit<LocalUser, 'id'>) => LocalUser
+  updateUser: (id: string, data: Partial<LocalUser>) => void
+  deleteUser: (id: string) => void
+  resetUserPassword: (id: string, newPassword: string) => void
+  generateRandomPassword: () => string
+
   // Properties CRUD
   addProperty: (data: Omit<PropertyData, 'id' | 'companyId' | 'createdAt' | 'tenants' | 'archived'>) => void
   updateProperty: (id: string, data: Partial<PropertyData>) => void
@@ -333,6 +340,43 @@ export const useDataStore = create<DataState>()(
         const user = get().users.find(u => u.email === email)
         if (user && user.password === password) return user
         return null
+      },
+
+      // User Management
+      generateRandomPassword: () => {
+        const chars = 'abcdefghijkmnpqrstuvwxyz23456789!@#'
+        let password = ''
+        for (let i = 0; i < 10; i++) {
+          password += chars.charAt(Math.floor(Math.random() * chars.length))
+        }
+        return password
+      },
+
+      addUser: (data) => {
+        const newUser: LocalUser = {
+          ...data,
+          id: generateId(),
+        }
+        set(s => ({ users: [...s.users, newUser] }))
+        return newUser
+      },
+
+      updateUser: (id, data) => {
+        set(s => ({
+          users: s.users.map(u => u.id === id ? { ...u, ...data } : u),
+        }))
+      },
+
+      deleteUser: (id) => {
+        set(s => ({
+          users: s.users.filter(u => u.id !== id),
+        }))
+      },
+
+      resetUserPassword: (id, newPassword) => {
+        set(s => ({
+          users: s.users.map(u => u.id === id ? { ...u, password: newPassword } : u),
+        }))
       },
 
       // Properties CRUD
@@ -664,6 +708,7 @@ export const useDataStore = create<DataState>()(
     {
       name: 'al-reef-data-store',
       partialize: (state) => ({
+        users: state.users,
         properties: state.properties,
         tenants: state.tenants,
         payments: state.payments,
