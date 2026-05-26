@@ -6,6 +6,7 @@ import { t, languageNames, rtlLanguages } from '@/lib/i18n'
 import type { Language } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { getNameByLang } from '@/lib/i18n'
+import { useDataStore } from '@/lib/data-store'
 import {
   LayoutDashboard,
   Building2,
@@ -40,6 +41,7 @@ const navItems: { page: PageType; icon: React.ElementType; key: string; ownerOnl
 
 export default function Sidebar() {
   const { currentPage, setCurrentPage, language, setLanguage, sidebarOpen, toggleSidebar, authUser, logout } = useAppStore()
+  const pendingResetCount = useDataStore(s => s.resetRequests.filter(r => r.status === 'pending').length)
   const isFinancialUser = authUser ? isOwnerOrAdmin(authUser.role) : false
 
   const visibleNavItems = navItems.filter(item => !item.ownerOnly || isFinancialUser)
@@ -115,7 +117,12 @@ export default function Sidebar() {
             >
               <item.icon className="w-5 h-5 shrink-0" />
               {sidebarOpen && (
-                <span className="truncate">{t(item.key as any, language)}</span>
+                <span className="truncate flex-1">{t(item.key as any, language)}</span>
+              )}
+              {item.page === 'settings' && pendingResetCount > 0 && isFinancialUser && (
+                <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none">
+                  {pendingResetCount}
+                </span>
               )}
             </button>
           ))}

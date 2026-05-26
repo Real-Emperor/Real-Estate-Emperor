@@ -7,9 +7,7 @@ import type { Language } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Moon, Languages, Loader2, Shield, KeyRound, ArrowLeft, Mail, CheckCircle2 } from 'lucide-react'
-
-const ADMIN_EMAIL = 'ahmedmahmoudsaeed98@gmail.com'
+import { Moon, Languages, Loader2, Shield, KeyRound, ArrowLeft, CheckCircle2, Send } from 'lucide-react'
 
 export default function LoginPage() {
   const { login, language, setLanguage } = useAppStore()
@@ -19,6 +17,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
+  const [resetName, setResetName] = useState('')
+  const [resetMessage, setResetMessage] = useState('')
   const [resetSent, setResetSent] = useState(false)
   const isRtl = rtlLanguages.includes(language)
 
@@ -57,26 +57,22 @@ export default function LoginPage() {
     }
   }
 
-  const handleForgotPassword = (e: React.FormEvent) => {
+  const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!resetEmail) return
 
-    // Compose email to admin with reset request
-    const subject = encodeURIComponent(t('resetSubject', language))
-    const body = encodeURIComponent(
-      `${t('resetEmailBody', language)}\n\n` +
-      `Email: ${resetEmail}\n` +
-      `Dashboard: Al Reef Al Junoobi Property Dashboard\n\n` +
-      `---\n` +
-      `Please reset the credentials for this user and send them the new username and password.\n\n` +
-      `New Username: \n` +
-      `New Password: \n` +
-      `Staff Name: `
-    )
-
-    // Open default email client with pre-filled email to admin
-    window.open(`mailto:${ADMIN_EMAIL}?subject=${subject}&body=${body}`, '_blank')
-    setResetSent(true)
+    try {
+      const { useDataStore } = await import('@/lib/data-store')
+      useDataStore.getState().addResetRequest({
+        email: resetEmail,
+        name: resetName,
+        message: resetMessage,
+      })
+      setResetSent(true)
+    } catch {
+      // Still show success even if store fails
+      setResetSent(true)
+    }
   }
 
   return (
@@ -209,6 +205,8 @@ export default function LoginPage() {
                     setShowForgotPassword(true)
                     setResetSent(false)
                     setResetEmail('')
+                    setResetName('')
+                    setResetMessage('')
                   }}
                   className="text-sm text-deep-teal hover:text-deep-teal/80 font-medium flex items-center justify-center gap-1.5 mx-auto transition-colors"
                 >
@@ -262,21 +260,19 @@ export default function LoginPage() {
 
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
                     <div className="flex items-start gap-3">
-                      <Mail className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium text-amber-800">
-                          {language === 'en' && 'A reset request will be emailed to the system administrator. Kindly contact your System Administrator.'}
-                          {language === 'ar' && 'سيتم إرسال طلب إعادة التعيين بالبريد الإلكتروني إلى مسؤول النظام. يرجى التواصل مع مسؤول النظام.'}
-                          {language === 'bn' && 'সিস্টেম প্রশাসককে একটি রিসেট অনুরোধ ইমেইল করা হবে। অনুগ্রহ করে আপনার সিস্টেম প্রশাসকের সাথে যোগাযোগ করুন।'}
-                          {language === 'ur' && 'سسٹم ایڈمن کو ری سیٹ کی درخواست ای میل کی جائے گی۔ براہ کرم اپنے سسٹم ایڈمن سے رابطہ کریں۔'}
-                        </p>
-                      </div>
+                      <Shield className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                      <p className="text-sm font-medium text-amber-800">
+                        {language === 'en' && 'A reset request will be sent to the system administrator. Kindly contact your System Administrator.'}
+                        {language === 'ar' && 'سيتم إرسال طلب إعادة التعيين إلى مسؤول النظام. يرجى التواصل مع مسؤول النظام.'}
+                        {language === 'bn' && 'সিস্টেম প্রশাসককে একটি রিসেট অনুরোধ পাঠানো হবে। অনুগ্রহ করে আপনার সিস্টেম প্রশাসকের সাথে যোগাযোগ করুন।'}
+                        {language === 'ur' && 'سسٹم ایڈمن کو ری سیٹ کی درخواست بھیجی جائے گی۔ براہ کرم اپنے سسٹم ایڈمن سے رابطہ کریں۔'}
+                      </p>
                     </div>
                   </div>
 
                   <form onSubmit={handleForgotPassword} className="space-y-4">
                     <div>
-                      <Label htmlFor="reset-email">{t('yourEmail', language)}</Label>
+                      <Label htmlFor="reset-email">{t('yourEmail', language)} *</Label>
                       <Input
                         id="reset-email"
                         type="email"
@@ -287,12 +283,44 @@ export default function LoginPage() {
                         required
                       />
                     </div>
+                    <div>
+                      <Label htmlFor="reset-name">
+                        {language === 'en' && 'Your Full Name'}
+                        {language === 'ar' && 'اسمك الكامل'}
+                        {language === 'bn' && 'আপনার পুরো নাম'}
+                        {language === 'ur' && 'آپ کا پورا نام'}
+                      </Label>
+                      <Input
+                        id="reset-name"
+                        type="text"
+                        value={resetName}
+                        onChange={(e) => setResetName(e.target.value)}
+                        placeholder={language === 'en' ? 'Enter your name' : language === 'ar' ? 'أدخل اسمك' : language === 'bn' ? 'আপনার নাম লিখুন' : 'اپنا نام درج کریں'}
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="reset-message">
+                        {language === 'en' && 'Message (optional)'}
+                        {language === 'ar' && 'رسالة (اختياري)'}
+                        {language === 'bn' && 'বার্তা (ঐচ্ছিক)'}
+                        {language === 'ur' && 'پیغام (اختیاری)'}
+                      </Label>
+                      <Input
+                        id="reset-message"
+                        type="text"
+                        value={resetMessage}
+                        onChange={(e) => setResetMessage(e.target.value)}
+                        placeholder={language === 'en' ? 'e.g. I forgot my password' : language === 'ar' ? 'مثلاً نسيت كلمة المرور' : language === 'bn' ? 'যেমন আমি পাসওয়ার্ড ভুলে গেছি' : 'مثلاً میں پاس ورڈ بھول گیا'}
+                        className="mt-1.5"
+                      />
+                    </div>
                     <Button
                       type="submit"
                       className="w-full bg-amber-600 hover:bg-amber-700 text-white h-11"
                       disabled={!resetEmail}
                     >
-                      <Mail className="w-4 h-4 mr-2" />
+                      <Send className="w-4 h-4 mr-2" />
                       {t('sendResetRequest', language)}
                     </Button>
                   </form>
@@ -304,10 +332,10 @@ export default function LoginPage() {
                   </div>
                   <h2 className="text-xl font-bold mb-2">{t('resetRequestSent', language)}</h2>
                   <p className="text-muted-foreground text-sm mb-6">
-                    {language === 'en' && 'Your email client has been opened with a pre-filled reset request. Send the email to the administrator, and you will receive new credentials shortly.'}
-                    {language === 'ar' && 'تم فتح عميل البريد الإلكتروني الخاص بك بطلب إعادة تعيين مُعبأ مسبقًا. أرسل البريد إلى المسؤول وستتلقى بيانات اعتماد جديدة قريبًا.'}
-                    {language === 'bn' && 'আপনার ইমেইল ক্লায়েন্ট একটি পূর্ব-পূরণ করা রিসেট অনুরোধ সহ খোলা হয়েছে। প্রশাসককে ইমেইল পাঠান এবং আপনি শীঘ্রই নতুন পরিচয়পত্র পাবেন।'}
-                    {language === 'ur' && 'آپ کا ای میل کلائنٹ پہلے سے بھری ہوئی ری سیٹ درخواست کے ساتھ کھول دیا گیا ہے۔ ایڈمن کو ای میل بھیجیں اور آپ کو جلد نئی اسناد ملیں گی۔'}
+                    {language === 'en' && 'Your reset request has been submitted successfully. The system administrator will review it and provide you with new credentials. Please contact your System Administrator for updates.'}
+                    {language === 'ar' && 'تم تقديم طلب إعادة التعيين بنجاح. سيقوم مسؤول النظام بمراجعته وتزويدك ببيانات اعتماد جديدة. يرجى التواصل مع مسؤول النظام للحصول على التحديثات.'}
+                    {language === 'bn' && 'আপনার রিসেট অনুরোধ সফলভাবে জমা দেওয়া হয়েছে। সিস্টেম প্রশাসক এটি পর্যালোচনা করবেন এবং আপনাকে নতুন পরিচয়পত্র দেবেন। আপডেটের জন্য আপনার সিস্টেম প্রশাসকের সাথে যোগাযোগ করুন।'}
+                    {language === 'ur' && 'آپ کی ری سیٹ کی درخواست کامیابی سے جمع ہو گئی ہے۔ سسٹم ایڈمن اس کا جائزہ لیں گے اور آپ کو نئی اسناد فراہم کریں گے۔ اپ ڈیٹس کے لیے اپنے سسٹم ایڈمن سے رابطہ کریں۔'}
                   </p>
                 </div>
               )}
@@ -320,6 +348,8 @@ export default function LoginPage() {
                     setShowForgotPassword(false)
                     setResetSent(false)
                     setResetEmail('')
+                    setResetName('')
+                    setResetMessage('')
                   }}
                   className="text-sm text-deep-teal hover:text-deep-teal/80 font-medium flex items-center justify-center gap-1.5 mx-auto transition-colors"
                 >

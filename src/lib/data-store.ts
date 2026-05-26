@@ -19,6 +19,18 @@ export interface CompanyInfo {
   address: string
 }
 
+// Reset requests from forgot password
+export interface ResetRequest {
+  id: string
+  email: string
+  name: string
+  message: string
+  status: 'pending' | 'resolved' | 'dismissed'
+  createdAt: string
+  resolvedAt: string | null
+  resolvedBy: string | null
+}
+
 // Users for local auth
 export interface LocalUser {
   id: string
@@ -35,6 +47,7 @@ export interface LocalUser {
 interface DataState {
   company: CompanyInfo
   users: LocalUser[]
+  resetRequests: ResetRequest[]
   properties: PropertyData[]
   tenants: TenantData[]
   payments: PaymentData[]
@@ -51,6 +64,12 @@ interface DataState {
   deleteUser: (id: string) => void
   resetUserPassword: (id: string, newPassword: string) => void
   generateRandomPassword: () => string
+
+  // Reset Requests
+  addResetRequest: (data: Omit<ResetRequest, 'id' | 'status' | 'createdAt' | 'resolvedAt' | 'resolvedBy'>) => ResetRequest
+  resolveResetRequest: (id: string, resolvedBy: string) => void
+  dismissResetRequest: (id: string, resolvedBy: string) => void
+  getPendingResetCount: () => number
 
   // Properties CRUD
   addProperty: (data: Omit<PropertyData, 'id' | 'companyId' | 'createdAt' | 'tenants' | 'archived'>) => void
@@ -328,6 +347,7 @@ export const useDataStore = create<DataState>()(
     (set, get) => ({
       company: DEFAULT_COMPANY,
       users: DEFAULT_USERS,
+      resetRequests: [],
       properties: [],
       tenants: [],
       payments: [],
@@ -377,6 +397,40 @@ export const useDataStore = create<DataState>()(
         set(s => ({
           users: s.users.map(u => u.id === id ? { ...u, password: newPassword } : u),
         }))
+      },
+
+      // Reset Requests
+      addResetRequest: (data) => {
+        const newRequest: ResetRequest = {
+          ...data,
+          id: generateId(),
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          resolvedAt: null,
+          resolvedBy: null,
+        }
+        set(s => ({ resetRequests: [...s.resetRequests, newRequest] }))
+        return newRequest
+      },
+
+      resolveResetRequest: (id, resolvedBy) => {
+        set(s => ({
+          resetRequests: s.resetRequests.map(r =>
+            r.id === id ? { ...r, status: 'resolved' as const, resolvedAt: new Date().toISOString(), resolvedBy } : r
+          ),
+        }))
+      },
+
+      dismissResetRequest: (id, resolvedBy) => {
+        set(s => ({
+          resetRequests: s.resetRequests.map(r =>
+            r.id === id ? { ...r, status: 'dismissed' as const, resolvedAt: new Date().toISOString(), resolvedBy } : r
+          ),
+        }))
+      },
+
+      getPendingResetCount: () => {
+        return get().resetRequests.filter(r => r.status === 'pending').length
       },
 
       // Properties CRUD
@@ -709,6 +763,7 @@ export const useDataStore = create<DataState>()(
       name: 'al-reef-data-store',
       partialize: (state) => ({
         users: state.users,
+        resetRequests: state.resetRequests,
         properties: state.properties,
         tenants: state.tenants,
         payments: state.payments,
