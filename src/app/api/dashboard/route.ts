@@ -1,137 +1,224 @@
-import { db } from '@/lib/db'
-import { NextResponse } from 'next/server'
+import prisma from '@/lib/db'
+import {
+  getAuthUser,
+  serialize,
+  unauthorizedResponse,
+  isFinancialUser,
+  errorResponse,
+  successResponse,
+} from '@/lib/api-utils'
 
+// GET /api/dashboard — aggregated dashboard data for the authenticated user's company
 export async function GET() {
   try {
-    const company = await db.company.findFirst()
-    if (!company) return NextResponse.json({ error: 'No company' }, { status: 400 })
+    const user = await getAuthUser()
+    if (!user) return unauthorizedResponse()
 
-    const tenants = await db.tenant.findMany({
-      where: { companyId: company.id },
-      include: {
-        payments: true,
-        property: true,
-      },
-    })
+    const companyId = user.companyId
+    const financialAccess = isFinancialUser(user.role)
 
-    const properties = await db.property.findMany({
-      where: { companyId: company.id },
-      include: {
-        tenants: { where: { status: 'active' } },
-      },
-    })
-
-    const payments = await db.payment.findMany({
-      where: { tenant: { companyId: company.id } },
-      include: { tenant: { include: { property: true } } },
-      orderBy: { date: 'desc' },
-      take: 10,
-    })
-
-    const expenses = await db.expense.findMany({
-      where: { companyId: company.id },
-    })
-
-    const maintenanceItems = await db.maintenance.findMany({
-      where: { companyId: company.id },
-    })
-
+    // Get current month/year
     const now = new Date()
     const currentMonth = now.getMonth() + 1
     const currentYear = now.getFullYear()
 
-    // Active tenants
-    const activeTenants = tenants.filter(t => t.status === 'active')
-
-    // Total expected monthly revenue
-    const expectedRevenue = activeTenants.reduce((sum, t) => sum + t.rentAmount, 0)
-
-    // Current month payments
-    const currentMonthPayments = tenants.flatMap(t => t.payments).filter(p => p.month === currentMonth && p.year === currentYear)
-    const collectedRevenue = currentMonthPayments.reduce((sum, p) => sum + p.amount, 0)
-
-    // Overdue tenants (active, haven't paid current month)
-    const overdueTenants = activeTenants.filter(t => {
-      const hasPaid = t.payments.some(p => p.month === currentMonth && p.year === currentYear)
-      return !hasPaid
+    // Fetch company
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: {
+        id: true,
+        name: true,
+        nameAr: true,
+        nameBn: true,
+        nameUr: true,
+        phone: true,
+        email: true,
+        address: true,
+      },
     })
 
-    // Partially paid tenants
-    const partialTenants = activeTenants.filter(t => {
-      const monthPayments = t.payments.filter(p => p.month === currentMonth && p.year === currentYear)
+    // Fetch all data for the company
+    const properties = await prisma.property.findMany({
+      where: { companyId, deletedAt: null },
+      include: { tenants: { where: { deletedAt: null } } },
+    })
+
+    const tenants = await prisma.tenant.findMany({
+      where: { companyId, deletedAt: null },
+      include: { payments: true, property: true },
+    })
+
+    const payments = await prisma.payment.findMany({
+      where: { tenant: { companyId } },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            unitNumber: true,
+            phone: true,
+            rentAmount: true,
+            propertyId: true,
+          },
+        },
+      },
+    })
+
+    const expenses = await prisma.expense.findMany({
+      where: { companyId, deletedAt: null },
+    })
+
+    const maintenanceItems = await prisma.maintenance.findMany({
+      where: { companyId, deletedAt: null },
+      include: { property: true },
+    })
+
+    // Calculate stats
+    const activeTenants = tenants.filter((t) => t.status === 'active')
+    const expectedRevenue = activeTenants.reduce((sum, t) => sum + t.rentAmount, 0)
+    const currentMonthPayments = payments.filter(
+      (p) => p.month === currentMonth && p.year === currentYear
+    )
+    const collectedRevenue = currentMonthPayments.reduce((sum, p) => sum + p.amount, 0)
+
+    // Overdue tenants (active tenants who haven't paid current month)
+    const overdueTenants = activeTenants.filter(
+      (t) =>
+        !payments.some((p) => p.tenantId === t.id && p.month === currentMonth && p.year === currentYear)
+    )
+
+    // Partial tenants (active tenants who paid less than rent amount this month)
+    const partialTenants = activeTenants.filter((t) => {
+      const monthPayments = payments.filter(
+        (p) => p.tenantId === t.id && p.month === currentMonth && p.year === currentYear
+      )
       const totalPaid = monthPayments.reduce((sum, p) => sum + p.amount, 0)
       return totalPaid > 0 && totalPaid < t.rentAmount
     })
 
-    const overdueAmount = overdueTenants.reduce((sum, t) => sum + t.rentAmount, 0)
-    const partialAmount = partialTenants.reduce((sum, t) => {
-      const paid = t.payments.filter(p => p.month === currentMonth && p.year === currentYear).reduce((s, p) => s + p.amount, 0)
-      return sum + (t.rentAmount - paid)
-    }, 0)
+    const overdueAmount =
+      overdueTenants.reduce((sum, t) => sum + t.rentAmount, 0) +
+      partialTenants.reduce((sum, t) => {
+        const paid = payments
+          .filter((p) => p.tenantId === t.id && p.month === currentMonth && p.year === currentYear)
+          .reduce((s, p) => s + p.amount, 0)
+        return sum + (t.rentAmount - paid)
+      }, 0)
 
-    // Occupancy rate
     const totalUnits = properties.reduce((sum, p) => sum + p.totalUnits, 0)
     const occupiedUnits = activeTenants.length
     const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0
 
-    // Last 6 months revenue chart data
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
+    const netProfit = collectedRevenue - totalExpenses
+
+    // Chart data - last 6 months
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ]
     const chartData = []
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     for (let i = 5; i >= 0; i--) {
       let m = currentMonth - i
       let y = currentYear
-      if (m <= 0) { m += 12; y -= 1 }
-
-      const monthActiveTenants = tenants.filter(t => {
-        if (t.status !== 'active') return false
-        const leaseStart = t.leaseStart ? new Date(t.leaseStart) : null
-        const leaseEnd = t.leaseEnd ? new Date(t.leaseEnd) : null
-        if (leaseStart && leaseStart > new Date(y, m, 1)) return false
-        if (leaseEnd && leaseEnd < new Date(y, m - 1, 1)) return false
-        return true
-      })
-
-      const monthExpected = monthActiveTenants.reduce((sum, t) => sum + t.rentAmount, 0)
-      const monthPayments = tenants.flatMap(t => t.payments).filter(p => p.month === m && p.year === y)
-      const monthCollected = monthPayments.reduce((sum, p) => sum + p.amount, 0)
-
+      if (m <= 0) {
+        m += 12
+        y -= 1
+      }
+      const monthCollected = payments
+        .filter((p) => p.month === m && p.year === y)
+        .reduce((sum, p) => sum + p.amount, 0)
       chartData.push({
         month: monthNames[m - 1],
-        expected: monthExpected,
+        expected: expectedRevenue,
         collected: monthCollected,
       })
     }
 
-    // Due soon (within 5 days of month start — pay by 5th)
+    // Recent payments (top 10 by date descending)
+    const recentPayments = [...payments]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 10)
+
+    // Due soon: within first 5 days of month, show overdue tenants
     const dayOfMonth = now.getDate()
     const dueSoon = dayOfMonth <= 5 ? overdueTenants : []
 
-    return NextResponse.json({
+    // Build response
+    const data = {
       company,
       stats: {
-        expectedRevenue,
-        collectedRevenue,
+        expectedRevenue: financialAccess ? expectedRevenue : 0,
+        collectedRevenue: financialAccess ? collectedRevenue : 0,
         overdueCount: overdueTenants.length,
-        overdueAmount: overdueAmount + partialAmount,
+        overdueAmount: financialAccess ? overdueAmount : 0,
         activeTenants: activeTenants.length,
         totalTenants: tenants.length,
         occupancyRate,
         totalUnits,
         occupiedUnits,
         partialCount: partialTenants.length,
+        netProfit: financialAccess ? netProfit : 0,
+        totalExpenses: financialAccess ? totalExpenses : 0,
       },
-      overdueTenants,
-      partialTenants,
-      dueSoon,
-      activeTenantsList: activeTenants,
-      recentPayments: payments,
-      chartData,
-      properties,
-      expenses,
-      maintenanceItems,
-    })
+      overdueTenants: financialAccess
+        ? overdueTenants.map((t) => serialize(t))
+        : overdueTenants.map(({ payments: _p, rentAmount, municipalityFee, securityDeposit, newRent, ...rest }) => ({
+            ...serialize(rest),
+            rentAmount: 0,
+            municipalityFee: 0,
+            securityDeposit: 0,
+            newRent: 0,
+          })),
+      partialTenants: financialAccess
+        ? partialTenants.map((t) => serialize(t))
+        : partialTenants.map(({ payments: _p, rentAmount, municipalityFee, securityDeposit, newRent, ...rest }) => ({
+            ...serialize(rest),
+            rentAmount: 0,
+            municipalityFee: 0,
+            securityDeposit: 0,
+            newRent: 0,
+          })),
+      dueSoon: financialAccess
+        ? dueSoon.map((t) => serialize(t))
+        : dueSoon.map(({ payments: _p, rentAmount, municipalityFee, securityDeposit, newRent, ...rest }) => ({
+            ...serialize(rest),
+            rentAmount: 0,
+            municipalityFee: 0,
+            securityDeposit: 0,
+            newRent: 0,
+          })),
+      activeTenantsList: financialAccess
+        ? activeTenants.map((t) => serialize(t))
+        : activeTenants.map(({ payments: _p, rentAmount, municipalityFee, securityDeposit, newRent, ...rest }) => ({
+            ...serialize(rest),
+            rentAmount: 0,
+            municipalityFee: 0,
+            securityDeposit: 0,
+            newRent: 0,
+          })),
+      recentPayments: financialAccess
+        ? recentPayments.map((p) => serialize(p))
+        : recentPayments.map(({ amount, ...rest }) => ({
+            ...serialize(rest),
+            amount: 0,
+          })),
+      chartData: financialAccess
+        ? chartData
+        : chartData.map((d) => ({ month: d.month, expected: 0, collected: 0 })),
+      properties: properties.map((p) => serialize(p)),
+      expenses: financialAccess
+        ? expenses.map((e) => serialize(e))
+        : expenses.map(({ amount, ...rest }) => ({
+            ...serialize(rest),
+            amount: 0,
+          })),
+      maintenanceItems: maintenanceItems.map((m) => serialize(m)),
+    }
+
+    return successResponse(data)
   } catch (error) {
     console.error('Dashboard error:', error)
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    return errorResponse('Failed to fetch dashboard data', 500)
   }
 }

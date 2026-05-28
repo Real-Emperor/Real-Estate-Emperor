@@ -1,30 +1,73 @@
-import { db } from '@/lib/db'
-import { NextRequest, NextResponse } from 'next/server'
+import prisma from '@/lib/db'
+import {
+  getAuthUser,
+  createAuditLog,
+  serialize,
+  errorResponse,
+  successResponse,
+  unauthorizedResponse,
+} from '@/lib/api-utils'
 
+// GET /api/tenants - List all tenants for the authenticated user's company
 export async function GET() {
   try {
-    const tenants = await db.tenant.findMany({
+    const user = await getAuthUser()
+    if (!user) return unauthorizedResponse()
+
+    const tenants = await prisma.tenant.findMany({
+      where: {
+        companyId: user.companyId,
+        deletedAt: null,
+      },
       include: {
         property: true,
-        payments: { orderBy: { date: 'desc' } },
+        _count: {
+          select: { payments: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     })
-    return NextResponse.json(tenants)
+
+    const result = tenants.map(({ _count, ...tenant }) => ({
+      ...serialize(tenant),
+      paymentCount: _count.payments,
+    }))
+
+    return successResponse(result)
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    console.error('Failed to fetch tenants:', error)
+    return errorResponse('Failed to fetch tenants', 500)
   }
 }
 
-export async function POST(req: NextRequest) {
+// POST /api/tenants - Create a new tenant
+export async function POST(request: Request) {
   try {
-    const body = await req.json()
-    const company = await db.company.findFirst()
-    if (!company) return NextResponse.json({ error: 'No company found' }, { status: 400 })
+    const user = await getAuthUser()
+    if (!user) return unauthorizedResponse()
 
-    const tenant = await db.tenant.create({
+    const body = await request.json()
+
+    // Validate required fields
+    if (!body.name || !body.phone || !body.propertyId || body.rentAmount === undefined) {
+      return errorResponse('Missing required fields: name, phone, propertyId, rentAmount')
+    }
+
+    // Verify the property belongs to the user's company
+    const property = await prisma.property.findFirst({
+      where: {
+        id: body.propertyId,
+        companyId: user.companyId,
+        deletedAt: null,
+      },
+    })
+    if (!property) {
+      return errorResponse('Property not found or does not belong to your company')
+    }
+
+    const tenant = await prisma.tenant.create({
       data: {
-        companyId: company.id,
+        companyId: user.companyId,
         propertyId: body.propertyId,
         name: body.name,
         nameAr: body.nameAr || null,
@@ -41,78 +84,44 @@ export async function POST(req: NextRequest) {
         unitType: body.unitType || null,
         floor: body.floor ? Number(body.floor) : null,
         sizeSqft: body.sizeSqft ? Number(body.sizeSqft) : null,
-        rentAmount: Number(body.rentAmount) || 0,
+        rentAmount: Number(body.rentAmount),
         municipalityFee: body.municipalityFee ? Number(body.municipalityFee) : null,
         securityDeposit: body.securityDeposit ? Number(body.securityDeposit) : null,
         paymentMethod: body.paymentMethod || null,
         leaseStart: body.leaseStart ? new Date(body.leaseStart) : null,
         leaseEnd: body.leaseEnd ? new Date(body.leaseEnd) : null,
         contractDuration: body.contractDuration ? Number(body.contractDuration) : null,
+        renewalStatus: body.renewalStatus || null,
+        newRent: body.newRent ? Number(body.newRent) : null,
         status: body.status || 'active',
         latePaymentCount: body.latePaymentCount ? Number(body.latePaymentCount) : 0,
         tenantScore: body.tenantScore ? Number(body.tenantScore) : 100,
         notes: body.notes || null,
       },
-      include: { property: true, payments: { orderBy: { date: 'desc' } } },
-    })
-    return NextResponse.json(tenant)
-  } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
-  }
-}
-
-export async function PUT(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const tenant = await db.tenant.update({
-      where: { id: body.id },
-      data: {
-        name: body.name,
-        nameAr: body.nameAr || null,
-        nameBn: body.nameBn || null,
-        nameUr: body.nameUr || null,
-        phone: body.phone,
-        whatsapp: body.whatsapp || null,
-        email: body.email || null,
-        emiratesId: body.emiratesId || null,
-        nationality: body.nationality || null,
-        employer: body.employer || null,
-        emergencyContact: body.emergencyContact || null,
-        propertyId: body.propertyId,
-        unitNumber: body.unitNumber || null,
-        unitType: body.unitType || null,
-        floor: body.floor ? Number(body.floor) : null,
-        sizeSqft: body.sizeSqft ? Number(body.sizeSqft) : null,
-        rentAmount: Number(body.rentAmount) || 0,
-        municipalityFee: body.municipalityFee ? Number(body.municipalityFee) : null,
-        securityDeposit: body.securityDeposit ? Number(body.securityDeposit) : null,
-        paymentMethod: body.paymentMethod || null,
-        leaseStart: body.leaseStart ? new Date(body.leaseStart) : null,
-        leaseEnd: body.leaseEnd ? new Date(body.leaseEnd) : null,
-        contractDuration: body.contractDuration ? Number(body.contractDuration) : null,
-        status: body.status,
-        latePaymentCount: body.latePaymentCount !== undefined ? Number(body.latePaymentCount) : undefined,
-        tenantScore: body.tenantScore !== undefined ? Number(body.tenantScore) : undefined,
-        notes: body.notes || null,
+      include: {
+        property: true,
+        _count: {
+          select: { payments: true },
+        },
       },
-      include: { property: true, payments: { orderBy: { date: 'desc' } } },
     })
-    return NextResponse.json(tenant)
-  } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
-  }
-}
 
-export async function DELETE(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
-    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+    await createAuditLog({
+      action: 'CREATE',
+      entity: 'Tenant',
+      entityId: tenant.id,
+      userId: user.id,
+      companyId: user.companyId,
+      details: { name: tenant.name, propertyId: tenant.propertyId, unitNumber: tenant.unitNumber },
+    })
 
-    await db.payment.deleteMany({ where: { tenantId: id } })
-    await db.tenant.delete({ where: { id } })
-    return NextResponse.json({ success: true })
+    const { _count, ...tenantData } = tenant
+    return successResponse(
+      { ...serialize(tenantData), paymentCount: _count.payments },
+      201
+    )
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    console.error('Failed to create tenant:', error)
+    return errorResponse('Failed to create tenant', 500)
   }
 }

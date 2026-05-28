@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { signIn } from 'next-auth/react'
 import { useAppStore } from '@/lib/store'
 import { t, languageNames, rtlLanguages } from '@/lib/i18n'
 import type { Language } from '@/lib/i18n'
@@ -10,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Moon, Languages, Loader2, Shield, KeyRound, ArrowLeft, CheckCircle2, Send } from 'lucide-react'
 
 export default function LoginPage() {
-  const { login, language, setLanguage } = useAppStore()
+  const { language, setLanguage } = useAppStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -28,28 +29,16 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      // Use local data store instead of API
-      const { useDataStore } = await import('@/lib/data-store')
-      const user = useDataStore.getState().authenticate(email, password)
-      if (user) {
-        // Convert LocalUser to AuthUser format
-        login({
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          nameAr: user.nameAr,
-          nameBn: user.nameBn,
-          nameUr: user.nameUr,
-          role: user.role,
-          companyId: user.companyId,
-        })
-        // Auto-seed data if not seeded
-        if (!useDataStore.getState().isSeeded) {
-          useDataStore.getState().seedData()
-        }
-      } else {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      })
+
+      if (result?.error) {
         setError(t('loginError', language))
       }
+      // If successful, the session will be updated and AppContent will handle the redirect
     } catch {
       setError(t('loginError', language))
     } finally {
@@ -62,15 +51,23 @@ export default function LoginPage() {
     if (!resetEmail) return
 
     try {
-      const { useDataStore } = await import('@/lib/data-store')
-      useDataStore.getState().addResetRequest({
-        email: resetEmail,
-        name: resetName,
-        message: resetMessage,
+      const res = await fetch('/api/reset-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: resetEmail,
+          name: resetName,
+          message: resetMessage,
+        }),
       })
-      setResetSent(true)
+
+      if (res.ok) {
+        setResetSent(true)
+      } else {
+        // Still show success to prevent email enumeration
+        setResetSent(true)
+      }
     } catch {
-      // Still show success even if store fails
       setResetSent(true)
     }
   }

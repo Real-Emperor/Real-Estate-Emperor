@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { SessionProvider, useSession, signOut } from 'next-auth/react'
 import { useAppStore, isOwnerOrAdmin, isAdminOnly } from '@/lib/store'
+import { useDataStore } from '@/lib/data-store'
 import { t, rtlLanguages } from '@/lib/i18n'
 import Login from '@/components/login'
 import Sidebar from '@/components/sidebar'
@@ -14,10 +16,39 @@ import Expenses from '@/components/expenses'
 import Reports from '@/components/reports'
 import Contracts from '@/components/contracts'
 import UserManagement from '@/components/user-management'
+import { Loader2 } from 'lucide-react'
 
-export default function Home() {
-  const { isAuthenticated, authUser, currentPage, sidebarOpen, language, setSidebarOpen } = useAppStore()
+function AppContent() {
+  const { data: session, status } = useSession()
+  const { isAuthenticated, authUser, currentPage, sidebarOpen, language, setSidebarOpen, login, logout } = useAppStore()
+  const { fetchAllData, isInitialized } = useDataStore()
   const [isMobile, setIsMobile] = useState(false)
+
+  // Sync NextAuth session with Zustand store
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      const sessionUser = session.user as any
+      login({
+        id: sessionUser.id,
+        email: sessionUser.email || '',
+        name: sessionUser.name || '',
+        nameAr: sessionUser.nameAr,
+        nameBn: sessionUser.nameBn,
+        nameUr: sessionUser.nameUr,
+        role: sessionUser.role,
+        companyId: sessionUser.companyId,
+      })
+    } else if (status === 'unauthenticated') {
+      logout()
+    }
+  }, [status, session, login, logout])
+
+  // Fetch data when authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isInitialized) {
+      fetchAllData()
+    }
+  }, [isAuthenticated, isInitialized, fetchAllData])
 
   // Set direction based on language
   useEffect(() => {
@@ -41,16 +72,39 @@ export default function Home() {
     return () => window.removeEventListener('resize', check)
   }, [setSidebarOpen])
 
+  // Show loading while session is being checked
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-deep-teal mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   // Show login page if not authenticated
   if (!isAuthenticated || !authUser) {
     return <Login />
+  }
+
+  // Show loading while data is being fetched
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-deep-teal mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading data...</p>
+        </div>
+      </div>
+    )
   }
 
   const isFinancialUser = isOwnerOrAdmin(authUser.role)
   const isSystemAdmin = isAdminOnly(authUser.role)
 
   const renderPage = () => {
-    // Add page slide animation wrapper
     const pageContent = (() => {
       switch (currentPage) {
       case 'dashboard': return <Dashboard />
@@ -108,5 +162,13 @@ function AccessDenied({ type = 'financial' }: { type?: 'financial' | 'admin' }) 
         }
       </p>
     </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={true}>
+      <AppContent />
+    </SessionProvider>
   )
 }

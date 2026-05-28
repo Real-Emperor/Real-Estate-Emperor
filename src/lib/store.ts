@@ -39,7 +39,7 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      // Auth
+      // Auth - will be synced with NextAuth session
       isAuthenticated: false,
       authUser: null,
       login: (user) => set({ isAuthenticated: true, authUser: user }),
@@ -61,9 +61,8 @@ export const useAppStore = create<AppState>()(
     {
       name: 'al-reef-storage',
       partialize: (state) => ({
-        isAuthenticated: state.isAuthenticated,
-        authUser: state.authUser,
         language: state.language,
+        // Don't persist auth - it comes from NextAuth session
       }),
     }
   )

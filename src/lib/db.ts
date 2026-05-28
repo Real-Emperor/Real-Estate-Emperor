@@ -1,3 +1,15 @@
-// Prisma is not used in this project - all data is stored in localStorage via Zustand
-// This stub exists to prevent build errors from unused API route imports
-export const db = null as any
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+})
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
+}
+
+export default prisma

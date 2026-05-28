@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -18,6 +18,7 @@ model Company {
   address     String?
   logoUrl     String?
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   properties  Property[]
   tenants     Tenant[]
   expenses    Expense[]
@@ -26,42 +27,55 @@ model Company {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  password    String
-  name        String
-  nameAr      String?
-  nameBn      String?
-  nameUr      String?
-  role        String   @default("owner") // owner, admin, staff
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
-  createdAt   DateTime @default(now())
+  id              String         @id @default(cuid())
+  email           String         @unique
+  password        String         // bcrypt hashed
+  name            String
+  nameAr          String?
+  nameBn          String?
+  nameUr          String?
+  role            String         @default("staff") // owner, admin, staff
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id])
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  resetRequests   ResetRequest[] @relation("ResolvedBy")
+  auditLogs       AuditLog[]
+
+  @@index([companyId])
+  @@index([email])
 }
 
 model Property {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  company     Company    @relation(fields: [companyId], references: [id])
   name        String
   nameAr      String?
   nameBn      String?
   nameUr      String?
-  type        String   // apartment, villa, office, shop, studio, mixed_use
+  type        String     // apartment, villa, office, shop, studio, mixed_use
   address     String?
-  totalUnits  Int      @default(1)
-  floors      Int      @default(1)
-  archived    Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  totalUnits  Int        @default(1)
+  floors      Int        @default(1)
+  archived    Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?  // soft delete
   tenants     Tenant[]
+  maintenance Maintenance[]
+
+  @@index([companyId])
+  @@index([archived])
 }
 
 model Tenant {
-  id                String   @id @default(cuid())
+  id                String     @id @default(cuid())
   companyId         String
-  company           Company  @relation(fields: [companyId], references: [id])
+  company           Company    @relation(fields: [companyId], references: [id])
   propertyId        String
-  property          Property @relation(fields: [propertyId], references: [id])
+  property          Property   @relation(fields: [propertyId], references: [id])
   name              String
   nameAr            String?
   nameBn            String?
@@ -74,24 +88,30 @@ model Tenant {
   employer          String?
   emergencyContact  String?
   unitNumber        String?
-  unitType          String?  // studio, 1bedroom, 2bedroom, 3bedroom, shop, office
+  unitType          String?    // studio, 1bedroom, 2bedroom, 3bedroom, shop, office
   floor             Int?
   sizeSqft          Float?
   rentAmount        Float
-  municipalityFee   Float?   // 5% of monthly rent
+  municipalityFee   Float?
   securityDeposit   Float?
-  paymentMethod     String?  // cash, bank_transfer, cheque
+  paymentMethod     String?    // cash, bank_transfer, cheque
   leaseStart        DateTime?
   leaseEnd          DateTime?
-  contractDuration  Int?     // in months
-  renewalStatus     String?  // active, expiring_soon, expired, renewed
+  contractDuration  Int?       // in months
+  renewalStatus     String?    // active, expiring_soon, expired, renewed
   newRent           Float?
-  status            String   @default("active") // active, inactive, evicted, notice
-  latePaymentCount  Int      @default(0)
-  tenantScore       Int      @default(100) // 0-100, starts at 100, decreases with late payments
+  status            String     @default("active") // active, inactive, evicted, notice
+  latePaymentCount  Int        @default(0)
+  tenantScore       Int        @default(100)
   notes             String?
-  createdAt         DateTime @default(now())
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  deletedAt         DateTime?  // soft delete
   payments          Payment[]
+
+  @@index([companyId])
+  @@index([propertyId])
+  @@index([status])
 }
 
 model Payment {
@@ -109,6 +129,11 @@ model Payment {
   isLate        Boolean  @default(false)
   daysLate      Int      @default(0)
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([month, year])
+  @@index([date])
 }
 
 model Expense {
@@ -124,21 +149,64 @@ model Expense {
   recurring     Boolean  @default(false)
   building      String?
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime? // soft delete
+
+  @@index([companyId])
+  @@index([category])
+  @@index([date])
 }
 
 model Maintenance {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   companyId     String
-  company       Company  @relation(fields: [companyId], references: [id])
+  company       Company   @relation(fields: [companyId], references: [id])
   propertyId    String?
+  property      Property? @relation(fields: [propertyId], references: [id])
   title         String
   description   String
-  category      String?  // AC, Plumbing, Electrical, Lock/Door, Painting, Structural, Other
+  category      String?
   vendor        String?
-  priority      String   @default("medium") // urgent, high, medium, low
-  status        String   @default("pending") // pending, in-progress, completed
+  priority      String    @default("medium") // urgent, high, medium, low
+  status        String    @default("pending") // pending, in-progress, completed
   estimatedCost Float?
   actualCost    Float?
   completedAt   DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // soft delete
+
+  @@index([companyId])
+  @@index([status])
+  @@index([propertyId])
+}
+
+model ResetRequest {
+  id         String   @id @default(cuid())
+  email      String
+  name       String
+  message    String
+  status     String   @default("pending") // pending, resolved, dismissed
+  createdAt  DateTime @default(now())
+  resolvedAt DateTime?
+  resolvedBy String?
+  resolver   User?    @relation("ResolvedBy", fields: [resolvedBy], references: [id])
+
+  @@index([status])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT
+  entity    String   // Property, Tenant, Payment, Expense, Maintenance, User
+  entityId  String?
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  details   Json?    // JSON with before/after snapshots
+  companyId String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@index([createdAt])
 }

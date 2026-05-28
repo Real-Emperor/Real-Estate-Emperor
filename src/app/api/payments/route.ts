@@ -1,70 +1,167 @@
-import { db } from '@/lib/db'
-import { NextRequest, NextResponse } from 'next/server'
+import prisma from '@/lib/db'
+import {
+  getAuthUser,
+  createAuditLog,
+  serialize,
+  errorResponse,
+  successResponse,
+  unauthorizedResponse,
+  forbiddenResponse,
+  isFinancialUser,
+} from '@/lib/api-utils'
 
-export async function GET() {
+// GET /api/payments — list all payments with optional filters
+// Query params: ?month=X&year=Y&tenantId=Z
+export async function GET(request: Request) {
+  const user = await getAuthUser()
+  if (!user) return unauthorizedResponse()
+
+  // Staff can record payments but only owner/admin can view financial details
+  if (!isFinancialUser(user.role)) {
+    return forbiddenResponse('Only owners and admins can view payment records')
+  }
+
   try {
-    const payments = await db.payment.findMany({
-      include: { tenant: { include: { property: true } } },
+    const { searchParams } = new URL(request.url)
+    const month = searchParams.get('month')
+    const year = searchParams.get('year')
+    const tenantId = searchParams.get('tenantId')
+
+    const where: any = {}
+
+    if (month) where.month = Number(month)
+    if (year) where.year = Number(year)
+    if (tenantId) where.tenantId = tenantId
+
+    // If not admin, scope to the user's company tenants
+    if (user.role !== 'admin') {
+      where.tenant = { companyId: user.companyId }
+    }
+
+    const payments = await prisma.payment.findMany({
+      where,
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            unitNumber: true,
+            propertyId: true,
+          },
+        },
+      },
       orderBy: { date: 'desc' },
     })
-    return NextResponse.json(payments)
+
+    return successResponse(payments.map(serialize))
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    console.error('Error fetching payments:', error)
+    return errorResponse('Failed to fetch payments', 500)
   }
 }
 
-export async function POST(req: NextRequest) {
+// POST /api/payments — create a new payment
+export async function POST(request: Request) {
+  const user = await getAuthUser()
+  if (!user) return unauthorizedResponse()
+
+  // Staff can record payments
   try {
-    const body = await req.json()
-    const payment = await db.payment.create({
-      data: {
-        tenantId: body.tenantId,
-        amount: body.amount,
-        date: new Date(body.date),
-        month: body.month,
-        year: body.year,
-        method: body.method || null,
-        reference: body.reference || null,
-        notes: body.notes || null,
-      },
-      include: { tenant: true },
+    const body = await request.json()
+
+    const {
+      tenantId,
+      amount,
+      date,
+      month,
+      year,
+      method,
+      reference,
+      receiptNumber,
+      notes,
+      isLate,
+      daysLate,
+    } = body
+
+    // Validate required fields
+    if (!tenantId) return errorResponse('tenantId is required')
+    if (amount === undefined || amount === null) return errorResponse('amount is required')
+    if (!date) return errorResponse('date is required')
+    if (month === undefined || month === null) return errorResponse('month is required')
+    if (year === undefined || year === null) return errorResponse('year is required')
+
+    // Verify the tenant belongs to the user's company
+    const tenant = await prisma.tenant.findFirst({
+      where: { id: tenantId, companyId: user.companyId },
     })
-    return NextResponse.json(payment)
-  } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
-  }
-}
+    if (!tenant) {
+      return errorResponse('Tenant not found or does not belong to your company', 404)
+    }
 
-export async function PUT(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const payment = await db.payment.update({
-      where: { id: body.id },
+    const parsedIsLate = isLate === true
+    const parsedDaysLate = parsedIsLate ? Number(daysLate) || 0 : 0
+
+    // Create the payment
+    const payment = await prisma.payment.create({
       data: {
-        amount: body.amount,
-        date: new Date(body.date),
-        month: body.month,
-        year: body.year,
-        method: body.method || null,
-        reference: body.reference || null,
-        notes: body.notes || null,
+        tenantId,
+        amount: Number(amount),
+        date: new Date(date),
+        month: Number(month),
+        year: Number(year),
+        method: method || null,
+        reference: reference || null,
+        receiptNumber: receiptNumber || null,
+        notes: notes || null,
+        isLate: parsedIsLate,
+        daysLate: parsedDaysLate,
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            unitNumber: true,
+            propertyId: true,
+          },
+        },
       },
     })
-    return NextResponse.json(payment)
-  } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
-  }
-}
 
-export async function DELETE(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
-    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+    // If late payment, update tenant's latePaymentCount and tenantScore
+    if (parsedIsLate) {
+      const newLatePaymentCount = tenant.latePaymentCount + 1
+      const newTenantScore = Math.max(0, tenant.tenantScore - 5)
 
-    await db.payment.delete({ where: { id } })
-    return NextResponse.json({ success: true })
+      await prisma.tenant.update({
+        where: { id: tenantId },
+        data: {
+          latePaymentCount: newLatePaymentCount,
+          tenantScore: newTenantScore,
+        },
+      })
+    }
+
+    // Audit log
+    await createAuditLog({
+      action: 'CREATE',
+      entity: 'Payment',
+      entityId: payment.id,
+      userId: user.id,
+      companyId: user.companyId,
+      details: {
+        amount: Number(amount),
+        tenantId,
+        month: Number(month),
+        year: Number(year),
+        isLate: parsedIsLate,
+        daysLate: parsedDaysLate,
+      },
+    })
+
+    return successResponse(serialize(payment), 201)
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    console.error('Error creating payment:', error)
+    return errorResponse('Failed to create payment', 500)
   }
 }

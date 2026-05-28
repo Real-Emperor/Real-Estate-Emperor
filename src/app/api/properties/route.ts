@@ -1,88 +1,170 @@
-import { db } from '@/lib/db'
-import { NextRequest, NextResponse } from 'next/server'
+import prisma from '@/lib/db'
+import {
+  getAuthUser,
+  createAuditLog,
+  serialize,
+  errorResponse,
+  successResponse,
+  unauthorizedResponse,
+} from '@/lib/api-utils'
 
-export async function GET(req: NextRequest) {
+// Valid property types
+const VALID_PROPERTY_TYPES = ['apartment', 'villa', 'office', 'shop', 'studio', 'mixed_use']
+
+// GET /api/properties — List all properties for the authenticated user's company
+export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(req.url)
-    const includeArchived = searchParams.get('includeArchived') === 'true'
+    const user = await getAuthUser()
+    if (!user) return unauthorizedResponse()
 
-    const properties = await db.property.findMany({
-      where: includeArchived ? {} : { archived: false },
+    const { searchParams } = new URL(request.url)
+    const includeArchived = searchParams.get('includeArchived') === 'true'
+    const search = searchParams.get('search')?.trim() || undefined
+    const type = searchParams.get('type')?.trim() || undefined
+
+    // Build where clause — always exclude soft-deleted records
+    const where: any = {
+      companyId: user.companyId,
+      deletedAt: null,
+    }
+
+    // Filter archived unless explicitly included
+    if (!includeArchived) {
+      where.archived = false
+    }
+
+    // Filter by type if provided
+    if (type) {
+      if (!VALID_PROPERTY_TYPES.includes(type)) {
+        return errorResponse(
+          `Invalid property type. Must be one of: ${VALID_PROPERTY_TYPES.join(', ')}`
+        )
+      }
+      where.type = type
+    }
+
+    // Search by name or address
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { nameAr: { contains: search, mode: 'insensitive' } },
+        { nameBn: { contains: search, mode: 'insensitive' } },
+        { nameUr: { contains: search, mode: 'insensitive' } },
+        { address: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    const properties = await prisma.property.findMany({
+      where,
       include: {
         tenants: {
-          where: { status: 'active' },
+          where: { deletedAt: null },
+          select: {
+            id: true,
+            status: true,
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
     })
-    return NextResponse.json(properties)
+
+    // Compute tenant counts for each property
+    const result = properties.map((property) => {
+      const { tenants, ...propertyData } = property
+      const tenantCount = tenants.length
+      const activeTenantCount = tenants.filter((t) => t.status === 'active').length
+
+      return {
+        ...propertyData,
+        tenantCount,
+        activeTenantCount,
+      }
+    })
+
+    return successResponse(serialize(result))
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    console.error('GET /api/properties error:', error)
+    return errorResponse('Failed to fetch properties', 500)
   }
 }
 
-export async function POST(req: NextRequest) {
+// POST /api/properties — Create a new property
+export async function POST(request: Request) {
   try {
-    const body = await req.json()
-    const company = await db.company.findFirst()
-    if (!company) return NextResponse.json({ error: 'No company found' }, { status: 400 })
+    const user = await getAuthUser()
+    if (!user) return unauthorizedResponse()
 
-    const property = await db.property.create({
-      data: {
-        companyId: company.id,
-        name: body.name,
-        nameAr: body.nameAr || null,
-        nameBn: body.nameBn || null,
-        nameUr: body.nameUr || null,
-        type: body.type,
-        address: body.address || null,
-        totalUnits: body.totalUnits || 1,
-        floors: body.floors || 1,
-        archived: body.archived || false,
+    const body = await request.json()
+
+    // Validate required fields
+    if (!body.name || typeof body.name !== 'string' || !body.name.trim()) {
+      return errorResponse('Property name is required')
+    }
+
+    if (!body.type || typeof body.type !== 'string') {
+      return errorResponse('Property type is required')
+    }
+
+    if (!VALID_PROPERTY_TYPES.includes(body.type)) {
+      return errorResponse(
+        `Invalid property type. Must be one of: ${VALID_PROPERTY_TYPES.join(', ')}`
+      )
+    }
+
+    // Validate numeric fields
+    const totalUnits = body.totalUnits !== undefined ? Number(body.totalUnits) : 1
+    const floors = body.floors !== undefined ? Number(body.floors) : 1
+
+    if (isNaN(totalUnits) || totalUnits < 1) {
+      return errorResponse('totalUnits must be a positive integer')
+    }
+
+    if (isNaN(floors) || floors < 1) {
+      return errorResponse('floors must be a positive integer')
+    }
+
+    // Check for duplicate name within the same company (excluding soft-deleted)
+    const existing = await prisma.property.findFirst({
+      where: {
+        companyId: user.companyId,
+        name: body.name.trim(),
+        deletedAt: null,
       },
     })
-    return NextResponse.json(property)
-  } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
-  }
-}
 
-export async function PUT(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const data: Record<string, unknown> = {
-      name: body.name,
-      nameAr: body.nameAr || null,
-      nameBn: body.nameBn || null,
-      nameUr: body.nameUr || null,
-      type: body.type,
-      address: body.address || null,
-      totalUnits: body.totalUnits,
-      floors: body.floors,
-    }
-    if (body.archived !== undefined) {
-      data.archived = body.archived
+    if (existing) {
+      return errorResponse('A property with this name already exists', 409)
     }
 
-    const property = await db.property.update({
-      where: { id: body.id },
-      data,
+    const property = await prisma.property.create({
+      data: {
+        companyId: user.companyId,
+        name: body.name.trim(),
+        nameAr: body.nameAr?.trim() || null,
+        nameBn: body.nameBn?.trim() || null,
+        nameUr: body.nameUr?.trim() || null,
+        type: body.type,
+        address: body.address?.trim() || null,
+        totalUnits,
+        floors,
+        archived: body.archived === true,
+      },
     })
-    return NextResponse.json(property)
-  } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
-  }
-}
 
-export async function DELETE(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
-    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+    await createAuditLog({
+      action: 'CREATE',
+      entity: 'Property',
+      entityId: property.id,
+      userId: user.id,
+      companyId: user.companyId,
+      details: {
+        after: serialize(property),
+      },
+    })
 
-    await db.property.delete({ where: { id } })
-    return NextResponse.json({ success: true })
+    return successResponse(serialize(property), 201)
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    console.error('POST /api/properties error:', error)
+    return errorResponse('Failed to create property', 500)
   }
 }

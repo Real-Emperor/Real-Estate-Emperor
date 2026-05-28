@@ -1,77 +1,81 @@
-import { db } from '@/lib/db'
-import { NextRequest, NextResponse } from 'next/server'
+import prisma from '@/lib/db'
+import {
+  getAuthUser,
+  createAuditLog,
+  serialize,
+  errorResponse,
+  successResponse,
+  unauthorizedResponse,
+} from '@/lib/api-utils'
 
+// GET /api/maintenance - List all maintenance items for the company
 export async function GET() {
-  try {
-    const maintenance = await db.maintenance.findMany({
-      orderBy: { createdAt: 'desc' },
-    })
-    return NextResponse.json(maintenance)
-  } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
-  }
-}
+  const user = await getAuthUser()
+  if (!user) return unauthorizedResponse()
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const company = await db.company.findFirst()
-    if (!company) return NextResponse.json({ error: 'No company found' }, { status: 400 })
-
-    const maintenance = await db.maintenance.create({
-      data: {
-        companyId: company.id,
-        propertyId: body.propertyId || null,
-        title: body.title,
-        description: body.description,
-        category: body.category || null,
-        vendor: body.vendor || null,
-        priority: body.priority || 'medium',
-        status: body.status || 'pending',
-        estimatedCost: body.estimatedCost ? Number(body.estimatedCost) : null,
-        actualCost: body.actualCost ? Number(body.actualCost) : null,
-        completedAt: body.status === 'completed' ? new Date() : null,
+  const items = await prisma.maintenance.findMany({
+    where: {
+      companyId: user.companyId,
+      deletedAt: null,
+    },
+    include: {
+      property: {
+        select: { id: true, name: true },
       },
-    })
-    return NextResponse.json(maintenance)
-  } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
-  }
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return successResponse(serialize(items))
 }
 
-export async function PUT(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const maintenance = await db.maintenance.update({
-      where: { id: body.id },
-      data: {
-        title: body.title,
-        description: body.description,
-        category: body.category || null,
-        vendor: body.vendor || null,
-        priority: body.priority,
-        status: body.status,
-        estimatedCost: body.estimatedCost ? Number(body.estimatedCost) : null,
-        actualCost: body.actualCost ? Number(body.actualCost) : null,
-        propertyId: body.propertyId || null,
-        completedAt: body.status === 'completed' ? new Date() : null,
+// POST /api/maintenance - Create a new maintenance item
+export async function POST(request: Request) {
+  const user = await getAuthUser()
+  if (!user) return unauthorizedResponse()
+
+  const body = await request.json()
+  const { title, description, category, vendor, priority, status, propertyId, estimatedCost, actualCost, completedAt } = body
+
+  if (!title || !description) {
+    return errorResponse('Title and description are required')
+  }
+
+  // If status is completed, set completedAt
+  let resolvedCompletedAt = completedAt ? new Date(completedAt) : undefined
+  if (status === 'completed' && !resolvedCompletedAt) {
+    resolvedCompletedAt = new Date()
+  }
+
+  const item = await prisma.maintenance.create({
+    data: {
+      companyId: user.companyId,
+      title,
+      description,
+      category: category || null,
+      vendor: vendor || null,
+      priority: priority || 'medium',
+      status: status || 'pending',
+      propertyId: propertyId || null,
+      estimatedCost: estimatedCost ? parseFloat(estimatedCost) : null,
+      actualCost: actualCost ? parseFloat(actualCost) : null,
+      completedAt: resolvedCompletedAt || null,
+    },
+    include: {
+      property: {
+        select: { id: true, name: true },
       },
-    })
-    return NextResponse.json(maintenance)
-  } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
-  }
-}
+    },
+  })
 
-export async function DELETE(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
-    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+  await createAuditLog({
+    action: 'CREATE',
+    entity: 'Maintenance',
+    entityId: item.id,
+    userId: user.id,
+    companyId: user.companyId,
+    details: { title, description, priority: item.priority, status: item.status },
+  })
 
-    await db.maintenance.delete({ where: { id } })
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
-  }
+  return successResponse(serialize(item), 201)
 }
