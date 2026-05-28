@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import type { ReportData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
-import { formatAED, getCategoryIcon } from '@/lib/utils'
+import { formatAED, formatDate, getCategoryIcon } from '@/lib/utils'
 import { t, getMonthName, getExpenseCategoryLabel, type Language } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ import {
   ArrowDownRight,
   Minus,
   Plus,
+  FileSpreadsheet,
 } from 'lucide-react'
 import {
   BarChart,
@@ -37,19 +38,76 @@ import {
   Pie,
   Cell,
   Legend,
-  LineChart,
-  Line,
   Area,
   AreaChart,
 } from 'recharts'
+import * as XLSX from 'xlsx'
+import { toast } from 'sonner'
 
 const PIE_COLORS = ['#0D7C3D', '#C5A028', '#0A5C4E', '#C4653A', '#8b5cf6', '#ef4444', '#06b6d4']
+
+function getTenantScoreLabel(score: number): string {
+  if (score >= 90) return 'Excellent'
+  if (score >= 75) return 'Good'
+  if (score >= 60) return 'Warning'
+  return 'Poor'
+}
+
+function getUnitTypeLabel(type: string | null): string {
+  switch (type) {
+    case 'studio': return 'Studio'
+    case '1bedroom': return '1 Bedroom'
+    case '2bedroom': return '2 Bedroom'
+    case '3bedroom': return '3 Bedroom'
+    case 'shop': return 'Shop'
+    case 'office': return 'Office'
+    default: return type || ''
+  }
+}
+
+function getPropertyTypeLabel(type: string): string {
+  switch (type) {
+    case 'apartment': return 'Apartment'
+    case 'villa': return 'Villa'
+    case 'office': return 'Office'
+    case 'shop': return 'Shop'
+    case 'studio': return 'Studio'
+    case 'mixed_use': return 'Mixed Use'
+    default: return type
+  }
+}
+
+function getMaintenanceCategoryLabelExport(category: string | null): string {
+  switch (category) {
+    case 'ac': return 'AC'
+    case 'plumbing': return 'Plumbing'
+    case 'electrical': return 'Electrical'
+    case 'lock_door': return 'Lock/Door'
+    case 'painting': return 'Painting'
+    case 'structural': return 'Structural'
+    default: return category || 'Other'
+  }
+}
+
+function getExpenseCategoryLabelExport(category: string): string {
+  switch (category) {
+    case 'maintenance': return 'Maintenance'
+    case 'utility': case 'utilities': return 'Utilities'
+    case 'insurance': return 'Insurance'
+    case 'manpower': return 'Manpower/Staff'
+    case 'municipality': return 'Municipality Fees'
+    case 'leasing': return 'Leasing Commission'
+    case 'security': return 'Security'
+    default: return 'Other'
+  }
+}
 
 export default function Reports() {
   const { language, authUser } = useAppStore()
   const lang = language as Language
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
@@ -82,6 +140,217 @@ export default function Reports() {
   const handlePrint = () => {
     window.print()
   }
+
+  const handleExportXLSX = useCallback(() => {
+    try {
+      setExporting(true)
+      const store = useDataStore.getState()
+      const { properties, tenants, payments, expenses, maintenanceItems, company } = store
+      const reportData = store.getReportData(selectedMonth, selectedYear)
+
+      const wb = XLSX.utils.book_new()
+
+      // ── Sheet 1: Financial Summary ──
+      const summaryData = [
+        [`${company.name} - Financial Report`],
+        [`${getMonthName(selectedMonth, 'en')} ${selectedYear}`],
+        [],
+        ['FINANCIAL SUMMARY', '', '', ''],
+        ['Metric', 'Value (AED)', '', ''],
+        ['Expected Revenue', reportData.expectedRevenue],
+        ['Collected Revenue', reportData.totalRevenue],
+        ['Total Expenses', reportData.totalExpenses],
+        ['Profit / Loss', reportData.profitLoss],
+        [],
+        ['PROFIT & LOSS STATEMENT', '', '', ''],
+        ['Rental Income', reportData.rentalIncome],
+        ['Other Income', reportData.otherIncome],
+        ['Gross Revenue', reportData.grossRevenue],
+        ['Vacancy Loss', `-${reportData.vacancyLoss}`],
+        ['Bad Debt / Unpaid', `-${reportData.badDebt}`],
+        ['Gross Profit', reportData.grossProfit],
+        ['Operating Expenses', `-${reportData.costOfOperations}`],
+        ['Net Income', reportData.netIncome],
+        [],
+        ['KEY METRICS', '', '', ''],
+        ['Collection Rate', `${reportData.collectionRate}%`],
+        ['Occupancy Rate', `${reportData.occupancyRate}%`],
+        ['Total Units', reportData.totalUnits],
+        ['Occupied Units', reportData.occupiedUnits],
+        ['Net Profit Margin', `${reportData.grossRevenue > 0 ? ((reportData.netIncome / reportData.grossRevenue) * 100).toFixed(1) : 0}%`],
+        [],
+        ['6-MONTH TREND', '', '', ''],
+        ['Month', 'Revenue (AED)', 'Expenses (AED)', 'Profit (AED)'],
+        ...reportData.trend.map(item => [
+          `${getMonthName(item.month, 'en')} ${item.year}`,
+          item.revenue,
+          item.expenses,
+          item.profit,
+        ]),
+        [],
+        ['EXPENSE BREAKDOWN', '', '', ''],
+        ['Category', 'Amount (AED)'],
+        ...Object.entries(reportData.expenseBreakdown).map(([key, value]) => [
+          getExpenseCategoryLabelExport(key),
+          value,
+        ]),
+      ]
+      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
+      wsSummary['!cols'] = [{ wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 18 }]
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Financial Summary')
+
+      // ── Sheet 2: Properties ──
+      const propertiesHeader = [
+        'Property Name', 'Name (Arabic)', 'Type', 'Address', 'Total Units',
+        'Floors', 'Active Tenants', 'Occupancy %', 'Monthly Revenue (AED)', 'Status',
+      ]
+      const propertiesRows = properties.map(p => {
+        const activeTenants = tenants.filter(t => t.propertyId === p.id && t.status === 'active')
+        const occupancy = p.totalUnits > 0 ? Math.round((activeTenants.length / p.totalUnits) * 100) : 0
+        const monthlyRevenue = activeTenants.reduce((sum, t) => sum + t.rentAmount, 0)
+        return [
+          p.name,
+          p.nameAr || '',
+          getPropertyTypeLabel(p.type),
+          p.address || '',
+          p.totalUnits,
+          p.floors,
+          activeTenants.length,
+          `${occupancy}%`,
+          monthlyRevenue,
+          p.archived ? 'Archived' : 'Active',
+        ]
+      })
+      const wsProperties = XLSX.utils.aoa_to_sheet([propertiesHeader, ...propertiesRows])
+      wsProperties['!cols'] = [{ wch: 22 }, { wch: 30 }, { wch: 14 }, { wch: 40 }, { wch: 12 }, { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 10 }]
+      XLSX.utils.book_append_sheet(wb, wsProperties, 'Properties')
+
+      // ── Sheet 3: Tenants ──
+      const tenantsHeader = [
+        'Tenant Name', 'Name (Arabic)', 'Property', 'Unit Number', 'Unit Type',
+        'Floor', 'Size (sqft)', 'Nationality', 'Phone', 'WhatsApp',
+        'Emirates ID', 'Employer', 'Monthly Rent (AED)', 'Municipality Fee (AED)',
+        'Security Deposit (AED)', 'Payment Method', 'Lease Start', 'Lease End',
+        'Contract Duration (months)', 'Status', 'Tenant Score', 'Late Payments',
+      ]
+      const tenantsRows = tenants.map(tn => {
+        const prop = properties.find(p => p.id === tn.propertyId)
+        return [
+          tn.name,
+          tn.nameAr || '',
+          prop?.name || '',
+          tn.unitNumber || '',
+          getUnitTypeLabel(tn.unitType),
+          tn.floor || '',
+          tn.sizeSqft || '',
+          tn.nationality || '',
+          tn.phone,
+          tn.whatsapp || '',
+          tn.emiratesId || '',
+          tn.employer || '',
+          tn.rentAmount,
+          tn.municipalityFee || '',
+          tn.securityDeposit || '',
+          tn.paymentMethod || '',
+          tn.leaseStart ? formatDate(tn.leaseStart) : '',
+          tn.leaseEnd ? formatDate(tn.leaseEnd) : '',
+          tn.contractDuration || '',
+          tn.status,
+          tn.tenantScore,
+          tn.latePaymentCount,
+        ]
+      })
+      const wsTenants = XLSX.utils.aoa_to_sheet([tenantsHeader, ...tenantsRows])
+      wsTenants['!cols'] = [{ wch: 22 }, { wch: 28 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 8 }, { wch: 10 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 22 }, { wch: 20 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 14 }]
+      XLSX.utils.book_append_sheet(wb, wsTenants, 'Tenants')
+
+      // ── Sheet 4: Payments ──
+      const paymentsHeader = [
+        'Date', 'Tenant Name', 'Property', 'Unit', 'Month', 'Year',
+        'Amount (AED)', 'Method', 'Reference', 'Late?', 'Days Late',
+      ]
+      const paymentsRows = payments
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .map(p => {
+          const tenant = tenants.find(tn => tn.id === p.tenantId)
+          const prop = tenant ? properties.find(pr => pr.id === tenant.propertyId) : null
+          return [
+            formatDate(p.date),
+            tenant?.name || '',
+            prop?.name || '',
+            tenant?.unitNumber || '',
+            getMonthName(p.month, 'en'),
+            p.year,
+            p.amount,
+            p.method || '',
+            p.reference || '',
+            p.isLate ? 'Yes' : 'No',
+            p.daysLate,
+          ]
+        })
+      const wsPayments = XLSX.utils.aoa_to_sheet([paymentsHeader, ...paymentsRows])
+      wsPayments['!cols'] = [{ wch: 14 }, { wch: 22 }, { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 22 }, { wch: 8 }, { wch: 10 }]
+      XLSX.utils.book_append_sheet(wb, wsPayments, 'Payments')
+
+      // ── Sheet 5: Expenses ──
+      const expensesHeader = [
+        'Date', 'Category', 'Description', 'Amount (AED)', 'Vendor',
+        'Invoice Number', 'Building', 'Recurring',
+      ]
+      const expensesRows = expenses
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .map(e => [
+          formatDate(e.date),
+          getExpenseCategoryLabelExport(e.category),
+          e.description,
+          e.amount,
+          e.vendor || '',
+          e.invoiceNumber || '',
+          e.building || '',
+          e.recurring ? 'Yes' : 'No',
+        ])
+      const wsExpenses = XLSX.utils.aoa_to_sheet([expensesHeader, ...expensesRows])
+      wsExpenses['!cols'] = [{ wch: 14 }, { wch: 18 }, { wch: 36 }, { wch: 14 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 10 }]
+      XLSX.utils.book_append_sheet(wb, wsExpenses, 'Expenses')
+
+      // ── Sheet 6: Maintenance ──
+      const maintenanceHeader = [
+        'Title', 'Category', 'Priority', 'Status', 'Property',
+        'Vendor', 'Estimated Cost (AED)', 'Actual Cost (AED)',
+        'Description', 'Date Created', 'Date Completed',
+      ]
+      const maintenanceRows = maintenanceItems.map(m => {
+        const prop = properties.find(p => p.id === m.propertyId)
+        return [
+          m.title,
+          getMaintenanceCategoryLabelExport(m.category),
+          m.priority,
+          m.status,
+          prop?.name || '',
+          m.vendor || '',
+          m.estimatedCost || '',
+          m.actualCost || '',
+          m.description,
+          formatDate(m.createdAt),
+          m.completedAt ? formatDate(m.completedAt) : '',
+        ]
+      })
+      const wsMaintenance = XLSX.utils.aoa_to_sheet([maintenanceHeader, ...maintenanceRows])
+      wsMaintenance['!cols'] = [{ wch: 36 }, { wch: 14 }, { wch: 10 }, { wch: 14 }, { wch: 18 }, { wch: 22 }, { wch: 18 }, { wch: 16 }, { wch: 40 }, { wch: 14 }, { wch: 14 }]
+      XLSX.utils.book_append_sheet(wb, wsMaintenance, 'Maintenance')
+
+      // Generate and download
+      const fileName = `Al_Reef_Report_${getMonthName(selectedMonth, 'en')}_${selectedYear}.xlsx`
+      XLSX.writeFile(wb, fileName)
+
+      toast.success(t('exportSuccess', lang))
+    } catch (error) {
+      console.error('Export failed:', error)
+      toast.error(t('exportFailed', lang))
+    } finally {
+      setExporting(false)
+    }
+  }, [selectedMonth, selectedYear, lang])
 
   if (loading) {
     return <div className="flex items-center justify-center h-96"><Loader2 className="w-8 h-8 animate-spin text-emerald" /></div>
@@ -126,10 +395,24 @@ export default function Reports() {
         <div>
           <h1 className="text-2xl font-bold">{t('reports', lang)}</h1>
         </div>
-        <Button onClick={handlePrint} variant="outline" className="border-emerald text-emerald">
-          <Download className="w-4 h-4 mr-2" />
-          {t('printReport', lang)}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleExportXLSX}
+            disabled={exporting}
+            className="bg-emerald hover:bg-emerald/90 text-white"
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+            )}
+            {exporting ? t('loading', lang) : t('exportData', lang)}
+          </Button>
+          <Button onClick={handlePrint} variant="outline" className="border-emerald text-emerald">
+            <Download className="w-4 h-4 mr-2" />
+            {t('printReport', lang)}
+          </Button>
+        </div>
       </div>
 
       {/* Month Selector */}

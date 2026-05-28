@@ -333,6 +333,11 @@ export const translations = {
   sendUrdu: { en: 'Urdu (اردو)', ar: 'الأردية (اردو)', bn: 'উর্দু (اردو)', ur: 'اردو' },
   sendHindi: { en: 'Hindi (हिन्दी)', ar: 'الهندية (हिन्दी)', bn: 'হিন্দি (हिन्दी)', ur: 'ہندی (हिन्दी)' },
   sendBengali: { en: 'Bengali (বাংলা)', ar: 'البنغالية (বাংলা)', bn: 'বাংলা', ur: 'بنگالی (বাংলা)' },
+
+  // Export
+  exportData: { en: 'Export Data', ar: 'تصدير البيانات', bn: 'ডেটা রপ্তানি', ur: 'ڈیٹا برآمد کریں' },
+  exportSuccess: { en: 'Data exported successfully!', ar: 'تم تصدير البيانات بنجاح!', bn: 'ডেটা সফলভাবে রপ্তানি হয়েছে!', ur: 'ڈیٹا کامیابی سے برآمد ہو گیا!' },
+  exportFailed: { en: 'Export failed. Please try again.', ar: 'فشل التصدير. يرجى المحاولة مرة أخرى.', bn: 'রপ্তানি ব্যর্থ। আবার চেষ্টা করুন।', ur: 'برآمد ناکام ہوا۔ دوبارہ کوشش کریں۔' },
 } as const
 
 export type TranslationKey = keyof typeof translations
