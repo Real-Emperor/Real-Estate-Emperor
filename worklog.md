@@ -47,3 +47,41 @@ Stage Summary:
 - Net P/L: AED -72,820 (LOSS) — realistic for a month-end when all recurring costs hit on the same day
 - All records have proper UTC timestamps throughout the business day (07:00–18:10)
 - Data is ready for PDF/XLSX export validation via Daily Expenses Report page
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Fix demo data balance + redesign PDF and XLSX exports for Daily Expenses Report
+
+Work Log:
+- Deleted 55 extreme/loss-heavy transactions from 31 May 2026 (AED 66,100 income / AED 138,920 expenses)
+- Created balanced dataset: 10 income payments (AED 29,400) + 10 expenses (AED 8,830) = AED 38,230 daily activity
+- Net Profit: AED 20,570 (70% margin) - realistic for a profitable real estate day
+- Completely rewrote PDF export function:
+  - Professional cover page with green header band and company details
+  - 4 color-coded KPI cards (Income/Expense/Net P/L/Margin)
+  - Bar chart and pie chart embedded via html2canvas screenshot from Recharts
+  - Expense category breakdown table with color dots and alternating row backgrounds
+  - Detailed income table with late payment highlighting (red left border, red background)
+  - Detailed expense table with category color indicator bars
+  - Net summary box with profit/loss color coding
+  - Page headers/footers with page numbers, date, and CONFIDENTIAL marking
+  - Proper page break handling for long tables
+- Completely rewrote XLSX export function:
+  - 4 professional sheets: Executive Summary, Income Details, Expense Details, Category Analysis
+  - Executive Summary includes: Financial Summary, Payment Method Breakdown, Payment Status Analysis, Income by Property
+  - Income Details: sorted by time, status tracking (On Time/LATE/PARTIAL), notes column, total row
+  - Expense Details: sorted by time, recurring flag, % of total, total row
+  - Category Analysis: sorted by amount desc, % of total, # items, average per item, total row
+  - Merged cells for headers, proper column widths
+- Fixed TypeScript build error: pdf.setFont(undefined, 'bold') → pdf.setFont('helvetica', 'bold')
+- Verified successful build with `next build`
+- Committed and pushed to GitHub (commit aaee4ec)
+- Vercel auto-deploy should trigger from GitHub push
+
+Stage Summary:
+- File modified: src/components/daily-expenses-report.tsx (571 insertions, 112 deletions)
+- Balanced dataset seeded: Income AED 29,400 / Expenses AED 8,830 / Net Profit AED 20,570
+- PDF export now includes charts, KPI cards, color-coded tables, professional layout
+- XLSX export now has 4 analytical sheets with comprehensive breakdowns
+- Build passes, pushed to GitHub
