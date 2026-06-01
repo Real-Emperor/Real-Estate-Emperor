@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { safeNumber } from '@/lib/api-utils'
 
-// Vercel Cron Job endpoint - generates daily report at midnight Dubai time (Asia/Dubai = UTC+4)
+// Vercel Cron Job endpoint - generates daily report at 00:00 midnight Dubai time
+// Schedule: "0 20 * * *" (20:00 UTC = 00:00 Dubai, Asia/Dubai = UTC+4, no DST)
+// CRITICAL: Reports cover the PREVIOUS day (the completed business day), not the new day
 // PHASE 1 FIX: Uses aggregate() instead of findMany + reduce — safe at scale
 // PHASE 2 FIX: Uses Promise.allSettled() with per-company error isolation
 export async function GET(request: NextRequest) {
@@ -18,16 +20,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get current date in Dubai timezone
-    const dubaiDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' })
+    // Get the PREVIOUS day's date in Dubai timezone (the completed business day)
+    // At midnight Dubai, the date rolls over to the new day, so we subtract 1 day
+    // to capture the full completed day's transactions
+    const now = new Date()
+    const yesterday = new Date(now)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const reportDate = yesterday.toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' })
 
     // Get all active companies (only IDs and names — lightweight)
     const companies = await prisma.company.findMany({
       select: { id: true, name: true },
     })
 
-    const startOfDay = new Date(dubaiDate + 'T00:00:00.000Z')
-    const endOfDay = new Date(dubaiDate + 'T23:59:59.999Z')
+    const startOfDay = new Date(reportDate + 'T00:00:00.000Z')
+    const endOfDay = new Date(reportDate + 'T23:59:59.999Z')
 
     // PHASE 2: Process all companies in parallel with Promise.allSettled()
     // One failing company does NOT break the entire execution cycle
@@ -61,10 +68,10 @@ export async function GET(request: NextRequest) {
             data: {
               companyId: company.id,
               type: 'daily_report',
-              title: `Daily Report - ${dubaiDate}`,
+              title: `Daily Report - ${reportDate}`,
               message: `Income: AED ${totalIncome.toFixed(2)} | Expenses: AED ${totalExpenses.toFixed(2)} | Net: AED ${(totalIncome - totalExpenses).toFixed(2)}`,
               data: JSON.stringify({
-                date: dubaiDate,
+                date: reportDate,
                 totalIncome,
                 totalExpenses,
                 netProfitLoss: totalIncome - totalExpenses,
@@ -75,7 +82,7 @@ export async function GET(request: NextRequest) {
           return {
             companyId: company.id,
             companyName: company.name,
-            date: dubaiDate,
+            date: reportDate,
             totalIncome,
             totalExpenses,
             netProfitLoss: totalIncome - totalExpenses,
@@ -115,7 +122,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: errors.length === 0,
-      date: dubaiDate,
+      date: reportDate,
       companiesProcessed: results.length,
       companiesFailed: errors.length,
       results,
