@@ -67,10 +67,6 @@ export default auth((req) => {
     return addSecurityHeaders(NextResponse.next())
   }
 
-  // TEMP: Debug endpoint (remove after verification)
-  if (pathname === '/api/debug-env') {
-    return addSecurityHeaders(NextResponse.next())
-  }
 
   // Allow public assets
   if (
