@@ -6,34 +6,51 @@ import {
   errorResponse,
   successResponse,
   unauthorizedResponse,
+  safeNumber,
+  safeInt,
+  parsePaginationParams,
+  paginatedResponse,
 } from '@/lib/api-utils'
 
-// GET /api/tenants - List all tenants for the authenticated user's company
-export async function GET() {
+// GET /api/tenants - List tenants with pagination for the authenticated user's company
+export async function GET(request: Request) {
   try {
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
 
-    const tenants = await prisma.tenant.findMany({
-      where: {
-        companyId: user.companyId,
-        deletedAt: null,
-      },
-      include: {
-        property: true,
-        _count: {
-          select: { payments: true },
+    const { searchParams } = new URL(request.url)
+    const pagination = parsePaginationParams(searchParams)
+    const status = searchParams.get('status')?.trim() || undefined
+
+    const where: any = {
+      companyId: user.companyId,
+      deletedAt: null,
+    }
+
+    if (status) where.status = status
+
+    const [tenants, total] = await Promise.all([
+      prisma.tenant.findMany({
+        where,
+        include: {
+          property: true,
+          _count: {
+            select: { payments: true },
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.limit,
+      }),
+      prisma.tenant.count({ where }),
+    ])
 
     const result = tenants.map(({ _count, ...tenant }) => ({
       ...serialize(tenant),
       paymentCount: _count.payments,
     }))
 
-    return successResponse(result)
+    return successResponse(paginatedResponse(result, total, pagination))
   } catch (error) {
     console.error('Failed to fetch tenants:', error)
     return errorResponse('Failed to fetch tenants', 500)
@@ -52,6 +69,10 @@ export async function POST(request: Request) {
     if (!body.name || !body.phone || !body.propertyId || body.rentAmount === undefined) {
       return errorResponse('Missing required fields: name, phone, propertyId, rentAmount')
     }
+
+    // NaN guards for all numeric fields
+    const parsedRentAmount = safeNumber(body.rentAmount, -1)
+    if (parsedRentAmount <= 0) return errorResponse('rentAmount must be greater than zero')
 
     // Verify the property belongs to the user's company
     const property = await prisma.property.findFirst({
@@ -82,20 +103,20 @@ export async function POST(request: Request) {
         emergencyContact: body.emergencyContact || null,
         unitNumber: body.unitNumber || null,
         unitType: body.unitType || null,
-        floor: body.floor ? Number(body.floor) : null,
-        sizeSqft: body.sizeSqft ? Number(body.sizeSqft) : null,
-        rentAmount: Number(body.rentAmount),
-        municipalityFee: body.municipalityFee ? Number(body.municipalityFee) : null,
-        securityDeposit: body.securityDeposit ? Number(body.securityDeposit) : null,
+        floor: body.floor ? safeInt(body.floor) : null,
+        sizeSqft: body.sizeSqft ? safeNumber(body.sizeSqft) : null,
+        rentAmount: parsedRentAmount,
+        municipalityFee: body.municipalityFee ? safeNumber(body.municipalityFee) : null,
+        securityDeposit: body.securityDeposit ? safeNumber(body.securityDeposit) : null,
         paymentMethod: body.paymentMethod || null,
         leaseStart: body.leaseStart ? new Date(body.leaseStart) : null,
         leaseEnd: body.leaseEnd ? new Date(body.leaseEnd) : null,
-        contractDuration: body.contractDuration ? Number(body.contractDuration) : null,
+        contractDuration: body.contractDuration ? safeInt(body.contractDuration) : null,
         renewalStatus: body.renewalStatus || null,
-        newRent: body.newRent ? Number(body.newRent) : null,
+        newRent: body.newRent ? safeNumber(body.newRent) : null,
         status: body.status || 'active',
-        latePaymentCount: body.latePaymentCount ? Number(body.latePaymentCount) : 0,
-        tenantScore: body.tenantScore ? Number(body.tenantScore) : 100,
+        latePaymentCount: body.latePaymentCount ? safeInt(body.latePaymentCount) : 0,
+        tenantScore: body.tenantScore ? safeInt(body.tenantScore, 100) : 100,
         notes: body.notes || null,
       },
       include: {

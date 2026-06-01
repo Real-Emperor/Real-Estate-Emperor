@@ -7,10 +7,12 @@ import {
   unauthorizedResponse,
   forbiddenResponse,
   isSystemAdmin,
+  parsePaginationParams,
+  paginatedResponse,
 } from '@/lib/api-utils'
 
-// GET /api/reset-requests — List all reset requests for the user's company (admin/owner only)
-export async function GET() {
+// GET /api/reset-requests — List reset requests with pagination for the user's company (admin/owner only)
+export async function GET(request: Request) {
   try {
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
@@ -20,23 +22,36 @@ export async function GET() {
       return forbiddenResponse('Only admins and owners can view reset requests')
     }
 
-    const resetRequests = await prisma.resetRequest.findMany({
-      where: {
-        companyId: user.companyId, // Scope to user's company
-      },
-      include: {
-        resolver: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+    const { searchParams } = new URL(request.url)
+    const pagination = parsePaginationParams(searchParams)
+    const status = searchParams.get('status')?.trim() || undefined
+
+    const where: any = {
+      companyId: user.companyId, // Scope to user's company
+    }
+
+    if (status) where.status = status
+
+    const [resetRequests, total] = await Promise.all([
+      prisma.resetRequest.findMany({
+        where,
+        include: {
+          resolver: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.limit,
+      }),
+      prisma.resetRequest.count({ where }),
+    ])
 
-    return successResponse(serialize(resetRequests))
+    return successResponse(paginatedResponse(serialize(resetRequests), total, pagination))
   } catch (error) {
     console.error('GET /api/reset-requests error:', error)
     return errorResponse('Failed to fetch reset requests', 500)

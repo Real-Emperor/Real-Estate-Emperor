@@ -114,7 +114,7 @@ const DEFAULT_COMPANY: CompanyInfo = {
   address: '',
 }
 
-// API helper
+// API helper — PHASE 1 FIX: handles 401 by redirecting to login
 async function apiCall(url: string, options?: RequestInit) {
   const res = await fetch(url, {
     ...options,
@@ -123,6 +123,18 @@ async function apiCall(url: string, options?: RequestInit) {
       ...options?.headers,
     },
   })
+
+  // PHASE 1 FIX: On 401 Unauthorized, redirect to login page
+  if (res.status === 401) {
+    // Clear local state and redirect to login
+    if (typeof window !== 'undefined') {
+      // Use NextAuth signOut to properly clear session
+      const { signOut } = await import('next-auth/react')
+      await signOut({ callbackUrl: '/' })
+    }
+    throw new Error('Session expired. Please log in again.')
+  }
+
   if (!res.ok) {
     const data = await res.json().catch(() => ({ error: 'Request failed' }))
     throw new Error(data.error || `Request failed with status ${res.status}`)
@@ -153,24 +165,32 @@ export const useDataStore = create<DataState>()(
         // Fetch all data in parallel
         const [companyData, propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, usersData, resetData] = await Promise.all([
           apiCall('/api/company').catch(() => null),
-          apiCall('/api/properties?includeArchived=true').catch(() => []),
-          apiCall('/api/tenants').catch(() => []),
-          apiCall('/api/payments').catch(() => []),
-          apiCall('/api/expenses').catch(() => []),
-          apiCall('/api/maintenance').catch(() => []),
-          apiCall('/api/users').catch(() => []),
+          apiCall('/api/properties?includeArchived=true&limit=200').catch(() => ({ data: [] })),
+          apiCall('/api/tenants?limit=200').catch(() => ({ data: [] })),
+          apiCall('/api/payments?limit=200').catch(() => ({ data: [] })),
+          apiCall('/api/expenses?limit=200').catch(() => ({ data: [] })),
+          apiCall('/api/maintenance?limit=200').catch(() => ({ data: [] })),
+          apiCall('/api/users?limit=200').catch(() => ({ data: [] })),
           apiCall('/api/reset-requests').catch(() => []),
         ])
 
+        // Helper to extract data from paginated or plain responses
+        const extractData = (resp: any): any[] => {
+          if (!resp) return []
+          if (Array.isArray(resp)) return resp
+          if (resp.data && Array.isArray(resp.data)) return resp.data
+          return []
+        }
+
         set({
           company: companyData || DEFAULT_COMPANY,
-          properties: Array.isArray(propertiesData) ? propertiesData : (propertiesData?.properties || []),
-          tenants: Array.isArray(tenantsData) ? tenantsData : (tenantsData?.tenants || []),
-          payments: Array.isArray(paymentsData) ? paymentsData : (paymentsData?.payments || []),
-          expenses: Array.isArray(expensesData) ? expensesData : (expensesData?.expenses || []),
-          maintenanceItems: Array.isArray(maintenanceData) ? maintenanceData : (maintenanceData?.items || []),
-          users: Array.isArray(usersData) ? usersData : (usersData?.users || []),
-          resetRequests: Array.isArray(resetData) ? resetData : (resetData?.requests || []),
+          properties: extractData(propertiesData),
+          tenants: extractData(tenantsData),
+          payments: extractData(paymentsData),
+          expenses: extractData(expensesData),
+          maintenanceItems: extractData(maintenanceData),
+          users: extractData(usersData),
+          resetRequests: extractData(resetData),
           isSeeded: true, // If data was fetched, it's seeded
           isInitialized: true,
           isLoading: false,

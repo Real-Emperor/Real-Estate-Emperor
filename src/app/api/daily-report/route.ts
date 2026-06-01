@@ -1,64 +1,99 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
+import {
+  getAuthUser,
+  unauthorizedResponse,
+  safeNumber,
+} from '@/lib/api-utils'
 
+// GET /api/daily-report?date=YYYY-MM-DD
+// PHASE 1 FIX: companyId derived from authenticated session — NO client-provided IDs
 export async function GET(request: NextRequest) {
   try {
+    // ─── Auth check (was missing!) ───
+    const user = await getAuthUser()
+    if (!user) return unauthorizedResponse()
+
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
-    const companyId = searchParams.get('companyId')
 
     if (!date) {
       return NextResponse.json({ error: 'Date parameter is required' }, { status: 400 })
     }
 
+    // companyId ALWAYS from session — never from query params
+    const companyId = user.companyId
+
     // Parse the date for filtering (start and end of day in UTC)
     const startOfDay = new Date(date + 'T00:00:00.000Z')
     const endOfDay = new Date(date + 'T23:59:59.999Z')
 
-    // Fetch payments for the day (with tenant info)
-    const payments = await prisma.payment.findMany({
-      where: {
-        date: {
-          gte: startOfDay,
-          lte: endOfDay,
+    // ─── Use aggregate() instead of findMany + reduce ───
+    const [totalIncomeResult, totalExpensesResult] = await Promise.all([
+      prisma.payment.aggregate({
+        where: {
+          date: { gte: startOfDay, lte: endOfDay },
+          tenant: { companyId },
         },
-        tenant: companyId ? {
-          companyId: companyId,
-        } : undefined,
-      },
-      include: {
-        tenant: {
-          include: {
-            property: true,
-          },
+        _sum: { amount: true },
+      }),
+      prisma.expense.aggregate({
+        where: {
+          date: { gte: startOfDay, lte: endOfDay },
+          deletedAt: null,
+          companyId,
         },
-      },
-      orderBy: { date: 'desc' },
-    })
+        _sum: { amount: true },
+      }),
+    ])
 
-    // Fetch expenses for the day
-    const expenses = await prisma.expense.findMany({
-      where: {
-        date: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-        deletedAt: null,
-        ...(companyId ? { companyId } : {}),
-      },
-      orderBy: { date: 'desc' },
-    })
-
-    // Calculate totals
-    const totalIncome = payments.reduce((sum, p) => sum + p.amount, 0)
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
+    const totalIncome = safeNumber(totalIncomeResult._sum.amount)
+    const totalExpenses = safeNumber(totalExpensesResult._sum.amount)
     const netProfitLoss = totalIncome - totalExpenses
 
-    // Expense category breakdown
+    // ─── Expense category breakdown via groupBy ───
+    const expenseBreakdownResult = await prisma.expense.groupBy({
+      by: ['category'],
+      where: {
+        date: { gte: startOfDay, lte: endOfDay },
+        deletedAt: null,
+        companyId,
+      },
+      _sum: { amount: true },
+    })
+
     const expenseBreakdown: Record<string, number> = {}
-    for (const e of expenses) {
-      expenseBreakdown[e.category] = (expenseBreakdown[e.category] || 0) + e.amount
+    for (const row of expenseBreakdownResult) {
+      expenseBreakdown[row.category] = safeNumber(row._sum.amount)
     }
+
+    // ─── Detail items for report display (bounded) ───
+    const [payments, expenses] = await Promise.all([
+      prisma.payment.findMany({
+        where: {
+          date: { gte: startOfDay, lte: endOfDay },
+          tenant: { companyId },
+        },
+        include: {
+          tenant: {
+            include: {
+              property: true,
+            },
+          },
+        },
+        orderBy: { date: 'desc' },
+        take: 200,
+      }),
+      prisma.expense.findMany({
+        where: {
+          date: { gte: startOfDay, lte: endOfDay },
+          deletedAt: null,
+          companyId,
+        },
+        orderBy: { date: 'desc' },
+        take: 200,
+      }),
+    ])
 
     // Format income items
     const incomeItems = payments.map(p => ({

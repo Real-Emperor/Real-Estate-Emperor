@@ -7,9 +7,11 @@ import {
   forbiddenResponse,
   errorResponse,
   successResponse,
+  safeNumber,
 } from '@/lib/api-utils'
 
 // GET /api/reports?month=X&year=Y — P&L report data (owner/admin only)
+// PHASE 1 FIX: Uses Prisma aggregate() and groupBy() — NO full-table data loading
 export async function GET(request: Request) {
   try {
     const user = await getAuthUser()
@@ -28,96 +30,92 @@ export async function GET(request: Request) {
     const targetMonth = parseInt(searchParams.get('month') || String(now.getMonth() + 1))
     const targetYear = parseInt(searchParams.get('year') || String(now.getFullYear()))
 
-    // Fetch all active tenants with payments for the company
-    const tenants = await prisma.tenant.findMany({
-      where: { companyId, deletedAt: null, status: 'active' },
-      include: { payments: true, property: true },
-    })
-
-    // Fetch all payments for the company (needed for trend)
-    const allPayments = await prisma.payment.findMany({
-      where: { tenant: { companyId } },
-      include: {
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            unitNumber: true,
-            phone: true,
-            rentAmount: true,
-            propertyId: true,
-          },
+    // ─── 1. Revenue via aggregate — NO findMany ───
+    const [totalRevenueResult, expectedRevenueResult] = await Promise.all([
+      prisma.payment.aggregate({
+        where: {
+          tenant: { companyId },
+          month: targetMonth,
+          year: targetYear,
         },
-      },
-    })
+        _sum: { amount: true },
+        _count: true,
+      }),
+      prisma.tenant.aggregate({
+        where: { companyId, deletedAt: null, status: 'active' },
+        _sum: { rentAmount: true },
+        _count: true,
+      }),
+    ])
 
-    // Fetch all expenses for the company
-    const expenses = await prisma.expense.findMany({
-      where: { companyId, deletedAt: null },
-    })
+    const totalRevenue = safeNumber(totalRevenueResult._sum.amount)
+    const expectedRevenue = safeNumber(expectedRevenueResult._sum.rentAmount)
+    const activeTenantCount = expectedRevenueResult._count
 
-    // Fetch properties for unit counts
-    const properties = await prisma.property.findMany({
-      where: { companyId, deletedAt: null },
-    })
+    // ─── 2. Expenses via aggregate — filter for target month only ───
+    const startOfMonth = new Date(targetYear, targetMonth - 1, 1)
+    const endOfMonth = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999)
 
-    // --- Revenue calculations for target month ---
-    const monthlyPayments = allPayments.filter(
-      (p) => p.month === targetMonth && p.year === targetYear
-    )
-    const totalRevenue = monthlyPayments.reduce((sum, p) => sum + p.amount, 0)
-    const expectedRevenue = tenants.reduce((sum, t) => sum + t.rentAmount, 0)
+    const [totalExpensesResult, expenseBreakdownResult] = await Promise.all([
+      prisma.expense.aggregate({
+        where: {
+          companyId,
+          deletedAt: null,
+          date: { gte: startOfMonth, lte: endOfMonth },
+        },
+        _sum: { amount: true },
+      }),
+      prisma.expense.groupBy({
+        by: ['category'],
+        where: {
+          companyId,
+          deletedAt: null,
+          date: { gte: startOfMonth, lte: endOfMonth },
+        },
+        _sum: { amount: true },
+      }),
+    ])
 
-    // Rental income = total collected rent
-    const rentalIncome = totalRevenue
+    const totalExpenses = safeNumber(totalExpensesResult._sum.amount)
 
-    // Other income (non-rent payments — currently 0, can be expanded)
-    const otherIncome = 0
-
-    // Gross revenue
-    const grossRevenue = rentalIncome + otherIncome
-
-    // --- Expense calculations for target month ---
-    const monthlyExpenses = expenses.filter((e) => {
-      const d = new Date(e.date)
-      return d.getMonth() + 1 === targetMonth && d.getFullYear() === targetYear
-    })
-    const totalExpenses = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0)
-
-    // Expense breakdown by category
+    // Build expense breakdown from groupBy
     const expenseBreakdown: Record<string, number> = {}
-    for (const e of monthlyExpenses) {
-      expenseBreakdown[e.category] = (expenseBreakdown[e.category] || 0) + e.amount
+    for (const row of expenseBreakdownResult) {
+      expenseBreakdown[row.category] = safeNumber(row._sum.amount)
     }
 
-    // --- Occupancy calculations ---
-    const totalUnits = properties.reduce((sum, p) => sum + p.totalUnits, 0)
-    const occupiedUnits = tenants.length
-    const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0
+    // ─── 3. Occupancy via aggregate ───
+    const [totalUnitsResult, occupiedCount] = await Promise.all([
+      prisma.property.aggregate({
+        where: { companyId, deletedAt: null },
+        _sum: { totalUnits: true },
+      }),
+      prisma.tenant.count({
+        where: { companyId, deletedAt: null, status: 'active' },
+      }),
+    ])
 
-    // --- Vacancy loss ---
-    const vacantUnits = Math.max(0, totalUnits - occupiedUnits)
-    const avgRent =
-      tenants.length > 0
-        ? tenants.reduce((sum, t) => sum + t.rentAmount, 0) / tenants.length
-        : 0
+    const totalUnits = safeNumber(totalUnitsResult._sum.totalUnits)
+    const occupancyRate = totalUnits > 0 ? Math.round((occupiedCount / totalUnits) * 100) : 0
+
+    // ─── 4. Vacancy loss & bad debt ───
+    const vacantUnits = Math.max(0, totalUnits - occupiedCount)
+    const avgRent = activeTenantCount > 0 ? expectedRevenue / activeTenantCount : 0
     const vacancyLoss = vacantUnits * avgRent
-
-    // --- Bad debt: uncollected rent from active tenants ---
     const badDebt = Math.max(0, expectedRevenue - totalRevenue)
 
-    // --- P&L calculations ---
-    const costOfOperations = totalExpenses
+    // ─── 5. P&L calculations ───
+    const rentalIncome = totalRevenue
+    const otherIncome = 0
+    const grossRevenue = rentalIncome + otherIncome
     const grossProfit = grossRevenue - vacancyLoss - badDebt
+    const costOfOperations = totalExpenses
     const netIncome = grossProfit - costOfOperations
     const profitLoss = totalRevenue - totalExpenses
+    const collectionRate = expectedRevenue > 0 ? Math.round((totalRevenue / expectedRevenue) * 100) : 0
 
-    // --- Collection rate ---
-    const collectionRate =
-      expectedRevenue > 0 ? Math.round((totalRevenue / expectedRevenue) * 100) : 0
-
-    // --- 6-month trend ---
-    const trend: any[] = []
+    // ─── 6. 6-month trend via groupBy — NO full-table scan ───
+    const chartMonths: Array<{ month: number; year: number }> = []
     for (let i = 5; i >= 0; i--) {
       let m = targetMonth - i
       let y = targetYear
@@ -125,18 +123,71 @@ export async function GET(request: Request) {
         m += 12
         y -= 1
       }
-
-      const mPayments = allPayments.filter((p) => p.month === m && p.year === y)
-      const rev = mPayments.reduce((sum, p) => sum + p.amount, 0)
-
-      const mExpenses = expenses.filter((e) => {
-        const d = new Date(e.date)
-        return d.getMonth() + 1 === m && d.getFullYear() === y
-      })
-      const exp = mExpenses.reduce((sum, e) => sum + e.amount, 0)
-
-      trend.push({ month: m, year: y, revenue: rev, expenses: exp, profit: rev - exp })
+      chartMonths.push({ month: m, year: y })
     }
+
+    const [paymentTrend, expenseDetails] = await Promise.all([
+      prisma.payment.groupBy({
+        by: ['month', 'year'],
+        where: {
+          tenant: { companyId },
+          month: { in: chartMonths.map((c) => c.month) },
+          year: { in: chartMonths.map((c) => c.year) },
+        },
+        _sum: { amount: true },
+      }),
+      // Expense model has no month/year fields — fetch amounts by date range and group in JS
+      prisma.expense.findMany({
+        where: {
+          companyId,
+          deletedAt: null,
+          date: {
+            gte: new Date(chartMonths[0].year, chartMonths[0].month - 1, 1),
+            lte: new Date(
+              chartMonths[chartMonths.length - 1].year,
+              chartMonths[chartMonths.length - 1].month,
+              0,
+              23,
+              59,
+              59,
+              999
+            ),
+          },
+        },
+        select: { date: true, amount: true },
+      }),
+    ])
+
+    // Build lookup maps
+    const paymentMap = new Map<string, number>()
+    for (const row of paymentTrend) {
+      paymentMap.set(`${row.month}-${row.year}`, safeNumber(row._sum.amount))
+    }
+
+    // Group expense amounts by month/year derived from date
+    const expenseMap = new Map<string, number>()
+    for (const row of expenseDetails) {
+      const d = new Date(row.date)
+      const key = `${d.getMonth() + 1}-${d.getFullYear()}`
+      expenseMap.set(key, (expenseMap.get(key) || 0) + safeNumber(row.amount))
+    }
+
+    const trend = chartMonths.map(({ month, year }) => {
+      const rev = paymentMap.get(`${month}-${year}`) || 0
+      const exp = expenseMap.get(`${month}-${year}`) || 0
+      return { month, year, revenue: rev, expenses: exp, profit: rev - exp }
+    })
+
+    // ─── 7. Monthly expense details (bounded, paginated) ───
+    const monthlyExpenses = await prisma.expense.findMany({
+      where: {
+        companyId,
+        deletedAt: null,
+        date: { gte: startOfMonth, lte: endOfMonth },
+      },
+      orderBy: { date: 'desc' },
+      take: 100,
+    })
 
     const data = {
       month: targetMonth,
@@ -148,7 +199,7 @@ export async function GET(request: Request) {
       occupancyRate,
       collectionRate,
       totalUnits,
-      occupiedUnits,
+      occupiedUnits: occupiedCount,
       expenseBreakdown,
       monthlyExpenses: monthlyExpenses.map((e) => serialize(e)),
       trend,

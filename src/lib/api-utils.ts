@@ -1,6 +1,8 @@
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/db'
 
+// ─── Auth ──────────────────────────────────────────────────────
+
 // Get the current authenticated user from the request
 export async function getAuthUser() {
   const session = await auth()
@@ -28,6 +30,8 @@ export function isSystemAdmin(role: string): boolean {
   return role === 'admin'
 }
 
+// ─── Audit Logging ─────────────────────────────────────────────
+
 // Create an audit log entry
 export async function createAuditLog(params: {
   action: string
@@ -53,6 +57,78 @@ export async function createAuditLog(params: {
     // Don't throw - audit logging should not break operations
   }
 }
+
+// ─── NaN Guards ────────────────────────────────────────────────
+
+/**
+ * Safely convert a value to a number. Returns `fallback` (default 0) if the
+ * result is NaN or not finite. Use this for ALL user-supplied numeric input.
+ */
+export function safeNumber(value: unknown, fallback: number = 0): number {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : fallback
+}
+
+/**
+ * Safely convert a value to a positive integer. Returns `fallback` if the
+ * result is NaN, not finite, or negative.
+ */
+export function safeInt(value: unknown, fallback: number = 0): number {
+  const n = Number(value)
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback
+}
+
+// ─── Pagination ────────────────────────────────────────────────
+
+export const DEFAULT_PAGE_SIZE = 50
+export const MAX_PAGE_SIZE = 200
+
+export interface PaginationParams {
+  page: number   // 1-based
+  limit: number
+  skip: number
+}
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasMore: boolean
+  }
+}
+
+/**
+ * Parse pagination query params from a URL.
+ * Supports `page` (1-based) and `limit` (capped at MAX_PAGE_SIZE).
+ */
+export function parsePaginationParams(searchParams: URLSearchParams): PaginationParams {
+  const page = Math.max(1, safeInt(searchParams.get('page'), 1))
+  const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, safeInt(searchParams.get('limit'), DEFAULT_PAGE_SIZE)))
+  const skip = (page - 1) * limit
+  return { page, limit, skip }
+}
+
+/**
+ * Build a standard paginated response envelope.
+ */
+export function paginatedResponse<T>(data: T[], total: number, params: PaginationParams): PaginatedResponse<T> {
+  const totalPages = Math.ceil(total / params.limit)
+  return {
+    data,
+    pagination: {
+      page: params.page,
+      limit: params.limit,
+      total,
+      totalPages,
+      hasMore: params.page < totalPages,
+    },
+  }
+}
+
+// ─── Serialization ─────────────────────────────────────────────
 
 // Serialize a Prisma model for API responses (convert DateTime to ISO strings)
 export function serialize<T extends Record<string, any>>(obj: T): T {
@@ -88,6 +164,8 @@ export function parseJsonField(value: string | null | undefined): any {
     return value
   }
 }
+
+// ─── Response Helpers ──────────────────────────────────────────
 
 // Standard error response helper
 export function errorResponse(message: string, status: number = 400) {

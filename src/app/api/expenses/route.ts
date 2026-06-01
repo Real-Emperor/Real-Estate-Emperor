@@ -8,36 +8,52 @@ import {
   unauthorizedResponse,
   forbiddenResponse,
   isFinancialUser,
+  safeNumber,
+  parsePaginationParams,
+  paginatedResponse,
 } from '@/lib/api-utils'
 
-// GET /api/expenses — list all expenses (non-deleted) for the company
-export async function GET() {
-  const user = await getAuthUser()
-  if (!user) return unauthorizedResponse()
-
-  // Only owner/admin can access expenses
-  if (!isFinancialUser(user.role)) {
-    return forbiddenResponse('Only owners and admins can view expenses')
-  }
-
+// GET /api/expenses — list expenses with pagination (non-deleted) for the company
+export async function GET(request: Request) {
   try {
-    const expenses = await prisma.expense.findMany({
-      where: {
-        companyId: user.companyId,
-        deletedAt: null, // exclude soft-deleted
-      },
-      include: {
-        company: {
-          select: {
-            id: true,
-            name: true,
+    const user = await getAuthUser()
+    if (!user) return unauthorizedResponse()
+
+    // Only owner/admin can access expenses
+    if (!isFinancialUser(user.role)) {
+      return forbiddenResponse('Only owners and admins can view expenses')
+    }
+
+    const { searchParams } = new URL(request.url)
+    const pagination = parsePaginationParams(searchParams)
+    const category = searchParams.get('category')?.trim() || undefined
+
+    const where: any = {
+      companyId: user.companyId,
+      deletedAt: null, // exclude soft-deleted
+    }
+
+    if (category) where.category = category
+
+    const [expenses, total] = await Promise.all([
+      prisma.expense.findMany({
+        where,
+        include: {
+          company: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-      },
-      orderBy: { date: 'desc' },
-    })
+        orderBy: { date: 'desc' },
+        skip: pagination.skip,
+        take: pagination.limit,
+      }),
+      prisma.expense.count({ where }),
+    ])
 
-    return successResponse(expenses.map(serialize))
+    return successResponse(paginatedResponse(expenses.map(serialize), total, pagination))
   } catch (error) {
     console.error('Error fetching expenses:', error)
     return errorResponse('Failed to fetch expenses', 500)
@@ -46,15 +62,15 @@ export async function GET() {
 
 // POST /api/expenses — create a new expense
 export async function POST(request: Request) {
-  const user = await getAuthUser()
-  if (!user) return unauthorizedResponse()
-
-  // Only owner/admin can create expenses
-  if (!isFinancialUser(user.role)) {
-    return forbiddenResponse('Only owners and admins can create expenses')
-  }
-
   try {
+    const user = await getAuthUser()
+    if (!user) return unauthorizedResponse()
+
+    // Only owner/admin can create expenses
+    if (!isFinancialUser(user.role)) {
+      return forbiddenResponse('Only owners and admins can create expenses')
+    }
+
     const body = await request.json()
 
     const {
@@ -74,12 +90,16 @@ export async function POST(request: Request) {
     if (amount === undefined || amount === null) return errorResponse('amount is required')
     if (!date) return errorResponse('date is required')
 
+    // NaN guards
+    const parsedAmount = safeNumber(amount, -1)
+    if (parsedAmount <= 0) return errorResponse('amount must be greater than zero')
+
     const expense = await prisma.expense.create({
       data: {
         companyId: user.companyId,
         category,
         description,
-        amount: Number(amount),
+        amount: parsedAmount,
         date: new Date(date),
         vendor: vendor || null,
         invoiceNumber: invoiceNumber || null,
@@ -106,7 +126,7 @@ export async function POST(request: Request) {
       details: {
         category,
         description,
-        amount: Number(amount),
+        amount: parsedAmount,
         vendor: vendor || null,
         invoiceNumber: invoiceNumber || null,
         recurring: recurring === true,

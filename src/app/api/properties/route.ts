@@ -6,12 +6,16 @@ import {
   errorResponse,
   successResponse,
   unauthorizedResponse,
+  safeNumber,
+  safeInt,
+  parsePaginationParams,
+  paginatedResponse,
 } from '@/lib/api-utils'
 
 // Valid property types
 const VALID_PROPERTY_TYPES = ['apartment', 'villa', 'office', 'shop', 'studio', 'mixed_use']
 
-// GET /api/properties — List all properties for the authenticated user's company
+// GET /api/properties — List all properties with pagination for the authenticated user's company
 export async function GET(request: Request) {
   try {
     const user = await getAuthUser()
@@ -21,6 +25,7 @@ export async function GET(request: Request) {
     const includeArchived = searchParams.get('includeArchived') === 'true'
     const search = searchParams.get('search')?.trim() || undefined
     const type = searchParams.get('type')?.trim() || undefined
+    const pagination = parsePaginationParams(searchParams)
 
     // Build where clause — always exclude soft-deleted records
     const where: any = {
@@ -54,19 +59,24 @@ export async function GET(request: Request) {
       ]
     }
 
-    const properties = await prisma.property.findMany({
-      where,
-      include: {
-        tenants: {
-          where: { deletedAt: null },
-          select: {
-            id: true,
-            status: true,
+    const [properties, total] = await Promise.all([
+      prisma.property.findMany({
+        where,
+        include: {
+          tenants: {
+            where: { deletedAt: null },
+            select: {
+              id: true,
+              status: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.limit,
+      }),
+      prisma.property.count({ where }),
+    ])
 
     // Compute tenant counts for each property
     const result = properties.map((property) => {
@@ -81,7 +91,7 @@ export async function GET(request: Request) {
       }
     })
 
-    return successResponse(serialize(result))
+    return successResponse(paginatedResponse(serialize(result), total, pagination))
   } catch (error) {
     console.error('GET /api/properties error:', error)
     return errorResponse('Failed to fetch properties', 500)
@@ -111,15 +121,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validate numeric fields
-    const totalUnits = body.totalUnits !== undefined ? Number(body.totalUnits) : 1
-    const floors = body.floors !== undefined ? Number(body.floors) : 1
+    // Validate numeric fields with NaN guards
+    const totalUnits = body.totalUnits !== undefined ? safeInt(body.totalUnits, -1) : 1
+    const floors = body.floors !== undefined ? safeInt(body.floors, -1) : 1
 
-    if (isNaN(totalUnits) || totalUnits < 1) {
+    if (totalUnits < 1) {
       return errorResponse('totalUnits must be a positive integer')
     }
 
-    if (isNaN(floors) || floors < 1) {
+    if (floors < 1) {
       return errorResponse('floors must be a positive integer')
     }
 

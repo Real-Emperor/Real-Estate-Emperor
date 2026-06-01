@@ -7,6 +7,8 @@ import {
   successResponse,
   unauthorizedResponse,
   forbiddenResponse,
+  safeNumber,
+  safeInt,
 } from '@/lib/api-utils'
 
 // Valid property types for validation
@@ -176,38 +178,40 @@ export async function POST(request: Request) {
       maintenance: { imported: 0, errors: 0, errorDetails: [] as string[] },
     }
 
-    // In replace mode: soft-delete all existing data for the company
+    // In replace mode: soft-delete all existing data for the company IN A TRANSACTION
     if (mode === 'replace') {
       const now = new Date()
 
-      // Soft delete payments (via tenants)
-      const companyTenants = await prisma.tenant.findMany({
-        where: { companyId, deletedAt: null },
-        select: { id: true },
-      })
-      const tenantIds = companyTenants.map(t => t.id)
-
-      if (tenantIds.length > 0) {
-        await prisma.payment.deleteMany({
-          where: { tenantId: { in: tenantIds } },
+      await prisma.$transaction(async (tx) => {
+        // Soft delete payments (via tenants)
+        const companyTenants = await tx.tenant.findMany({
+          where: { companyId, deletedAt: null },
+          select: { id: true },
         })
-      }
+        const tenantIds = companyTenants.map(t => t.id)
 
-      await prisma.maintenance.updateMany({
-        where: { companyId, deletedAt: null },
-        data: { deletedAt: now },
-      })
-      await prisma.expense.updateMany({
-        where: { companyId, deletedAt: null },
-        data: { deletedAt: now },
-      })
-      await prisma.tenant.updateMany({
-        where: { companyId, deletedAt: null },
-        data: { deletedAt: now },
-      })
-      await prisma.property.updateMany({
-        where: { companyId, deletedAt: null },
-        data: { deletedAt: now },
+        if (tenantIds.length > 0) {
+          await tx.payment.deleteMany({
+            where: { tenantId: { in: tenantIds } },
+          })
+        }
+
+        await tx.maintenance.updateMany({
+          where: { companyId, deletedAt: null },
+          data: { deletedAt: now },
+        })
+        await tx.expense.updateMany({
+          where: { companyId, deletedAt: null },
+          data: { deletedAt: now },
+        })
+        await tx.tenant.updateMany({
+          where: { companyId, deletedAt: null },
+          data: { deletedAt: now },
+        })
+        await tx.property.updateMany({
+          where: { companyId, deletedAt: null },
+          data: { deletedAt: now },
+        })
       })
     }
 
@@ -235,8 +239,8 @@ export async function POST(request: Request) {
             nameUr: propData.nameUr?.trim() || null,
             type: propData.type,
             address: propData.address?.trim() || null,
-            totalUnits: propData.totalUnits ? Number(propData.totalUnits) : 1,
-            floors: propData.floors ? Number(propData.floors) : 1,
+            totalUnits: propData.totalUnits ? safeInt(propData.totalUnits, 1) : 1,
+            floors: propData.floors ? safeInt(propData.floors, 1) : 1,
           },
         })
 
@@ -301,18 +305,18 @@ export async function POST(request: Request) {
             emergencyContact: tenantData.emergencyContact?.trim() || null,
             unitNumber: tenantData.unitNumber?.trim() || null,
             unitType: tenantData.unitType || null,
-            floor: tenantData.floor ? Number(tenantData.floor) : null,
-            sizeSqft: tenantData.sizeSqft ? Number(tenantData.sizeSqft) : null,
-            rentAmount: Number(tenantData.rentAmount),
-            municipalityFee: tenantData.municipalityFee ? Number(tenantData.municipalityFee) : Math.round(Number(tenantData.rentAmount) * 0.05),
-            securityDeposit: tenantData.securityDeposit ? Number(tenantData.securityDeposit) : null,
+            floor: tenantData.floor ? safeInt(tenantData.floor) : null,
+            sizeSqft: tenantData.sizeSqft ? safeNumber(tenantData.sizeSqft) : null,
+            rentAmount: safeNumber(tenantData.rentAmount, 0),
+            municipalityFee: tenantData.municipalityFee ? safeNumber(tenantData.municipalityFee) : Math.round(safeNumber(tenantData.rentAmount, 0) * 0.05),
+            securityDeposit: tenantData.securityDeposit ? safeNumber(tenantData.securityDeposit) : null,
             paymentMethod: tenantData.paymentMethod || null,
             leaseStart: tenantData.leaseStart ? new Date(tenantData.leaseStart) : null,
             leaseEnd: tenantData.leaseEnd ? new Date(tenantData.leaseEnd) : null,
-            contractDuration: tenantData.contractDuration ? Number(tenantData.contractDuration) : null,
+            contractDuration: tenantData.contractDuration ? safeInt(tenantData.contractDuration) : null,
             status: tenantData.status || 'active',
-            latePaymentCount: tenantData.latePaymentCount ? Number(tenantData.latePaymentCount) : 0,
-            tenantScore: tenantData.tenantScore ? Number(tenantData.tenantScore) : 100,
+            latePaymentCount: tenantData.latePaymentCount ? safeInt(tenantData.latePaymentCount, 0) : 0,
+            tenantScore: tenantData.tenantScore ? safeInt(tenantData.tenantScore, 100) : 100,
             notes: tenantData.notes?.trim() || null,
           },
         })
@@ -342,7 +346,7 @@ export async function POST(request: Request) {
             companyId,
             category: expenseData.category,
             description: expenseData.description.trim(),
-            amount: Number(expenseData.amount),
+            amount: safeNumber(expenseData.amount, 0),
             date: new Date(expenseData.date),
             vendor: expenseData.vendor?.trim() || null,
             invoiceNumber: expenseData.invoiceNumber?.trim() || null,
@@ -390,8 +394,8 @@ export async function POST(request: Request) {
             vendor: maintData.vendor?.trim() || null,
             priority: maintData.priority || 'medium',
             status: maintData.status || 'pending',
-            estimatedCost: maintData.estimatedCost ? Number(maintData.estimatedCost) : null,
-            actualCost: maintData.actualCost ? Number(maintData.actualCost) : null,
+            estimatedCost: maintData.estimatedCost ? safeNumber(maintData.estimatedCost) : null,
+            actualCost: maintData.actualCost ? safeNumber(maintData.actualCost) : null,
             completedAt: maintData.status === 'completed' ? new Date() : null,
           },
         })

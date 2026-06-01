@@ -8,6 +8,7 @@ import {
   unauthorizedResponse,
   forbiddenResponse,
   isFinancialUser,
+  safeNumber,
 } from '@/lib/api-utils'
 
 // PUT /api/expenses/[id] — update an existing expense
@@ -15,15 +16,15 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getAuthUser()
-  if (!user) return unauthorizedResponse()
-
-  // Only owner/admin can update expenses
-  if (!isFinancialUser(user.role)) {
-    return forbiddenResponse('Only owners and admins can update expenses')
-  }
-
   try {
+    const user = await getAuthUser()
+    if (!user) return unauthorizedResponse()
+
+    // Only owner/admin can update expenses
+    if (!isFinancialUser(user.role)) {
+      return forbiddenResponse('Only owners and admins can update expenses')
+    }
+
     const { id } = await params
 
     // Verify expense exists and belongs to user's company
@@ -47,12 +48,18 @@ export async function PUT(
       building,
     } = body
 
+    // NaN guard for amount if provided
+    const parsedAmount = amount !== undefined ? safeNumber(amount, -1) : undefined
+    if (parsedAmount !== undefined && parsedAmount <= 0) {
+      return errorResponse('amount must be greater than zero')
+    }
+
     const expense = await prisma.expense.update({
       where: { id },
       data: {
         ...(category !== undefined && { category }),
         ...(description !== undefined && { description }),
-        ...(amount !== undefined && { amount: Number(amount) }),
+        ...(parsedAmount !== undefined && { amount: parsedAmount }),
         ...(date !== undefined && { date: new Date(date) }),
         ...(vendor !== undefined && { vendor: vendor || null }),
         ...(invoiceNumber !== undefined && { invoiceNumber: invoiceNumber || null }),
@@ -102,15 +109,15 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getAuthUser()
-  if (!user) return unauthorizedResponse()
-
-  // Only owner/admin can delete expenses
-  if (!isFinancialUser(user.role)) {
-    return forbiddenResponse('Only owners and admins can delete expenses')
-  }
-
   try {
+    const user = await getAuthUser()
+    if (!user) return unauthorizedResponse()
+
+    // Only owner/admin can delete expenses
+    if (!isFinancialUser(user.role)) {
+      return forbiddenResponse('Only owners and admins can delete expenses')
+    }
+
     const { id } = await params
 
     // Verify expense exists and belongs to user's company

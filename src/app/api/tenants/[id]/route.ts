@@ -8,6 +8,8 @@ import {
   unauthorizedResponse,
   forbiddenResponse,
   isFinancialUser,
+  safeNumber,
+  safeInt,
 } from '@/lib/api-utils'
 
 // GET /api/tenants/[id] - Get a single tenant by ID
@@ -89,7 +91,7 @@ export async function PUT(
       }
     }
 
-    // Build update data - only include fields that are provided
+    // Build update data - only include fields that are provided (with NaN guards)
     const data: Record<string, unknown> = {}
 
     if (body.name !== undefined) data.name = body.name
@@ -106,20 +108,20 @@ export async function PUT(
     if (body.propertyId !== undefined) data.propertyId = body.propertyId
     if (body.unitNumber !== undefined) data.unitNumber = body.unitNumber || null
     if (body.unitType !== undefined) data.unitType = body.unitType || null
-    if (body.floor !== undefined) data.floor = body.floor ? Number(body.floor) : null
-    if (body.sizeSqft !== undefined) data.sizeSqft = body.sizeSqft ? Number(body.sizeSqft) : null
-    if (body.rentAmount !== undefined) data.rentAmount = Number(body.rentAmount)
-    if (body.municipalityFee !== undefined) data.municipalityFee = body.municipalityFee ? Number(body.municipalityFee) : null
-    if (body.securityDeposit !== undefined) data.securityDeposit = body.securityDeposit ? Number(body.securityDeposit) : null
+    if (body.floor !== undefined) data.floor = body.floor ? safeInt(body.floor) : null
+    if (body.sizeSqft !== undefined) data.sizeSqft = body.sizeSqft ? safeNumber(body.sizeSqft) : null
+    if (body.rentAmount !== undefined) data.rentAmount = safeNumber(body.rentAmount, existing.rentAmount)
+    if (body.municipalityFee !== undefined) data.municipalityFee = body.municipalityFee ? safeNumber(body.municipalityFee) : null
+    if (body.securityDeposit !== undefined) data.securityDeposit = body.securityDeposit ? safeNumber(body.securityDeposit) : null
     if (body.paymentMethod !== undefined) data.paymentMethod = body.paymentMethod || null
     if (body.leaseStart !== undefined) data.leaseStart = body.leaseStart ? new Date(body.leaseStart) : null
     if (body.leaseEnd !== undefined) data.leaseEnd = body.leaseEnd ? new Date(body.leaseEnd) : null
-    if (body.contractDuration !== undefined) data.contractDuration = body.contractDuration ? Number(body.contractDuration) : null
+    if (body.contractDuration !== undefined) data.contractDuration = body.contractDuration ? safeInt(body.contractDuration) : null
     if (body.renewalStatus !== undefined) data.renewalStatus = body.renewalStatus || null
-    if (body.newRent !== undefined) data.newRent = body.newRent ? Number(body.newRent) : null
+    if (body.newRent !== undefined) data.newRent = body.newRent ? safeNumber(body.newRent) : null
     if (body.status !== undefined) data.status = body.status
-    if (body.latePaymentCount !== undefined) data.latePaymentCount = Number(body.latePaymentCount)
-    if (body.tenantScore !== undefined) data.tenantScore = Number(body.tenantScore)
+    if (body.latePaymentCount !== undefined) data.latePaymentCount = safeInt(body.latePaymentCount)
+    if (body.tenantScore !== undefined) data.tenantScore = safeInt(body.tenantScore, 100)
     if (body.notes !== undefined) data.notes = body.notes || null
 
     const tenant = await prisma.tenant.update({

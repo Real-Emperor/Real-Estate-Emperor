@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
+import { safeNumber } from '@/lib/api-utils'
 
 // Vercel Cron Job endpoint - generates daily report at midnight Dubai time (Asia/Dubai = UTC+4)
-// This endpoint is called by Vercel's cron scheduler
+// PHASE 1 FIX: Uses aggregate() instead of findMany + reduce — safe at scale
 export async function GET(request: NextRequest) {
   try {
     // Verify this is a cron job request (Vercel sends specific headers)
@@ -14,8 +15,13 @@ export async function GET(request: NextRequest) {
     // Get current date in Dubai timezone
     const dubaiDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' })
 
-    // Get all active companies
-    const companies = await prisma.company.findMany()
+    // Get all active companies (only IDs and names — lightweight)
+    const companies = await prisma.company.findMany({
+      select: { id: true, name: true },
+    })
+
+    const startOfDay = new Date(dubaiDate + 'T00:00:00.000Z')
+    const endOfDay = new Date(dubaiDate + 'T23:59:59.999Z')
 
     const results: Array<{
       companyId: string
@@ -27,29 +33,27 @@ export async function GET(request: NextRequest) {
     }> = []
 
     for (const company of companies) {
-      const startOfDay = new Date(dubaiDate + 'T00:00:00.000Z')
-      const endOfDay = new Date(dubaiDate + 'T23:59:59.999Z')
+      // Use aggregate() instead of findMany — no data loading into memory
+      const [incomeResult, expensesResult] = await Promise.all([
+        prisma.payment.aggregate({
+          where: {
+            date: { gte: startOfDay, lte: endOfDay },
+            tenant: { companyId: company.id },
+          },
+          _sum: { amount: true },
+        }),
+        prisma.expense.aggregate({
+          where: {
+            date: { gte: startOfDay, lte: endOfDay },
+            deletedAt: null,
+            companyId: company.id,
+          },
+          _sum: { amount: true },
+        }),
+      ])
 
-      // Fetch payments for the day
-      const payments = await prisma.payment.findMany({
-        where: {
-          date: { gte: startOfDay, lte: endOfDay },
-          tenant: { companyId: company.id },
-        },
-        include: { tenant: { include: { property: true } } },
-      })
-
-      // Fetch expenses for the day
-      const expenses = await prisma.expense.findMany({
-        where: {
-          date: { gte: startOfDay, lte: endOfDay },
-          deletedAt: null,
-          companyId: company.id,
-        },
-      })
-
-      const totalIncome = payments.reduce((sum, p) => sum + p.amount, 0)
-      const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
+      const totalIncome = safeNumber(incomeResult._sum.amount)
+      const totalExpenses = safeNumber(expensesResult._sum.amount)
 
       // Create a notification for the daily report
       await prisma.notification.create({
@@ -63,8 +67,6 @@ export async function GET(request: NextRequest) {
             totalIncome,
             totalExpenses,
             netProfitLoss: totalIncome - totalExpenses,
-            paymentCount: payments.length,
-            expenseCount: expenses.length,
           }),
         },
       })
