@@ -13,6 +13,7 @@ import Tenants from '@/components/tenants'
 import RentCollection from '@/components/rent-collection'
 import Maintenance from '@/components/maintenance'
 import Expenses from '@/components/expenses'
+import DailyExpensesReport from '@/components/daily-expenses-report'
 import Reports from '@/components/reports'
 import Contracts from '@/components/contracts'
 import UserManagement from '@/components/user-management'
@@ -114,6 +115,7 @@ function AppContent() {
       case 'rent': return <RentCollection />
       case 'maintenance': return <Maintenance />
       case 'expenses': return isFinancialUser ? <Expenses /> : <AccessDenied />
+      case 'daily-report': return isFinancialUser ? <DailyExpensesReport /> : <AccessDenied />
       case 'reports': return isFinancialUser ? <Reports /> : <AccessDenied />
       case 'contracts': return <Contracts />
       case 'settings': return isSystemAdmin ? <UserManagement /> : <AccessDenied type="admin" />

@@ -356,6 +356,34 @@ export const translations = {
   exportPDF: { en: 'Export PDF', ar: 'تصدير PDF', bn: 'PDF রপ্তানি', ur: 'PDF ایکسپورٹ' },
   financialSummary: { en: 'Financial Summary', ar: 'ملخص مالي', bn: 'আর্থিক সারাংশ', ur: 'مالی خلاصہ' },
   generatedOn: { en: 'Generated on', ar: 'تم الإنشاء في', bn: 'তৈরির তারিখ', ur: 'بنایا گیا' },
+
+  // Bill Invoice - Municipality Fee Toggle
+  includeMunicipalityFee: { en: 'Include Municipality Fee', ar: 'تضمين رسوم البلدية', bn: 'পৌরসভা ফি অন্তর্ভুক্ত করুন', ur: 'بلدیہ فیس شامل کریں' },
+
+  // Daily Expenses Report
+  dailyReport: { en: 'Daily Report', ar: 'التقرير اليومي', bn: 'দৈনিক প্রতিবেদন', ur: 'روزانہ رپورٹ' },
+  dailyExpensesReport: { en: 'Daily Expenses Report', ar: 'تقرير المصروفات اليومي', bn: 'দৈনিক ব্যয় প্রতিবেদন', ur: 'روزانہ اخراجات کی رپورٹ' },
+  income: { en: 'Income (Credits)', ar: 'الدخل (ائتمانات)', bn: 'আয় (ক্রেডিট)', ur: 'آمدنی (کریڈٹ)' },
+  credits: { en: 'Credits', ar: 'ائتمانات', bn: 'ক্রেডিট', ur: 'کریڈٹ' },
+  debits: { en: 'Expenses (Debits)', ar: 'المصروفات (مديونيات)', bn: 'ব্যয় (ডেবিট)', ur: 'اخراجات (ڈیبٹ)' },
+  netProfitLoss: { en: 'Net Profit / Loss', ar: 'صافي الربح / الخسارة', bn: 'নিট লাভ / ক্ষতি', ur: 'خالص منافع / نقصان' },
+  rentCollected: { en: 'Rent Collected', ar: 'الإيجار المحصّل', bn: 'আদায়কৃত ভাড়া', ur: 'وصول شدہ کرایہ' },
+  noTransactionsToday: { en: 'No transactions found for this date', ar: 'لا توجد معاملات في هذا التاريخ', bn: 'এই তারিখে কোনো লেনদেন পাওয়া যায়নি', ur: 'اس تاریخ پر کوئی لین دین نہیں ملا' },
+  tenantPayment: { en: 'Tenant Payment', ar: 'دفعة المستأجر', bn: 'ভাড়াটিয়া পেমেন্ট', ur: 'کرایہ دار کی ادائیگی' },
+  paymentTime: { en: 'Time', ar: 'الوقت', bn: 'সময়', ur: 'وقت' },
+  fuel: { en: 'Fuel', ar: 'وقود', bn: 'জ্বালানি', ur: 'ایندهن' },
+  waterSupply: { en: 'Water Supply', ar: 'إمدادات المياه', bn: 'পানি সরবরাহ', ur: 'پانی کی فراہمی' },
+  operationalExpense: { en: 'Operational Expense', ar: 'مصروفات تشغيلية', bn: 'পরিচালন ব্যয়', ur: 'آپریشنل اخراجات' },
+  incomeVsExpenses: { en: 'Income vs Expenses', ar: 'الدخل مقابل المصروفات', bn: 'আয় বনাম ব্যয়', ur: 'آمدنی بمقابلہ اخراجات' },
+  expenseDistribution: { en: 'Expense Distribution', ar: 'توزيع المصروفات', bn: 'ব্যয় বণ্টন', ur: 'اخراجات کی تقسیم' },
+  selectDate: { en: 'Select Date', ar: 'اختر التاريخ', bn: 'তারিখ নির্বাচন করুন', ur: 'تاریخ منتخب کریں' },
+  today: { en: 'Today', ar: 'اليوم', bn: 'আজ', ur: 'آج' },
+  yesterday: { en: 'Yesterday', ar: 'أمس', bn: 'গতকাল', ur: 'کل' },
+  cashInflow: { en: 'Cash Inflow', ar: 'التدفق النقدي الداخل', bn: 'নগদ অন্তর্প্রবাহ', ur: 'نقد داخل' },
+  cashOutflow: { en: 'Cash Outflow', ar: 'التدفق النقدي الخارج', bn: 'নগদ বহির্প্রবাহ', ur: 'نقد خارج' },
+  dailySummary: { en: 'Daily Summary', ar: 'ملخص يومي', bn: 'দৈনিক সারাংশ', ur: 'روزانہ خلاصہ' },
+  totalIncome: { en: 'Total Income', ar: 'إجمالي الدخل', bn: 'মোট আয়', ur: 'کل آمدنی' },
+  totalExpense: { en: 'Total Expense', ar: 'إجمالي المصروفات', bn: 'মোট ব্যয়', ur: 'کل خراج' },
 } as const
 
 export type TranslationKey = keyof typeof translations
