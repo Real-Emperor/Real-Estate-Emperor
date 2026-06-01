@@ -95,3 +95,32 @@ New Login Credentials:
 - admin@alreef.ae / AlReef@Admin2024!
 - owner@alreef.ae / AlReef@Owner2024!
 - staff@alreef.ae / AlReef@Staff2024!
+
+---
+Task ID: 5-tasks
+Agent: Main Agent
+Task: Implement 5 strict-scope production tasks (PDF bills, demo data, property naming, report PDF, rent ranges)
+
+Work Log:
+- Installed jspdf and html2canvas for PDF generation
+- Created bill-invoice.tsx: professional HTML invoice with A4 PDF download
+- Added View Bill button to rent-collection.tsx with dialog
+- Rewrote seed/route.ts with 36 tenants (was 21), 8 months payment history (was 6)
+- Updated property names: Building A→Al Reef Al Junoobi - Building 1, B→Building 2, C→Reef Al Madeena - Building 1, D→Building 2
+- All Arabic/Bengali/Urdu property names updated
+- Fixed vendor names: DEWA→ADDC, Dubai Municipality→Abu Dhabi Municipality
+- Added PDF export to reports.tsx with chart images, multi-page layout, professional formatting
+- Adjusted all rent values: Studio 1,400-2,000, 1BR 2,200-3,200, 2BR 3,500-4,500, Shop 3,500-4,000
+- Added 15 new i18n translation keys (viewBill, downloadBill, invoice, billTo, subtotal, totalDue, etc.)
+- Committed and pushed to GitHub (commit 3293f0f)
+- Vercel auto-deploy succeeded: al-reef-al-junoobi-41s34fyft.vercel.app (Ready)
+- Live site verified: HTTP 200 on main page, 401 on protected API
+
+Stage Summary:
+- TASK 1 COMPLETE: PDF Bill Generation - professional invoice with download
+- TASK 2 COMPLETE: Demo Data Coverage - 36 tenants, varied scenarios, 8-month history
+- TASK 3 COMPLETE: Property Naming - Al Reef Al Junoobi / Reef Al Madeena
+- TASK 4 COMPLETE: Monthly Report PDF - multi-page with charts and visual elements
+- TASK 5 COMPLETE: Financial Data Range - 1,400-4,500 AED rent range enforced
+- Build PASSING, deployment LIVE at al-reef-al-junoobi.vercel.app
+- No "Jawad" or "Building A/B/C/D" references remain in codebase
