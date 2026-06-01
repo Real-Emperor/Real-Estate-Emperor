@@ -7,6 +7,9 @@ import {
   successResponse,
   unauthorizedResponse,
   forbiddenResponse,
+  isOwnerOrAdmin,
+  parseOCCVersion,
+  occUpdate,
 } from '@/lib/api-utils'
 
 // GET /api/company — Return the company info for the authenticated user's companyId
@@ -30,18 +33,22 @@ export async function GET() {
   }
 }
 
-// PUT /api/company — Update company info (only owner/admin)
+// PUT /api/company — Update company info (only owner/admin + OCC)
+// PHASE 2: RBAC + OCC for concurrency safety
 export async function PUT(request: Request) {
   try {
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
 
     // Only owner or admin can update company info
-    if (user.role !== 'owner' && user.role !== 'admin') {
+    if (!isOwnerOrAdmin(user.role)) {
       return forbiddenResponse('Only owners and admins can update company info')
     }
 
     const body = await request.json()
+
+    // PHASE 2: Optimistic Concurrency Control
+    const occVersion = parseOCCVersion(body)
 
     // Fetch current company for audit log
     const currentCompany = await prisma.company.findUnique({
@@ -68,10 +75,19 @@ export async function PUT(request: Request) {
       return errorResponse('Company name cannot be empty')
     }
 
-    const updatedCompany = await prisma.company.update({
-      where: { id: user.companyId },
-      data: updateData,
-    })
+    if (Object.keys(updateData).length === 0) {
+      return errorResponse('No valid fields provided for update')
+    }
+
+    // PHASE 2: Use OCC-protected update
+    const updatedCompany = await occUpdate(
+      prisma.company,
+      user.companyId,
+      occVersion,
+      updateData
+    )
+
+    if (updatedCompany instanceof Response) return updatedCompany
 
     await createAuditLog({
       action: 'UPDATE',
@@ -83,6 +99,7 @@ export async function PUT(request: Request) {
         before: serialize(currentCompany),
         after: serialize(updatedCompany),
         updatedFields: Object.keys(updateData),
+        occProtected: !!occVersion,
       },
     })
 

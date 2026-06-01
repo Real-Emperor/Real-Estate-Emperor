@@ -9,9 +9,11 @@ import {
   forbiddenResponse,
   isFinancialUser,
   safeNumber,
+  parseOCCVersion,
+  occUpdate,
 } from '@/lib/api-utils'
 
-// PUT /api/expenses/[id] — update an existing expense
+// PUT /api/expenses/[id] — update an existing expense (owner/admin only + OCC)
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -37,6 +39,9 @@ export async function PUT(
 
     const body = await request.json()
 
+    // PHASE 2: Optimistic Concurrency Control
+    const occVersion = parseOCCVersion(body)
+
     const {
       category,
       description,
@@ -54,18 +59,31 @@ export async function PUT(
       return errorResponse('amount must be greater than zero')
     }
 
-    const expense = await prisma.expense.update({
+    // Build update data
+    const data: Record<string, unknown> = {}
+    if (category !== undefined) data.category = category
+    if (description !== undefined) data.description = description
+    if (parsedAmount !== undefined) data.amount = parsedAmount
+    if (date !== undefined) data.date = new Date(date)
+    if (vendor !== undefined) data.vendor = vendor || null
+    if (invoiceNumber !== undefined) data.invoiceNumber = invoiceNumber || null
+    if (recurring !== undefined) data.recurring = recurring === true
+    if (building !== undefined) data.building = building || null
+
+    // PHASE 2: Use OCC-protected update
+    const updated = await occUpdate(
+      prisma.expense,
+      id,
+      occVersion,
+      data,
+      { companyId: user.companyId, deletedAt: null }
+    )
+
+    if (updated instanceof Response) return updated
+
+    // Fetch with company relation for response
+    const fullExpense = await prisma.expense.findUnique({
       where: { id },
-      data: {
-        ...(category !== undefined && { category }),
-        ...(description !== undefined && { description }),
-        ...(parsedAmount !== undefined && { amount: parsedAmount }),
-        ...(date !== undefined && { date: new Date(date) }),
-        ...(vendor !== undefined && { vendor: vendor || null }),
-        ...(invoiceNumber !== undefined && { invoiceNumber: invoiceNumber || null }),
-        ...(recurring !== undefined && { recurring: recurring === true }),
-        ...(building !== undefined && { building: building || null }),
-      },
       include: {
         company: {
           select: {
@@ -75,6 +93,10 @@ export async function PUT(
         },
       },
     })
+
+    if (!fullExpense) {
+      return errorResponse('Failed to fetch updated expense', 500)
+    }
 
     // Audit log
     await createAuditLog({
@@ -86,25 +108,26 @@ export async function PUT(
       details: {
         before: serialize(existing),
         after: {
-          category: expense.category,
-          description: expense.description,
-          amount: expense.amount,
-          vendor: expense.vendor,
-          invoiceNumber: expense.invoiceNumber,
-          recurring: expense.recurring,
-          building: expense.building,
+          category: fullExpense.category,
+          description: fullExpense.description,
+          amount: fullExpense.amount,
+          vendor: fullExpense.vendor,
+          invoiceNumber: fullExpense.invoiceNumber,
+          recurring: fullExpense.recurring,
+          building: fullExpense.building,
         },
+        occProtected: !!occVersion,
       },
     })
 
-    return successResponse(serialize(expense))
+    return successResponse(serialize(fullExpense))
   } catch (error) {
     console.error('Error updating expense:', error)
     return errorResponse('Failed to update expense', 500)
   }
 }
 
-// DELETE /api/expenses/[id] — soft delete an expense
+// DELETE /api/expenses/[id] — soft delete an expense (owner/admin only)
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

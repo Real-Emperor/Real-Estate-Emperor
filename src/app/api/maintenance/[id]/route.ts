@@ -8,10 +8,16 @@ import {
   unauthorizedResponse,
   forbiddenResponse,
   isSystemAdmin,
+  isOwnerOrAdmin,
   safeNumber,
+  parseOCCVersion,
+  occUpdate,
+  validatePropertyOwnership,
 } from '@/lib/api-utils'
 
 // PUT /api/maintenance/[id] - Update a maintenance item
+// PHASE 2: RBAC — owner/admin can update all fields; staff can only update status
+// PHASE 2: Validate propertyId ownership if changed; OCC for concurrency
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -33,6 +39,25 @@ export async function PUT(
     const body = await request.json()
     const { title, description, category, vendor, priority, status, propertyId, estimatedCost, actualCost, completedAt } = body
 
+    // PHASE 2: RBAC — staff can only update status field
+    if (!isOwnerOrAdmin(user.role)) {
+      // Staff: only status changes allowed
+      const allowedFields = ['status', 'updatedAt', '_updatedAt']
+      const providedFields = Object.keys(body).filter(k => !allowedFields.includes(k))
+      if (providedFields.length > 0) {
+        return forbiddenResponse('Staff can only update the status of maintenance items')
+      }
+      if (!status) {
+        return errorResponse('Staff can only update the status field')
+      }
+    }
+
+    // PHASE 2: Validate propertyId ownership if being changed
+    if (propertyId !== undefined && propertyId !== existing.propertyId) {
+      const propResult = await validatePropertyOwnership(propertyId, user.companyId)
+      if (propResult instanceof Response) return propResult
+    }
+
     // When status changes to completed, set completedAt if not provided
     let resolvedCompletedAt = completedAt ? new Date(completedAt) : existing.completedAt
     if (status === 'completed' && existing.status !== 'completed' && !resolvedCompletedAt) {
@@ -47,20 +72,46 @@ export async function PUT(
       ? (actualCost ? safeNumber(actualCost) : null)
       : existing.actualCost
 
-    const updated = await prisma.maintenance.update({
+    // Build update data
+    const data: Record<string, unknown> = {}
+
+    if (isOwnerOrAdmin(user.role)) {
+      // Full update for owner/admin
+      if (title !== undefined) data.title = title
+      if (description !== undefined) data.description = description
+      if (category !== undefined) data.category = category
+      if (vendor !== undefined) data.vendor = vendor
+      if (priority !== undefined) data.priority = priority
+      if (estimatedCost !== undefined) data.estimatedCost = parsedEstimatedCost
+      if (actualCost !== undefined) data.actualCost = parsedActualCost
+      if (propertyId !== undefined) data.propertyId = propertyId
+    }
+    // Both roles can update status
+    if (status !== undefined) {
+      data.status = status
+      data.completedAt = status === 'completed' ? resolvedCompletedAt : (status && status !== 'completed' ? null : existing.completedAt)
+    }
+
+    if (Object.keys(data).length === 0) {
+      return errorResponse('No valid fields provided for update')
+    }
+
+    // PHASE 2: Use OCC-protected update
+    const occVersion = parseOCCVersion(body)
+
+    const updated = await occUpdate(
+      prisma.maintenance,
+      id,
+      occVersion,
+      data,
+      { companyId: user.companyId, deletedAt: null }
+    )
+
+    if (updated instanceof Response) return updated
+
+    // Fetch with property relation for response
+    const fullUpdated = await prisma.maintenance.findUnique({
       where: { id },
-      data: {
-        title: title ?? existing.title,
-        description: description ?? existing.description,
-        category: category !== undefined ? category : existing.category,
-        vendor: vendor !== undefined ? vendor : existing.vendor,
-        priority: priority ?? existing.priority,
-        status: status ?? existing.status,
-        propertyId: propertyId !== undefined ? propertyId : existing.propertyId,
-        estimatedCost: parsedEstimatedCost,
-        actualCost: parsedActualCost,
-        completedAt: status === 'completed' ? resolvedCompletedAt : (status && status !== 'completed' ? null : existing.completedAt),
-      },
       include: {
         property: {
           select: { id: true, name: true },
@@ -76,11 +127,16 @@ export async function PUT(
       companyId: user.companyId,
       details: {
         before: { status: existing.status, priority: existing.priority, title: existing.title },
-        after: { status: updated.status, priority: updated.priority, title: updated.title },
+        after: fullUpdated ? { status: fullUpdated.status, priority: fullUpdated.priority, title: fullUpdated.title } : null,
+        occProtected: !!occVersion,
       },
     })
 
-    return successResponse(serialize(updated))
+    if (!fullUpdated) {
+      return errorResponse('Failed to fetch updated maintenance item', 500)
+    }
+
+    return successResponse(serialize(fullUpdated))
   } catch (error) {
     console.error('Error updating maintenance item:', error)
     return errorResponse('Failed to update maintenance item', 500)

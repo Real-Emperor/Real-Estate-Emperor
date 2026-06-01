@@ -8,9 +8,12 @@ import {
   unauthorizedResponse,
   forbiddenResponse,
   isSystemAdmin,
+  parseOCCVersion,
+  occUpdate,
 } from '@/lib/api-utils'
 
-// PATCH /api/reset-requests/[id] — Resolve or dismiss a reset request (admin only)
+// PATCH /api/reset-requests/[id] — Resolve or dismiss a reset request (admin only + OCC)
+// PHASE 2: Company ownership check; OCC for concurrency safety
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -35,6 +38,11 @@ export async function PATCH(
       return errorResponse('Reset request not found', 404)
     }
 
+    // PHASE 2: Company ownership check — ensure the reset request belongs to the same company
+    if (resetRequest.companyId && resetRequest.companyId !== user.companyId) {
+      return forbiddenResponse('This reset request does not belong to your company')
+    }
+
     if (resetRequest.status !== 'pending') {
       return errorResponse(`Reset request is already ${resetRequest.status}`, 409)
     }
@@ -46,13 +54,27 @@ export async function PATCH(
       return errorResponse('status must be "resolved" or "dismissed"')
     }
 
-    const updatedRequest = await prisma.resetRequest.update({
+    // PHASE 2: OCC — check if the reset request was modified since the client read it
+    const occVersion = parseOCCVersion(body)
+
+    const data: Record<string, unknown> = {
+      status: body.status,
+      resolvedAt: new Date(),
+      resolvedBy: user.id,
+    }
+
+    const updatedRequest = await occUpdate(
+      prisma.resetRequest,
+      id,
+      occVersion,
+      data
+    )
+
+    if (updatedRequest instanceof Response) return updatedRequest
+
+    // Fetch with resolver relation for response
+    const fullRequest = await prisma.resetRequest.findUnique({
       where: { id },
-      data: {
-        status: body.status,
-        resolvedAt: new Date(),
-        resolvedBy: user.id,
-      },
       include: {
         resolver: {
           select: {
@@ -76,10 +98,15 @@ export async function PATCH(
         newStatus: body.status,
         requestEmail: resetRequest.email,
         requestName: resetRequest.name,
+        occProtected: !!occVersion,
       },
     })
 
-    return successResponse(serialize(updatedRequest))
+    if (!fullRequest) {
+      return errorResponse('Failed to fetch updated reset request', 500)
+    }
+
+    return successResponse(serialize(fullRequest))
   } catch (error) {
     console.error('PATCH /api/reset-requests/[id] error:', error)
     return errorResponse('Failed to update reset request', 500)

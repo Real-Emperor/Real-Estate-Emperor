@@ -9,6 +9,7 @@ import {
   safeNumber,
   parsePaginationParams,
   paginatedResponse,
+  validatePropertyOwnership,
 } from '@/lib/api-utils'
 
 // GET /api/maintenance - List maintenance items with pagination for the company
@@ -51,6 +52,7 @@ export async function GET(request: Request) {
 }
 
 // POST /api/maintenance - Create a new maintenance item
+// PHASE 2: Validate propertyId ownership; all authenticated users can create
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser()
@@ -61,6 +63,12 @@ export async function POST(request: Request) {
 
     if (!title || !description) {
       return errorResponse('Title and description are required')
+    }
+
+    // PHASE 2: Validate propertyId ownership if provided
+    if (propertyId) {
+      const propResult = await validatePropertyOwnership(propertyId, user.companyId)
+      if (propResult instanceof Response) return propResult
     }
 
     // When status is completed, set completedAt
@@ -100,7 +108,7 @@ export async function POST(request: Request) {
       entityId: item.id,
       userId: user.id,
       companyId: user.companyId,
-      details: { title, description, priority: item.priority, status: item.status },
+      details: { title, description, priority: item.priority, status: item.status, propertyId: propertyId || null },
     })
 
     return successResponse(serialize(item), 201)

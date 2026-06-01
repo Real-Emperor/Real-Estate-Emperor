@@ -7,9 +7,12 @@ import {
   successResponse,
   unauthorizedResponse,
   forbiddenResponse,
+  isOwnerOrAdmin,
   isFinancialUser,
   safeNumber,
   safeInt,
+  parseOCCVersion,
+  occUpdate,
 } from '@/lib/api-utils'
 
 // GET /api/tenants/[id] - Get a single tenant by ID
@@ -52,7 +55,8 @@ export async function GET(
   }
 }
 
-// PUT /api/tenants/[id] - Update a tenant
+// PUT /api/tenants/[id] - Update a tenant (owner/admin only + OCC)
+// PHASE 2: RBAC — staff cannot update tenants; OCC for concurrency safety
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -61,8 +65,16 @@ export async function PUT(
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
 
+    // PHASE 2: RBAC — only owner/admin can update tenants
+    if (!isOwnerOrAdmin(user.role)) {
+      return forbiddenResponse('Only owners and admins can update tenants')
+    }
+
     const { id } = await params
     const body = await request.json()
+
+    // PHASE 2: Optimistic Concurrency Control
+    const occVersion = parseOCCVersion(body)
 
     // Verify tenant exists and belongs to user's company
     const existing = await prisma.tenant.findFirst({
@@ -124,9 +136,20 @@ export async function PUT(
     if (body.tenantScore !== undefined) data.tenantScore = safeInt(body.tenantScore, 100)
     if (body.notes !== undefined) data.notes = body.notes || null
 
-    const tenant = await prisma.tenant.update({
-      where: { id },
+    // PHASE 2: Use OCC-protected update
+    const updated = await occUpdate(
+      prisma.tenant,
+      id,
+      occVersion,
       data,
+      { companyId: user.companyId, deletedAt: null }
+    )
+
+    if (updated instanceof Response) return updated
+
+    // Fetch full record with relations for the response
+    const fullTenant = await prisma.tenant.findUnique({
+      where: { id },
       include: {
         property: true,
         _count: {
@@ -135,19 +158,24 @@ export async function PUT(
       },
     })
 
+    if (!fullTenant) {
+      return errorResponse('Failed to fetch updated tenant', 500)
+    }
+
     await createAuditLog({
       action: 'UPDATE',
       entity: 'Tenant',
-      entityId: tenant.id,
+      entityId: id,
       userId: user.id,
       companyId: user.companyId,
       details: {
         before: serialize(existing),
-        after: serialize(tenant),
+        after: serialize(fullTenant),
+        occProtected: !!occVersion,
       },
     })
 
-    const { _count, ...tenantData } = tenant
+    const { _count, ...tenantData } = fullTenant
     return successResponse({
       ...serialize(tenantData),
       paymentCount: _count.payments,
@@ -159,6 +187,7 @@ export async function PUT(
 }
 
 // DELETE /api/tenants/[id] - Soft delete a tenant (owner/admin only)
+// PHASE 2: Also hard-delete related payments within a transaction
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -187,25 +216,33 @@ export async function DELETE(
       return errorResponse('Tenant not found', 404)
     }
 
-    // Soft delete - set deletedAt to now
-    const tenant = await prisma.tenant.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        status: 'inactive',
-      },
+    // PHASE 2: Cascade delete within a transaction
+    await prisma.$transaction(async (tx) => {
+      // 1. Hard-delete all payments for this tenant
+      await tx.payment.deleteMany({
+        where: { tenantId: id },
+      })
+
+      // 2. Soft delete the tenant
+      await tx.tenant.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          status: 'inactive',
+        },
+      })
     })
 
     await createAuditLog({
       action: 'DELETE',
       entity: 'Tenant',
-      entityId: tenant.id,
+      entityId: id,
       userId: user.id,
       companyId: user.companyId,
-      details: { name: existing.name, softDelete: true },
+      details: { name: existing.name, softDelete: true, cascadedPayments: true },
     })
 
-    return successResponse({ deleted: true, id: tenant.id })
+    return successResponse({ deleted: true, id })
   } catch (error) {
     console.error('Failed to delete tenant:', error)
     return errorResponse('Failed to delete tenant', 500)

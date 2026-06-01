@@ -186,3 +186,127 @@ export function unauthorizedResponse() {
 export function forbiddenResponse(message: string = 'Access denied') {
   return Response.json({ error: message }, { status: 403 })
 }
+
+// Conflict response (for optimistic concurrency control failures)
+export function conflictResponse(message: string = 'Record was modified by another user. Please refresh and try again.') {
+  return Response.json({ error: message }, { status: 409 })
+}
+
+// ─── RBAC Helpers ───────────────────────────────────────────────
+
+/**
+ * Check if the user role is owner or admin (financial user).
+ * Used for write operations on Properties, Tenants, Expenses, etc.
+ */
+export function isOwnerOrAdmin(role: string): boolean {
+  return role === 'owner' || role === 'admin'
+}
+
+// ─── Optimistic Concurrency Control ────────────────────────────
+
+/**
+ * Parse the `updatedAt` value from the request body for OCC.
+ * Expects the client to send the `updatedAt` timestamp of the record they read.
+ * Returns a Date object or null if not provided.
+ */
+export function parseOCCVersion(body: Record<string, unknown>): Date | null {
+  const updatedAt = body.updatedAt || body._updatedAt
+  if (!updatedAt) return null
+  const d = new Date(updatedAt as string)
+  return isNaN(d.getTime()) ? null : d
+}
+
+/**
+ * Build the OCC WHERE clause for Prisma update operations.
+ * If a version is provided, adds `updatedAt: version` to the where clause
+ * so the update will fail if the record was modified since the client read it.
+ */
+export function occWhereClause(
+  id: string,
+  version: Date | null,
+  extraConditions: Record<string, unknown> = {}
+): Record<string, unknown> {
+  const where: Record<string, unknown> = { id, ...extraConditions }
+  if (version) {
+    where.updatedAt = version
+  }
+  return where
+}
+
+/**
+ * Check the result of an OCC update. If `count` is 0, the record was
+ * modified by another user (or doesn't exist). Returns an appropriate response.
+ */
+export function checkOCCResult(
+  result: { count: number } | null | undefined,
+  entityName: string = 'Record'
+): Response | null {
+  if (!result || result.count === 0) {
+    return conflictResponse(
+      `${entityName} was modified by another user since you last read it. Please refresh and try again.`
+    )
+  }
+  return null
+}
+
+/**
+ * Perform an OCC-protected update using Prisma's updateMany which returns { count }.
+ * Returns the updated record on success, or a 409 Conflict response on OCC failure.
+ *
+ * Usage:
+ *   const result = await occUpdate(
+ *     prisma.property, id, version, data, user.companyId
+ *   )
+ *   if (result instanceof Response) return result  // 409 conflict
+ *   // result is the updated record
+ */
+export async function occUpdate<T>(
+  model: { updateMany: (args: any) => Promise<{ count: number }>; findUnique: (args: any) => Promise<T | null> },
+  id: string,
+  version: Date | null,
+  data: Record<string, unknown>,
+  extraWhere: Record<string, unknown> = {}
+): Promise<T | Response> {
+  const where = occWhereClause(id, version, extraWhere)
+
+  const result = await model.updateMany({
+    where,
+    data,
+  })
+
+  if (result.count === 0) {
+    // Could be OCC failure or record not found — check if record exists
+    const exists = await model.findUnique({ where: { id } })
+    if (!exists) {
+      return errorResponse('Record not found', 404)
+    }
+    return conflictResponse()
+  }
+
+  // Fetch and return the updated record
+  return await model.findUnique({ where: { id } }) as T
+}
+
+// ─── Property Ownership Validation ─────────────────────────────
+
+/**
+ * Validate that a property belongs to the given company.
+ * Returns the property if valid, or a Response if invalid/not found.
+ */
+export async function validatePropertyOwnership(
+  propertyId: string | null | undefined,
+  companyId: string
+): Promise<{ id: string; companyId: string } | null | Response> {
+  if (!propertyId) return null // No propertyId to validate
+
+  const property = await prisma.property.findFirst({
+    where: { id: propertyId, companyId, deletedAt: null },
+    select: { id: true, companyId: true },
+  })
+
+  if (!property) {
+    return errorResponse('Property not found or does not belong to your company', 404)
+  }
+
+  return property
+}

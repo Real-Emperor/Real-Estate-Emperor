@@ -6,6 +6,8 @@ import {
   errorResponse,
   successResponse,
   unauthorizedResponse,
+  forbiddenResponse,
+  isOwnerOrAdmin,
   safeNumber,
   safeInt,
   parsePaginationParams,
@@ -98,11 +100,17 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/properties — Create a new property
+// POST /api/properties — Create a new property (owner/admin only)
+// PHASE 2: RBAC — staff cannot create properties
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
+
+    // PHASE 2: RBAC — only owner/admin can create properties
+    if (!isOwnerOrAdmin(user.role)) {
+      return forbiddenResponse('Only owners and admins can create properties')
+    }
 
     const body = await request.json()
 

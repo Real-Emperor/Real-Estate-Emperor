@@ -114,7 +114,10 @@ const DEFAULT_COMPANY: CompanyInfo = {
   address: '',
 }
 
-// API helper — PHASE 1 FIX: handles 401 by redirecting to login
+// PHASE 2: Dedup guard for 401 handling — prevent multiple simultaneous signOut calls
+let isHandling401 = false
+
+// API helper — handles 401 by redirecting to login (with dedup guard)
 async function apiCall(url: string, options?: RequestInit) {
   const res = await fetch(url, {
     ...options,
@@ -124,15 +127,29 @@ async function apiCall(url: string, options?: RequestInit) {
     },
   })
 
-  // PHASE 1 FIX: On 401 Unauthorized, redirect to login page
+  // PHASE 2 FIX: On 401 Unauthorized, redirect to login page with dedup guard
   if (res.status === 401) {
-    // Clear local state and redirect to login
-    if (typeof window !== 'undefined') {
-      // Use NextAuth signOut to properly clear session
-      const { signOut } = await import('next-auth/react')
-      await signOut({ callbackUrl: '/' })
+    if (!isHandling401 && typeof window !== 'undefined') {
+      isHandling401 = true
+      try {
+        // Use NextAuth signOut to properly clear session
+        const { signOut } = await import('next-auth/react')
+        await signOut({ callbackUrl: '/' })
+      } finally {
+        // Reset after a delay to allow future 401s if session expires again
+        setTimeout(() => { isHandling401 = false }, 5000)
+      }
     }
     throw new Error('Session expired. Please log in again.')
+  }
+
+  // PHASE 2: Handle 409 Conflict (optimistic concurrency failure)
+  if (res.status === 409) {
+    const data = await res.json().catch(() => ({ error: 'Record was modified by another user' }))
+    const error = new Error(data.error || 'Record was modified by another user. Please refresh and try again.')
+    ;(error as any).isConflict = true
+    ;(error as any).statusCode = 409
+    throw error
   }
 
   if (!res.ok) {

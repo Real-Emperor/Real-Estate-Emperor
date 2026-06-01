@@ -8,9 +8,12 @@ import {
   unauthorizedResponse,
   forbiddenResponse,
   isSystemAdmin,
+  parseOCCVersion,
+  occUpdate,
 } from '@/lib/api-utils'
 
-// PUT /api/users/[id] - Update a user (admin only)
+// PUT /api/users/[id] - Update a user (admin only + OCC)
+// PHASE 2: OCC for concurrency safety
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -46,17 +49,36 @@ export async function PUT(
       }
     }
 
-    const updated = await prisma.user.update({
+    // Build update data
+    const data: Record<string, unknown> = {}
+    if (email !== undefined) data.email = email
+    if (name !== undefined) data.name = name
+    if (nameAr !== undefined) data.nameAr = nameAr
+    if (nameBn !== undefined) data.nameBn = nameBn
+    if (nameUr !== undefined) data.nameUr = nameUr
+    if (role !== undefined) data.role = role
+    if (isActive !== undefined) data.isActive = isActive
+
+    if (Object.keys(data).length === 0) {
+      return errorResponse('No valid fields provided for update')
+    }
+
+    // PHASE 2: Use OCC-protected update
+    const occVersion = parseOCCVersion(body)
+
+    const updated = await occUpdate(
+      prisma.user,
+      id,
+      occVersion,
+      data,
+      { companyId: user.companyId, deletedAt: null }
+    )
+
+    if (updated instanceof Response) return updated
+
+    // Fetch with select for response
+    const fullUpdated = await prisma.user.findUnique({
       where: { id },
-      data: {
-        email: email ?? existing.email,
-        name: name ?? existing.name,
-        nameAr: nameAr !== undefined ? nameAr : existing.nameAr,
-        nameBn: nameBn !== undefined ? nameBn : existing.nameBn,
-        nameUr: nameUr !== undefined ? nameUr : existing.nameUr,
-        role: role ?? existing.role,
-        isActive: isActive !== undefined ? isActive : existing.isActive,
-      },
       select: {
         id: true,
         email: true,
@@ -80,11 +102,16 @@ export async function PUT(
       companyId: user.companyId,
       details: {
         before: { name: existing.name, email: existing.email, role: existing.role, isActive: existing.isActive },
-        after: { name: updated.name, email: updated.email, role: updated.role, isActive: updated.isActive },
+        after: fullUpdated ? { name: fullUpdated.name, email: fullUpdated.email, role: fullUpdated.role, isActive: fullUpdated.isActive } : null,
+        occProtected: !!occVersion,
       },
     })
 
-    return successResponse(serialize(updated))
+    if (!fullUpdated) {
+      return errorResponse('Failed to fetch updated user', 500)
+    }
+
+    return successResponse(serialize(fullUpdated))
   } catch (error) {
     console.error('Error updating user:', error)
     return errorResponse('Failed to update user', 500)

@@ -7,6 +7,9 @@ import {
   successResponse,
   unauthorizedResponse,
   forbiddenResponse,
+  isOwnerOrAdmin,
+  parseOCCVersion,
+  occUpdate,
 } from '@/lib/api-utils'
 import { isFinancialUser } from '@/lib/api-utils'
 
@@ -68,7 +71,7 @@ export async function GET(
   }
 }
 
-// PUT /api/properties/[id] — Update a property
+// PUT /api/properties/[id] — Update a property (owner/admin only + OCC)
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -76,6 +79,11 @@ export async function PUT(
   try {
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
+
+    // PHASE 2: RBAC — only owner/admin can update properties
+    if (!isOwnerOrAdmin(user.role)) {
+      return forbiddenResponse('Only owners and admins can update properties')
+    }
 
     const { id } = await params
 
@@ -86,6 +94,9 @@ export async function PUT(
     }
 
     const body = await request.json()
+
+    // PHASE 2: Optimistic Concurrency Control
+    const occVersion = parseOCCVersion(body)
 
     // Validate type if provided
     if (body.type !== undefined && !VALID_PROPERTY_TYPES.includes(body.type)) {
@@ -149,10 +160,16 @@ export async function PUT(
       return errorResponse('No valid fields provided for update')
     }
 
-    const updated = await prisma.property.update({
-      where: { id },
+    // PHASE 2: Use OCC-protected update
+    const updated = await occUpdate(
+      prisma.property,
+      id,
+      occVersion,
       data,
-    })
+      { companyId: user.companyId, deletedAt: null }
+    )
+
+    if (updated instanceof Response) return updated
 
     await createAuditLog({
       action: 'UPDATE',
@@ -164,6 +181,7 @@ export async function PUT(
         before: serialize(existing),
         after: serialize(updated),
         changedFields: Object.keys(data),
+        occProtected: !!occVersion,
       },
     })
 
@@ -174,7 +192,8 @@ export async function PUT(
   }
 }
 
-// DELETE /api/properties/[id] — Soft delete a property (owner/admin only)
+// DELETE /api/properties/[id] — Soft delete a property + cascade (owner/admin only)
+// PHASE 2: Cascade soft-delete to tenants + their payments within a transaction
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -199,10 +218,43 @@ export async function DELETE(
     // Check for active tenants — warn but still allow soft delete
     const activeTenants = existing.tenants.filter((t) => t.status === 'active')
 
-    // Perform soft delete by setting deletedAt
-    const deleted = await prisma.property.update({
-      where: { id },
-      data: { deletedAt: new Date() },
+    // PHASE 2: Cascade soft-delete within a transaction
+    const deletedProperty = await prisma.$transaction(async (tx) => {
+      // 1. Hard-delete payments for all tenants of this property
+      //    (Payment doesn't have soft-delete; cascading via tenant)
+      const propertyTenantIds = existing.tenants.map(t => t.id)
+
+      if (propertyTenantIds.length > 0) {
+        await tx.payment.deleteMany({
+          where: { tenantId: { in: propertyTenantIds } },
+        })
+      }
+
+      // 2. Soft-delete all tenants of this property
+      await tx.tenant.updateMany({
+        where: {
+          propertyId: id,
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: new Date(),
+          status: 'inactive',
+        },
+      })
+
+      // 3. Soft-delete the property itself
+      const deleted = await tx.property.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      })
+
+      // 4. Soft-delete maintenance items linked to this property
+      await tx.maintenance.updateMany({
+        where: { propertyId: id, deletedAt: null },
+        data: { deletedAt: new Date() },
+      })
+
+      return deleted
     })
 
     await createAuditLog({
@@ -214,15 +266,20 @@ export async function DELETE(
       details: {
         before: serialize(existing),
         activeTenantCount: activeTenants.length,
+        totalTenantCount: existing.tenants.length,
         softDelete: true,
+        cascadedToTenants: true,
+        cascadedToMaintenance: true,
       },
     })
 
     return successResponse({
-      ...serialize(deleted),
+      ...serialize(deletedProperty),
       _meta: {
         softDeleted: true,
         activeTenantCount: activeTenants.length,
+        totalTenantCount: existing.tenants.length,
+        cascadedTenants: existing.tenants.length,
       },
     })
   } catch (error) {
@@ -231,7 +288,7 @@ export async function DELETE(
   }
 }
 
-// PATCH /api/properties/[id] — Archive or unarchive a property
+// PATCH /api/properties/[id] — Archive or unarchive a property (owner/admin only + OCC)
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -239,6 +296,11 @@ export async function PATCH(
   try {
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
+
+    // PHASE 2: RBAC — only owner/admin can archive/unarchive properties
+    if (!isOwnerOrAdmin(user.role)) {
+      return forbiddenResponse('Only owners and admins can archive properties')
+    }
 
     const { id } = await params
 
@@ -263,10 +325,18 @@ export async function PATCH(
       })
     }
 
-    const updated = await prisma.property.update({
-      where: { id },
-      data: { archived: body.archived },
-    })
+    // PHASE 2: Use OCC-protected update
+    const occVersion = parseOCCVersion(body)
+
+    const updated = await occUpdate(
+      prisma.property,
+      id,
+      occVersion,
+      { archived: body.archived },
+      { companyId: user.companyId, deletedAt: null }
+    )
+
+    if (updated instanceof Response) return updated
 
     await createAuditLog({
       action: body.archived ? 'ARCHIVE' : 'UNARCHIVE',
@@ -277,6 +347,7 @@ export async function PATCH(
       details: {
         before: { archived: existing.archived },
         after: { archived: body.archived },
+        occProtected: !!occVersion,
       },
     })
 

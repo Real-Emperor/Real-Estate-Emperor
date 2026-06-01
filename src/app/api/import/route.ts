@@ -9,6 +9,7 @@ import {
   forbiddenResponse,
   safeNumber,
   safeInt,
+  validatePropertyOwnership,
 } from '@/lib/api-utils'
 
 // Valid property types for validation
@@ -25,6 +26,9 @@ const VALID_MAINTENANCE_CATEGORIES = [
 const VALID_MAINTENANCE_PRIORITIES = ['urgent', 'high', 'medium', 'low']
 const VALID_MAINTENANCE_STATUSES = ['pending', 'in-progress', 'completed']
 
+// Batch size for transactional imports
+const IMPORT_BATCH_SIZE = 100
+
 interface PropertyInput {
   name: string
   nameAr?: string
@@ -34,6 +38,7 @@ interface PropertyInput {
   address?: string
   totalUnits?: number
   floors?: number
+  id?: string // temporary id for mapping
 }
 
 interface TenantInput {
@@ -148,6 +153,7 @@ function validateMaintenance(data: MaintenanceInput): string | null {
 }
 
 // POST /api/import — Bulk data import (replace or append mode)
+// PHASE 2: All multi-step operations wrapped in prisma.$transaction()
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser()
@@ -215,11 +221,12 @@ export async function POST(request: Request) {
       })
     }
 
-    // Import properties
+    // ─── Import Properties (batched transactions) ───
     const propertiesToImport: PropertyInput[] = Array.isArray(data.properties) ? data.properties : []
-    // Map to store old propertyId -> new propertyId for tenant referencing
     const propertyIdMap = new Map<string, string>()
 
+    // Validate all properties first
+    const validProperties: { index: number; data: PropertyInput }[] = []
     for (let i = 0; i < propertiesToImport.length; i++) {
       const propData = propertiesToImport[i]
       const validationError = validateProperty(propData)
@@ -228,31 +235,43 @@ export async function POST(request: Request) {
         summary.properties.errorDetails.push(`Row ${i + 1}: ${validationError}`)
         continue
       }
+      validProperties.push({ index: i, data: propData })
+    }
+
+    // Import properties in batched transactions
+    for (let batch = 0; batch < validProperties.length; batch += IMPORT_BATCH_SIZE) {
+      const batchItems = validProperties.slice(batch, batch + IMPORT_BATCH_SIZE)
 
       try {
-        const property = await prisma.property.create({
-          data: {
-            companyId,
-            name: propData.name.trim(),
-            nameAr: propData.nameAr?.trim() || null,
-            nameBn: propData.nameBn?.trim() || null,
-            nameUr: propData.nameUr?.trim() || null,
-            type: propData.type,
-            address: propData.address?.trim() || null,
-            totalUnits: propData.totalUnits ? safeInt(propData.totalUnits, 1) : 1,
-            floors: propData.floors ? safeInt(propData.floors, 1) : 1,
-          },
+        await prisma.$transaction(async (tx) => {
+          for (const { data: propData } of batchItems) {
+            const property = await tx.property.create({
+              data: {
+                companyId,
+                name: propData.name.trim(),
+                nameAr: propData.nameAr?.trim() || null,
+                nameBn: propData.nameBn?.trim() || null,
+                nameUr: propData.nameUr?.trim() || null,
+                type: propData.type,
+                address: propData.address?.trim() || null,
+                totalUnits: propData.totalUnits ? safeInt(propData.totalUnits, 1) : 1,
+                floors: propData.floors ? safeInt(propData.floors, 1) : 1,
+              },
+            })
+
+            if (propData.id) {
+              propertyIdMap.set(propData.id, property.id)
+            }
+            summary.properties.imported++
+          }
         })
-
-        // If the import data included a temporary id, map it
-        if ((propData as any).id) {
-          propertyIdMap.set((propData as any).id, property.id)
-        }
-
-        summary.properties.imported++
       } catch (err: any) {
-        summary.properties.errors++
-        summary.properties.errorDetails.push(`Row ${i + 1}: ${err.message || 'Database error'}`)
+        // Batch failed — mark all items in batch as errors
+        for (const { index } of batchItems) {
+          summary.properties.errors++
+          summary.properties.errorDetails.push(`Row ${index + 1}: ${err.message || 'Batch transaction failed'}`)
+        }
+        summary.properties.imported -= batchItems.length // Undo counted imports
       }
     }
 
@@ -263,9 +282,11 @@ export async function POST(request: Request) {
     })
     const companyPropertyIds = new Set(companyProperties.map(p => p.id))
 
-    // Import tenants
+    // ─── Import Tenants (batched transactions) ───
     const tenantsToImport: TenantInput[] = Array.isArray(data.tenants) ? data.tenants : []
 
+    // Validate all tenants first
+    const validTenants: { index: number; data: TenantInput; resolvedPropertyId: string }[] = []
     for (let i = 0; i < tenantsToImport.length; i++) {
       const tenantData = tenantsToImport[i]
       const validationError = validateTenant(tenantData)
@@ -287,50 +308,64 @@ export async function POST(request: Request) {
         continue
       }
 
-      try {
-        await prisma.tenant.create({
-          data: {
-            companyId,
-            propertyId,
-            name: tenantData.name.trim(),
-            nameAr: tenantData.nameAr?.trim() || null,
-            nameBn: tenantData.nameBn?.trim() || null,
-            nameUr: tenantData.nameUr?.trim() || null,
-            phone: tenantData.phone.trim(),
-            whatsapp: tenantData.whatsapp?.trim() || null,
-            email: tenantData.email?.trim() || null,
-            emiratesId: tenantData.emiratesId?.trim() || null,
-            nationality: tenantData.nationality?.trim() || null,
-            employer: tenantData.employer?.trim() || null,
-            emergencyContact: tenantData.emergencyContact?.trim() || null,
-            unitNumber: tenantData.unitNumber?.trim() || null,
-            unitType: tenantData.unitType || null,
-            floor: tenantData.floor ? safeInt(tenantData.floor) : null,
-            sizeSqft: tenantData.sizeSqft ? safeNumber(tenantData.sizeSqft) : null,
-            rentAmount: safeNumber(tenantData.rentAmount, 0),
-            municipalityFee: tenantData.municipalityFee ? safeNumber(tenantData.municipalityFee) : Math.round(safeNumber(tenantData.rentAmount, 0) * 0.05),
-            securityDeposit: tenantData.securityDeposit ? safeNumber(tenantData.securityDeposit) : null,
-            paymentMethod: tenantData.paymentMethod || null,
-            leaseStart: tenantData.leaseStart ? new Date(tenantData.leaseStart) : null,
-            leaseEnd: tenantData.leaseEnd ? new Date(tenantData.leaseEnd) : null,
-            contractDuration: tenantData.contractDuration ? safeInt(tenantData.contractDuration) : null,
-            status: tenantData.status || 'active',
-            latePaymentCount: tenantData.latePaymentCount ? safeInt(tenantData.latePaymentCount, 0) : 0,
-            tenantScore: tenantData.tenantScore ? safeInt(tenantData.tenantScore, 100) : 100,
-            notes: tenantData.notes?.trim() || null,
-          },
-        })
+      validTenants.push({ index: i, data: tenantData, resolvedPropertyId: propertyId })
+    }
 
-        summary.tenants.imported++
+    // Import tenants in batched transactions
+    for (let batch = 0; batch < validTenants.length; batch += IMPORT_BATCH_SIZE) {
+      const batchItems = validTenants.slice(batch, batch + IMPORT_BATCH_SIZE)
+
+      try {
+        await prisma.$transaction(async (tx) => {
+          for (const { data: tenantData, resolvedPropertyId } of batchItems) {
+            await tx.tenant.create({
+              data: {
+                companyId,
+                propertyId: resolvedPropertyId,
+                name: tenantData.name.trim(),
+                nameAr: tenantData.nameAr?.trim() || null,
+                nameBn: tenantData.nameBn?.trim() || null,
+                nameUr: tenantData.nameUr?.trim() || null,
+                phone: tenantData.phone.trim(),
+                whatsapp: tenantData.whatsapp?.trim() || null,
+                email: tenantData.email?.trim() || null,
+                emiratesId: tenantData.emiratesId?.trim() || null,
+                nationality: tenantData.nationality?.trim() || null,
+                employer: tenantData.employer?.trim() || null,
+                emergencyContact: tenantData.emergencyContact?.trim() || null,
+                unitNumber: tenantData.unitNumber?.trim() || null,
+                unitType: tenantData.unitType || null,
+                floor: tenantData.floor ? safeInt(tenantData.floor) : null,
+                sizeSqft: tenantData.sizeSqft ? safeNumber(tenantData.sizeSqft) : null,
+                rentAmount: safeNumber(tenantData.rentAmount, 0),
+                municipalityFee: tenantData.municipalityFee ? safeNumber(tenantData.municipalityFee) : Math.round(safeNumber(tenantData.rentAmount, 0) * 0.05),
+                securityDeposit: tenantData.securityDeposit ? safeNumber(tenantData.securityDeposit) : null,
+                paymentMethod: tenantData.paymentMethod || null,
+                leaseStart: tenantData.leaseStart ? new Date(tenantData.leaseStart) : null,
+                leaseEnd: tenantData.leaseEnd ? new Date(tenantData.leaseEnd) : null,
+                contractDuration: tenantData.contractDuration ? safeInt(tenantData.contractDuration) : null,
+                status: tenantData.status || 'active',
+                latePaymentCount: tenantData.latePaymentCount ? safeInt(tenantData.latePaymentCount, 0) : 0,
+                tenantScore: tenantData.tenantScore ? safeInt(tenantData.tenantScore, 100) : 100,
+                notes: tenantData.notes?.trim() || null,
+              },
+            })
+            summary.tenants.imported++
+          }
+        })
       } catch (err: any) {
-        summary.tenants.errors++
-        summary.tenants.errorDetails.push(`Row ${i + 1}: ${err.message || 'Database error'}`)
+        for (const { index } of batchItems) {
+          summary.tenants.errors++
+          summary.tenants.errorDetails.push(`Row ${index + 1}: ${err.message || 'Batch transaction failed'}`)
+        }
+        summary.tenants.imported -= batchItems.length
       }
     }
 
-    // Import expenses
+    // ─── Import Expenses (batched transactions) ───
     const expensesToImport: ExpenseInput[] = Array.isArray(data.expenses) ? data.expenses : []
 
+    const validExpenses: { index: number; data: ExpenseInput }[] = []
     for (let i = 0; i < expensesToImport.length; i++) {
       const expenseData = expensesToImport[i]
       const validationError = validateExpense(expenseData)
@@ -339,32 +374,44 @@ export async function POST(request: Request) {
         summary.expenses.errorDetails.push(`Row ${i + 1}: ${validationError}`)
         continue
       }
+      validExpenses.push({ index: i, data: expenseData })
+    }
+
+    for (let batch = 0; batch < validExpenses.length; batch += IMPORT_BATCH_SIZE) {
+      const batchItems = validExpenses.slice(batch, batch + IMPORT_BATCH_SIZE)
 
       try {
-        await prisma.expense.create({
-          data: {
-            companyId,
-            category: expenseData.category,
-            description: expenseData.description.trim(),
-            amount: safeNumber(expenseData.amount, 0),
-            date: new Date(expenseData.date),
-            vendor: expenseData.vendor?.trim() || null,
-            invoiceNumber: expenseData.invoiceNumber?.trim() || null,
-            recurring: expenseData.recurring === true,
-            building: expenseData.building?.trim() || null,
-          },
+        await prisma.$transaction(async (tx) => {
+          for (const { data: expenseData } of batchItems) {
+            await tx.expense.create({
+              data: {
+                companyId,
+                category: expenseData.category,
+                description: expenseData.description.trim(),
+                amount: safeNumber(expenseData.amount, 0),
+                date: new Date(expenseData.date),
+                vendor: expenseData.vendor?.trim() || null,
+                invoiceNumber: expenseData.invoiceNumber?.trim() || null,
+                recurring: expenseData.recurring === true,
+                building: expenseData.building?.trim() || null,
+              },
+            })
+            summary.expenses.imported++
+          }
         })
-
-        summary.expenses.imported++
       } catch (err: any) {
-        summary.expenses.errors++
-        summary.expenses.errorDetails.push(`Row ${i + 1}: ${err.message || 'Database error'}`)
+        for (const { index } of batchItems) {
+          summary.expenses.errors++
+          summary.expenses.errorDetails.push(`Row ${index + 1}: ${err.message || 'Batch transaction failed'}`)
+        }
+        summary.expenses.imported -= batchItems.length
       }
     }
 
-    // Import maintenance
+    // ─── Import Maintenance (batched transactions + propertyId ownership validation) ───
     const maintenanceToImport: MaintenanceInput[] = Array.isArray(data.maintenance) ? data.maintenance : []
 
+    const validMaintenance: { index: number; data: MaintenanceInput; resolvedPropertyId: string | null }[] = []
     for (let i = 0; i < maintenanceToImport.length; i++) {
       const maintData = maintenanceToImport[i]
       const validationError = validateMaintenance(maintData)
@@ -374,36 +421,49 @@ export async function POST(request: Request) {
         continue
       }
 
-      // Validate propertyId if provided
+      // PHASE 2: Validate propertyId ownership
       let maintPropertyId = maintData.propertyId || null
       if (maintPropertyId && propertyIdMap.has(maintPropertyId)) {
         maintPropertyId = propertyIdMap.get(maintPropertyId)!
       }
+      // Only allow propertyIds that belong to this company
       if (maintPropertyId && !companyPropertyIds.has(maintPropertyId)) {
-        maintPropertyId = null // Drop invalid reference rather than fail
+        maintPropertyId = null // Drop invalid reference
       }
 
-      try {
-        await prisma.maintenance.create({
-          data: {
-            companyId,
-            propertyId: maintPropertyId,
-            title: maintData.title.trim(),
-            description: maintData.description.trim(),
-            category: maintData.category || null,
-            vendor: maintData.vendor?.trim() || null,
-            priority: maintData.priority || 'medium',
-            status: maintData.status || 'pending',
-            estimatedCost: maintData.estimatedCost ? safeNumber(maintData.estimatedCost) : null,
-            actualCost: maintData.actualCost ? safeNumber(maintData.actualCost) : null,
-            completedAt: maintData.status === 'completed' ? new Date() : null,
-          },
-        })
+      validMaintenance.push({ index: i, data: maintData, resolvedPropertyId: maintPropertyId })
+    }
 
-        summary.maintenance.imported++
+    for (let batch = 0; batch < validMaintenance.length; batch += IMPORT_BATCH_SIZE) {
+      const batchItems = validMaintenance.slice(batch, batch + IMPORT_BATCH_SIZE)
+
+      try {
+        await prisma.$transaction(async (tx) => {
+          for (const { data: maintData, resolvedPropertyId } of batchItems) {
+            await tx.maintenance.create({
+              data: {
+                companyId,
+                propertyId: resolvedPropertyId,
+                title: maintData.title.trim(),
+                description: maintData.description.trim(),
+                category: maintData.category || null,
+                vendor: maintData.vendor?.trim() || null,
+                priority: maintData.priority || 'medium',
+                status: maintData.status || 'pending',
+                estimatedCost: maintData.estimatedCost ? safeNumber(maintData.estimatedCost) : null,
+                actualCost: maintData.actualCost ? safeNumber(maintData.actualCost) : null,
+                completedAt: maintData.status === 'completed' ? new Date() : null,
+              },
+            })
+            summary.maintenance.imported++
+          }
+        })
       } catch (err: any) {
-        summary.maintenance.errors++
-        summary.maintenance.errorDetails.push(`Row ${i + 1}: ${err.message || 'Database error'}`)
+        for (const { index } of batchItems) {
+          summary.maintenance.errors++
+          summary.maintenance.errorDetails.push(`Row ${index + 1}: ${err.message || 'Batch transaction failed'}`)
+        }
+        summary.maintenance.imported -= batchItems.length
       }
     }
 
