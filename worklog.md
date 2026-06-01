@@ -65,3 +65,28 @@ Stage Summary:
 - safeDecimal() ensures 2-decimal precision for all monetary writes
 - Migration SQL covers Float→Decimal + new tables + new columns
 - 15 files modified, 529 insertions, 65 deletions
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Phase 3 Deployment — Fix, Deploy, Validate Production
+
+Work Log:
+- Assessed current state: Phase 3 code was committed but Vercel deployment was failing
+- Discovered root cause: @db.DecimalPrecision(10,2) is invalid Prisma syntax for PostgreSQL (should be @db.Decimal(10,2))
+- Fixed all 10 instances of @db.DecimalPrecision → @db.Decimal in prisma/schema.prisma
+- Fixed TypeScript error in dashboard/route.ts: Number() wrappers for Prisma Decimal arithmetic
+- Applied Float→Decimal migration directly to Neon production database (5 tables, 10 columns)
+- Baselined both Prisma migrations (init + phase2_3) in _prisma_migrations table
+- Committed fix and pushed to GitHub (commit 8187351)
+- Vercel deployment succeeded
+- Verified production health: site 200, health endpoint healthy, all security headers present, API auth working
+
+Stage Summary:
+- Root cause of Vercel build failure: invalid @db.DecimalPrecision syntax
+- All 10 monetary columns migrated to DECIMAL(10,2) in production Neon DB
+- All data preserved with 2-decimal precision (e.g., 1800.00, 1500.00)
+- Production database integrity verified: all tables, indexes, foreign keys, migration tracking
+- Vercel deployment successful and validated
+- Health endpoint: {"status":"healthy","database":{"status":"healthy","latencyMs":747},"environment":{"status":"healthy"}}
+- Security headers: CSP, X-Frame-Options, HSTS, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
