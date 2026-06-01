@@ -7,9 +7,14 @@ import { safeNumber } from '@/lib/api-utils'
 // PHASE 2 FIX: Uses Promise.allSettled() with per-company error isolation
 export async function GET(request: NextRequest) {
   try {
-    // Verify this is a cron job request (Vercel sends specific headers)
+    // Verify this is a cron job request
+    // Vercel Cron sends Authorization: Bearer <CRON_SECRET> (if configured)
+    // Also accept Vercel's internal cron header as fallback
     const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    const vercelCronHeader = request.headers.get('x-vercel-cron')
+    const isVercelCron = vercelCronHeader === 'true'
+
+    if (!isVercelCron && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
