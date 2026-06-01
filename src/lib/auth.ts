@@ -3,35 +3,95 @@ import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/db'
 
-// Login attempt tracking for brute-force protection
-const loginAttempts = new Map<string, { count: number; lockedUntil: number }>()
+// PHASE 3: Database-backed rate limiting (replaces in-memory Map)
+// Survives server restarts and works across multiple instances
 const MAX_LOGIN_ATTEMPTS = 5
-const LOCKOUT_DURATION = 15 * 60 * 1000 // 15 minutes
+const LOCKOUT_DURATION_MINUTES = 15
 
-function isAccountLocked(email: string): boolean {
-  const attempts = loginAttempts.get(email)
-  if (!attempts) return false
-  if (attempts.lockedUntil && Date.now() < attempts.lockedUntil) {
-    return true
+async function isAccountLocked(email: string): Promise<boolean> {
+  try {
+    const entry = await prisma.rateLimitEntry.findUnique({ where: { identifier: email } })
+    if (!entry) return false
+
+    // Check if locked
+    if (entry.lockedUntil && new Date() < entry.lockedUntil) {
+      return true
+    }
+
+    // Clear expired lockout
+    if (entry.lockedUntil && new Date() >= entry.lockedUntil) {
+      await prisma.rateLimitEntry.delete({ where: { identifier: email } }).catch(() => {})
+    }
+    return false
+  } catch (error) {
+    console.error('Rate limit check error:', error)
+    // If DB check fails, allow login attempt (fail open rather than lock out everyone)
+    return false
   }
-  // Clear expired lockout
-  if (attempts.lockedUntil && Date.now() >= attempts.lockedUntil) {
-    loginAttempts.delete(email)
-  }
-  return false
 }
 
-function recordFailedAttempt(email: string): void {
-  const attempts = loginAttempts.get(email) || { count: 0, lockedUntil: 0 }
-  attempts.count++
-  if (attempts.count >= MAX_LOGIN_ATTEMPTS) {
-    attempts.lockedUntil = Date.now() + LOCKOUT_DURATION
+async function recordFailedAttempt(email: string): Promise<void> {
+  try {
+    const existing = await prisma.rateLimitEntry.findUnique({ where: { identifier: email } })
+
+    if (existing) {
+      const newCount = existing.count + 1
+      const lockedUntil = newCount >= MAX_LOGIN_ATTEMPTS
+        ? new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000)
+        : existing.lockedUntil
+
+      await prisma.rateLimitEntry.update({
+        where: { identifier: email },
+        data: {
+          count: newCount,
+          lockedUntil,
+          resetAt: new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000),
+        },
+      })
+    } else {
+      await prisma.rateLimitEntry.create({
+        data: {
+          identifier: email,
+          count: 1,
+          resetAt: new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000),
+        },
+      })
+    }
+  } catch (error) {
+    console.error('Rate limit record error:', error)
+    // Don't throw — rate limiting shouldn't block login entirely on DB failure
   }
-  loginAttempts.set(email, attempts)
 }
 
-function clearFailedAttempts(email: string): void {
-  loginAttempts.delete(email)
+async function clearFailedAttempts(email: string): Promise<void> {
+  try {
+    await prisma.rateLimitEntry.delete({ where: { identifier: email } }).catch(() => {})
+  } catch (error) {
+    // Silent — cleanup failure shouldn't affect login
+  }
+}
+
+// PHASE 3: Periodic cleanup of expired rate limit entries (runs on first login check)
+let lastCleanup = 0
+const CLEANUP_INTERVAL = 5 * 60 * 1000 // 5 minutes
+
+async function cleanupExpiredEntries(): Promise<void> {
+  const now = Date.now()
+  if (now - lastCleanup < CLEANUP_INTERVAL) return
+  lastCleanup = now
+
+  try {
+    await prisma.rateLimitEntry.deleteMany({
+      where: {
+        OR: [
+          { lockedUntil: { not: null, lt: new Date() } },
+          { resetAt: { not: null, lt: new Date() } },
+        ],
+      },
+    })
+  } catch {
+    // Silent cleanup
+  }
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -49,8 +109,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const email = (credentials.email as string).trim().toLowerCase()
 
-        // Check brute-force lockout
-        if (isAccountLocked(email)) {
+        // PHASE 3: Run periodic cleanup of expired entries
+        await cleanupExpiredEntries()
+
+        // Check brute-force lockout (DB-backed)
+        if (await isAccountLocked(email)) {
           return null
         }
 
@@ -60,13 +123,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         })
 
         if (!user || !user.isActive) {
-          recordFailedAttempt(email)
+          await recordFailedAttempt(email)
           return null
         }
 
         // Check if user is soft-deleted
         if (user.deletedAt) {
-          recordFailedAttempt(email)
+          await recordFailedAttempt(email)
           return null
         }
 
@@ -76,12 +139,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         )
 
         if (!isValidPassword) {
-          recordFailedAttempt(email)
+          await recordFailedAttempt(email)
           return null
         }
 
         // Clear failed attempts on successful login
-        clearFailedAttempts(email)
+        await clearFailedAttempts(email)
 
         // Log the login
         try {
@@ -99,7 +162,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // Audit logging should not break login
         }
 
-        // Update passwordChangedAt if user must change password
         return {
           id: user.id,
           email: user.email,

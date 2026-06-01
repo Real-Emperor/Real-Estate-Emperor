@@ -63,8 +63,14 @@ export async function createAuditLog(params: {
 /**
  * Safely convert a value to a number. Returns `fallback` (default 0) if the
  * result is NaN or not finite. Use this for ALL user-supplied numeric input.
+ * PHASE 3: Also handles Prisma.Decimal objects from aggregate queries.
  */
 export function safeNumber(value: unknown, fallback: number = 0): number {
+  // PHASE 3: Handle Prisma.Decimal (from aggregate _sum results)
+  if (value !== null && typeof value === 'object' && typeof (value as any).toFixed === 'function') {
+    const n = Number(value)
+    return Number.isFinite(n) ? n : fallback
+  }
   const n = Number(value)
   return Number.isFinite(n) ? n : fallback
 }
@@ -76,6 +82,23 @@ export function safeNumber(value: unknown, fallback: number = 0): number {
 export function safeInt(value: unknown, fallback: number = 0): number {
   const n = Number(value)
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback
+}
+
+/**
+ * PHASE 3: Safely convert a value to a Decimal-compatible string for Prisma.
+ * Returns a string representation suitable for Prisma Decimal fields.
+ * Guarantees no NaN or Infinity values reach the database.
+ */
+export function safeDecimal(value: unknown, fallback: string = '0'): string {
+  if (value === null || value === undefined) return fallback
+  // Handle Prisma.Decimal objects
+  if (typeof value === 'object' && typeof (value as any).toFixed === 'function') {
+    return (value as any).toString()
+  }
+  const n = Number(value)
+  if (!Number.isFinite(n)) return fallback
+  // Limit to 2 decimal places for monetary values
+  return n.toFixed(2)
 }
 
 // ─── Pagination ────────────────────────────────────────────────
@@ -130,7 +153,8 @@ export function paginatedResponse<T>(data: T[], total: number, params: Paginatio
 
 // ─── Serialization ─────────────────────────────────────────────
 
-// Serialize a Prisma model for API responses (convert DateTime to ISO strings)
+// Serialize a Prisma model for API responses (convert DateTime/Decimal to safe types)
+// PHASE 3: Handles Prisma.Decimal by converting to string for JSON-safe precision
 export function serialize<T extends Record<string, any>>(obj: T): T {
   if (!obj) return obj
   const result: any = Array.isArray(obj) ? [] : {}
@@ -138,6 +162,9 @@ export function serialize<T extends Record<string, any>>(obj: T): T {
     const value = (obj as any)[key]
     if (value instanceof Date) {
       (result as any)[key] = value.toISOString()
+    } else if (value !== null && typeof value === 'object' && typeof value.toFixed === 'function' && 'd' in value) {
+      // PHASE 3: Prisma.Decimal — convert to string for full precision, then to number for JSON
+      ;(result as any)[key] = Number(value.toFixed(2))
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       // Handle nested objects (like relations)
       if ('id' in value && ('createdAt' in value || 'updatedAt' in value)) {

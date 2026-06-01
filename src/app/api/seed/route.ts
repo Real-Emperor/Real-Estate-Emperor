@@ -10,8 +10,14 @@ import {
 
 // POST /api/seed — Seed demo data for the company
 // Only works if company has no data yet. Only admin can seed.
+// PHASE 3: DISABLED in production environment
 export async function POST() {
   try {
+    // PHASE 3: Block seed endpoint in production
+    if (process.env.NODE_ENV === 'production') {
+      return forbiddenResponse('Seed endpoint is disabled in production')
+    }
+
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
 
