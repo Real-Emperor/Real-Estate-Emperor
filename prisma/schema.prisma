@@ -8,43 +8,62 @@ datasource db {
 }
 
 model Company {
-  id          String   @id @default(cuid())
-  name        String
-  nameAr      String?
-  nameBn      String?
-  nameUr      String?
-  phone       String?
-  email       String?
-  address     String?
-  logoUrl     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  properties  Property[]
-  tenants     Tenant[]
-  expenses    Expense[]
-  maintenance Maintenance[]
-  users       User[]
+  id                 String   @id @default(cuid())
+  name               String
+  nameAr             String?
+  nameBn             String?
+  nameUr             String?
+  phone              String?
+  email              String?
+  address            String?
+  logoUrl            String?
+  plan               String   @default("free")
+  maxProperties      Int      @default(10)
+  maxUsers           Int      @default(5)
+  stripeCustomerId   String?
+  subscriptionStatus String?
+  subscriptionEnd    DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  properties    Property[]
+  tenants       Tenant[]
+  expenses      Expense[]
+  maintenance   Maintenance[]
+  users         User[]
+  backupRecords BackupRecord[]
+  receipts      Receipt[]
+  notifications Notification[]
+
+  @@map("companies")
 }
 
 model User {
-  id              String         @id @default(cuid())
-  email           String         @unique
-  password        String         // bcrypt hashed
-  name            String
-  nameAr          String?
-  nameBn          String?
-  nameUr          String?
-  role            String         @default("staff") // owner, admin, staff
-  companyId       String
-  company         Company        @relation(fields: [companyId], references: [id])
-  isActive        Boolean        @default(true)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  resetRequests   ResetRequest[] @relation("ResolvedBy")
-  auditLogs       AuditLog[]
+  id                   String         @id @default(cuid())
+  email                String         @unique
+  password             String
+  name                 String
+  nameAr               String?
+  nameBn               String?
+  nameUr               String?
+  role                 String         @default("staff") // owner, admin, staff
+  mustChangePassword   Boolean        @default(false)
+  passwordChangedAt    DateTime?
+  companyId            String
+  company              Company        @relation(fields: [companyId], references: [id])
+  isActive             Boolean        @default(true)
+  twoFactorSecret      String?
+  twoFactorEnabled     Boolean        @default(false)
+  twoFactorBackupCodes String?
+  deletedAt            DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  resetRequests        ResetRequest[] @relation("ResolvedBy")
+  auditLogs            AuditLog[]
 
   @@index([companyId])
   @@index([email])
+  @@map("users")
 }
 
 model Property {
@@ -60,58 +79,61 @@ model Property {
   totalUnits  Int        @default(1)
   floors      Int        @default(1)
   archived    Boolean    @default(false)
+  deletedAt   DateTime?  // soft delete
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  deletedAt   DateTime?  // soft delete
   tenants     Tenant[]
   maintenance Maintenance[]
 
   @@index([companyId])
   @@index([archived])
+  @@map("properties")
 }
 
 model Tenant {
-  id                String     @id @default(cuid())
-  companyId         String
-  company           Company    @relation(fields: [companyId], references: [id])
-  propertyId        String
-  property          Property   @relation(fields: [propertyId], references: [id])
-  name              String
-  nameAr            String?
-  nameBn            String?
-  nameUr            String?
-  phone             String
-  whatsapp          String?
-  email             String?
-  emiratesId        String?
-  nationality       String?
-  employer          String?
-  emergencyContact  String?
-  unitNumber        String?
-  unitType          String?    // studio, 1bedroom, 2bedroom, 3bedroom, shop, office
-  floor             Int?
-  sizeSqft          Float?
-  rentAmount        Float
-  municipalityFee   Float?
-  securityDeposit   Float?
-  paymentMethod     String?    // cash, bank_transfer, cheque
-  leaseStart        DateTime?
-  leaseEnd          DateTime?
-  contractDuration  Int?       // in months
-  renewalStatus     String?    // active, expiring_soon, expired, renewed
-  newRent           Float?
-  status            String     @default("active") // active, inactive, evicted, notice
-  latePaymentCount  Int        @default(0)
-  tenantScore       Int        @default(100)
-  notes             String?
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-  deletedAt         DateTime?  // soft delete
-  payments          Payment[]
+  id               String   @id @default(cuid())
+  companyId        String
+  company          Company  @relation(fields: [companyId], references: [id])
+  propertyId       String
+  property         Property @relation(fields: [propertyId], references: [id])
+  name             String
+  nameAr           String?
+  nameBn           String?
+  nameUr           String?
+  phone            String
+  whatsapp         String?
+  email            String?
+  emiratesId       String?
+  nationality      String?
+  employer         String?
+  emergencyContact String?
+  unitNumber       String?
+  unitType         String?    // studio, 1bedroom, 2bedroom, 3bedroom, shop, office
+  floor            Int?
+  sizeSqft         Float?
+  rentAmount       Float
+  municipalityFee  Float?
+  securityDeposit  Float?
+  paymentMethod    String?    // cash, bank_transfer, cheque
+  leaseStart       DateTime?
+  leaseEnd         DateTime?
+  contractDuration Int?       // in months
+  renewalStatus    String?    // active, expiring_soon, expired, renewed
+  newRent          Float?
+  status           String   @default("active") // active, inactive, evicted, notice
+  latePaymentCount Int      @default(0)
+  tenantScore      Int      @default(100)
+  notes            String?
+  deletedAt        DateTime? // soft delete
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  payments         Payment[]
+  receipts         Receipt[]
 
   @@index([companyId])
   @@index([propertyId])
   @@index([status])
+  @@map("tenants")
 }
 
 model Payment {
@@ -134,6 +156,7 @@ model Payment {
   @@index([tenantId])
   @@index([month, year])
   @@index([date])
+  @@map("payments")
 }
 
 model Expense {
@@ -155,6 +178,7 @@ model Expense {
   @@index([companyId])
   @@index([category])
   @@index([date])
+  @@map("expenses")
 }
 
 model Maintenance {
@@ -179,6 +203,7 @@ model Maintenance {
   @@index([companyId])
   @@index([status])
   @@index([propertyId])
+  @@map("maintenance")
 }
 
 model ResetRequest {
@@ -191,8 +216,11 @@ model ResetRequest {
   resolvedAt DateTime?
   resolvedBy String?
   resolver   User?    @relation("ResolvedBy", fields: [resolvedBy], references: [id])
+  updatedAt  DateTime @updatedAt
+  companyId  String?
 
   @@index([status])
+  @@map("reset_requests")
 }
 
 model AuditLog {
@@ -202,11 +230,96 @@ model AuditLog {
   entityId  String?
   userId    String?
   user      User?    @relation(fields: [userId], references: [id])
-  details   Json?    // JSON with before/after snapshots
+  details   String?  // JSON string with before/after snapshots
   companyId String?
   createdAt DateTime @default(now())
 
   @@index([entity, entityId])
   @@index([userId])
   @@index([createdAt])
+  @@index([companyId])
+  @@map("audit_logs")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model RateLimitEntry {
+  id         String    @id @default(cuid())
+  identifier String    @unique
+  count      Int       @default(0)
+  resetAt    DateTime?
+  lockedUntil DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([lockedUntil])
+  @@map("rate_limit_entries")
+}
+
+model BackupRecord {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  type        String
+  size        Int
+  recordCount Int
+  status      String
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@index([companyId])
+  @@index([createdAt])
+  @@map("backup_records")
+}
+
+model Receipt {
+  id            String   @id @default(cuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  paymentId     String?
+  receiptNumber String
+  amount        Float
+  date          DateTime
+  month         Int
+  year          Int
+  description   String?
+  createdBy     String
+  createdAt     DateTime @default(now())
+
+  @@index([companyId])
+  @@index([tenantId])
+  @@index([receiptNumber])
+  @@map("receipts")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  userId    String?
+  type      String
+  title     String
+  message   String
+  data      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
 }

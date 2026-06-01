@@ -10,7 +10,7 @@ import {
   isFinancialUser,
 } from '@/lib/api-utils'
 
-// GET /api/payments — list all payments with optional filters
+// GET /api/payments — list all payments with optional filters (scoped to user's company)
 // Query params: ?month=X&year=Y&tenantId=Z
 export async function GET(request: Request) {
   const user = await getAuthUser()
@@ -27,16 +27,13 @@ export async function GET(request: Request) {
     const year = searchParams.get('year')
     const tenantId = searchParams.get('tenantId')
 
-    const where: any = {}
+    const where: any = {
+      tenant: { companyId: user.companyId }, // ALWAYS scope to user's company
+    }
 
     if (month) where.month = Number(month)
     if (year) where.year = Number(year)
     if (tenantId) where.tenantId = tenantId
-
-    // If not admin, scope to the user's company tenants
-    if (user.role !== 'admin') {
-      where.tenant = { companyId: user.companyId }
-    }
 
     const payments = await prisma.payment.findMany({
       where,
@@ -65,7 +62,6 @@ export async function POST(request: Request) {
   const user = await getAuthUser()
   if (!user) return unauthorizedResponse()
 
-  // Staff can record payments
   try {
     const body = await request.json()
 
@@ -90,9 +86,12 @@ export async function POST(request: Request) {
     if (month === undefined || month === null) return errorResponse('month is required')
     if (year === undefined || year === null) return errorResponse('year is required')
 
+    // Validate amount is positive
+    if (Number(amount) <= 0) return errorResponse('amount must be greater than zero')
+
     // Verify the tenant belongs to the user's company
     const tenant = await prisma.tenant.findFirst({
-      where: { id: tenantId, companyId: user.companyId },
+      where: { id: tenantId, companyId: user.companyId, deletedAt: null },
     })
     if (!tenant) {
       return errorResponse('Tenant not found or does not belong to your company', 404)

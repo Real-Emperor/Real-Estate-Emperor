@@ -117,7 +117,7 @@ export async function GET(request: Request) {
       expectedRevenue > 0 ? Math.round((totalRevenue / expectedRevenue) * 100) : 0
 
     // --- 6-month trend ---
-    const trend = []
+    const trend: any[] = []
     for (let i = 5; i >= 0; i--) {
       let m = targetMonth - i
       let y = targetYear

@@ -6,10 +6,18 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Seeding database...')
 
-  // Create company
+  // Create or update company
   const company = await prisma.company.upsert({
     where: { id: 'company-1' },
-    update: {},
+    update: {
+      name: 'Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.',
+      nameAr: 'الريف الجنوبي للعقارات والصيانة العامة ذ.م.م',
+      nameBn: 'আল রিফ আল জুনুবি রিয়েল এস্টেট অ্যান্ড জেনারেল মেইনটেন্যান্স এলএলসি',
+      nameUr: 'الریف الجنوبی ریئل اسٹیٹ اینڈ جنرل مینٹیننس لمیٹڈ',
+      phone: '+971-2-555-0199',
+      email: 'info@alreefjanoubi.ae',
+      address: 'Khalifa City A, Abu Dhabi, UAE',
+    },
     create: {
       id: 'company-1',
       name: 'Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.',
@@ -24,10 +32,11 @@ async function main() {
 
   console.log('Company created:', company.name)
 
-  // Create default users with hashed passwords
-  const adminPassword = await bcrypt.hash('admin2024', 12)
-  const ownerPassword = await bcrypt.hash('owner123', 12)
-  const staffPassword = await bcrypt.hash('staff123', 12)
+  // Create default users with strong hashed passwords
+  // NOTE: Change these passwords immediately after first login!
+  const adminPassword = await bcrypt.hash('AlReef@Admin2024!', 12)
+  const ownerPassword = await bcrypt.hash('AlReef@Owner2024!', 12)
+  const staffPassword = await bcrypt.hash('AlReef@Staff2024!', 12)
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@alreef.ae' },
@@ -41,6 +50,7 @@ async function main() {
       nameUr: 'احمد محمود',
       role: 'admin',
       companyId: company.id,
+      mustChangePassword: true,
     },
   })
 
@@ -56,6 +66,7 @@ async function main() {
       nameUr: 'شفیول اعظم',
       role: 'owner',
       companyId: company.id,
+      mustChangePassword: true,
     },
   })
 
@@ -71,6 +82,7 @@ async function main() {
       nameUr: 'کریم حسین',
       role: 'staff',
       companyId: company.id,
+      mustChangePassword: true,
     },
   })
 

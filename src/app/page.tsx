@@ -37,6 +37,7 @@ function AppContent() {
         nameUr: sessionUser.nameUr,
         role: sessionUser.role,
         companyId: sessionUser.companyId,
+        mustChangePassword: sessionUser.mustChangePassword,
       })
     } else if (status === 'unauthenticated') {
       logout()

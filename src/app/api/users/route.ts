@@ -23,6 +23,7 @@ export async function GET() {
   const users = await prisma.user.findMany({
     where: {
       companyId: user.companyId,
+      deletedAt: null, // Exclude soft-deleted users
     },
     select: {
       id: true,
@@ -59,6 +60,17 @@ export async function POST(request: Request) {
     return errorResponse('Email, password, and name are required')
   }
 
+  // Password policy: minimum 8 chars, at least 1 uppercase, 1 number
+  if (password.length < 8) {
+    return errorResponse('Password must be at least 8 characters long')
+  }
+  if (!/[A-Z]/.test(password)) {
+    return errorResponse('Password must contain at least one uppercase letter')
+  }
+  if (!/[0-9]/.test(password)) {
+    return errorResponse('Password must contain at least one number')
+  }
+
   // Check if email is already taken
   const existingUser = await prisma.user.findUnique({
     where: { email },
@@ -80,6 +92,7 @@ export async function POST(request: Request) {
       nameUr: nameUr || null,
       role: role || 'staff',
       companyId: user.companyId,
+      mustChangePassword: true,
     },
     select: {
       id: true,

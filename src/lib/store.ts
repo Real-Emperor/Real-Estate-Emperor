@@ -13,6 +13,7 @@ export interface AuthUser {
   nameUr?: string
   role: 'owner' | 'admin' | 'staff'
   companyId: string
+  mustChangePassword?: boolean
 }
 
 interface AppState {

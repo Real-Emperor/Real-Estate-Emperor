@@ -72,9 +72,9 @@ export default function Maintenance() {
       propertyId: form.propertyId && form.propertyId !== 'none' ? form.propertyId : null,
     }
     if (editing) {
-      store.updateMaintenance(editing.id, body)
+      store.updateMaintenance(editing.id, body as any)
     } else {
-      store.addMaintenance(body)
+      store.addMaintenance(body as any)
     }
     setDialogOpen(false)
     fetchData()

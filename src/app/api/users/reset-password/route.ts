@@ -30,6 +30,17 @@ export async function POST(request: Request) {
     return errorResponse('Password must be at least 6 characters long')
   }
 
+  // Enforce password policy for admin resets
+  if (newPassword.length < 8) {
+    return errorResponse('Password must be at least 8 characters long')
+  }
+  if (!/[A-Z]/.test(newPassword)) {
+    return errorResponse('Password must contain at least one uppercase letter')
+  }
+  if (!/[0-9]/.test(newPassword)) {
+    return errorResponse('Password must contain at least one number')
+  }
+
   const targetUser = await prisma.user.findFirst({
     where: { id: userId, companyId: user.companyId },
   })
@@ -42,7 +53,11 @@ export async function POST(request: Request) {
 
   await prisma.user.update({
     where: { id: userId },
-    data: { password: hashedPassword },
+    data: {
+      password: hashedPassword,
+      mustChangePassword: true,
+      passwordChangedAt: new Date(),
+    },
   })
 
   await createAuditLog({

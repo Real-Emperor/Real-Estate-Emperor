@@ -465,7 +465,7 @@ export const useDataStore = create<DataState>()(
       const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0
 
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-      const chartData = []
+      const chartData: any[] = []
       for (let i = 5; i >= 0; i--) {
         let m = currentMonth - i, y = currentYear
         if (m <= 0) { m += 12; y -= 1 }
@@ -563,7 +563,7 @@ export const useDataStore = create<DataState>()(
         return s + (t.rentAmount - paid)
       }, 0)
 
-      const trend = []
+      const trend: any[] = []
       for (let i = 5; i >= 0; i--) {
         let m = month - i, y = year
         if (m <= 0) { m += 12; y -= 1 }

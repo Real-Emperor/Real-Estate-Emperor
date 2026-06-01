@@ -9,7 +9,7 @@ import {
   isSystemAdmin,
 } from '@/lib/api-utils'
 
-// GET /api/reset-requests — List all reset requests (admin only)
+// GET /api/reset-requests — List all reset requests for the user's company (admin/owner only)
 export async function GET() {
   try {
     const user = await getAuthUser()
@@ -21,6 +21,9 @@ export async function GET() {
     }
 
     const resetRequests = await prisma.resetRequest.findMany({
+      where: {
+        companyId: user.companyId, // Scope to user's company
+      },
       include: {
         resolver: {
           select: {
@@ -76,12 +79,18 @@ export async function POST(request: Request) {
       return errorResponse('You already have a pending reset request. Please wait for it to be processed.', 429)
     }
 
+    // Find the user to associate the company
+    const targetUser = await prisma.user.findUnique({
+      where: { email: body.email.trim().toLowerCase() },
+    })
+
     const resetRequest = await prisma.resetRequest.create({
       data: {
         email: body.email.trim().toLowerCase(),
         name: body.name.trim(),
         message: body.message.trim(),
         status: 'pending',
+        companyId: targetUser?.companyId || null,
       },
       include: {
         resolver: {

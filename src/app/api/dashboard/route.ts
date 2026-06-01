@@ -117,7 +117,7 @@ export async function GET() {
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ]
-    const chartData = []
+    const chartData: any[] = []
     for (let i = 5; i >= 0; i--) {
       let m = currentMonth - i
       let y = currentYear

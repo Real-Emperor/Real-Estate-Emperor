@@ -14,6 +14,7 @@ export async function getAuthUser() {
     nameAr: (session.user as any).nameAr,
     nameBn: (session.user as any).nameBn,
     nameUr: (session.user as any).nameUr,
+    mustChangePassword: (session.user as any).mustChangePassword,
   }
 }
 
@@ -44,7 +45,7 @@ export async function createAuditLog(params: {
         entityId: params.entityId,
         userId: params.userId,
         companyId: params.companyId,
-        details: params.details || undefined,
+        details: params.details ? JSON.stringify(params.details) : null,
       },
     })
   } catch (error) {
@@ -63,19 +64,29 @@ export function serialize<T extends Record<string, any>>(obj: T): T {
       (result as any)[key] = value.toISOString()
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       // Handle nested objects (like relations)
-      if ('id' in value && 'createdAt' in value) {
+      if ('id' in value && ('createdAt' in value || 'updatedAt' in value)) {
         // This looks like a Prisma model, serialize it
         ;(result as any)[key] = serialize(value)
       }
     } else if (Array.isArray(value)) {
-      ;(result as any)[key] = value.map((item: any) =>
+      (result as any)[key] = value.map((item: any) =>
         typeof item === 'object' && item !== null ? serialize(item) : item
       )
     } else {
-      ;(result as any)[key] = value
+      (result as any)[key] = value
     }
   }
   return result
+}
+
+// Parse JSON string fields from DB (details, data, etc.)
+export function parseJsonField(value: string | null | undefined): any {
+  if (!value) return null
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
 }
 
 // Standard error response helper

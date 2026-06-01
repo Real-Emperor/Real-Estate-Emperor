@@ -25,7 +25,7 @@ export async function PUT(
   const { id } = await params
 
   const existing = await prisma.user.findFirst({
-    where: { id, companyId: user.companyId },
+    where: { id, companyId: user.companyId, deletedAt: null },
   })
 
   if (!existing) {
@@ -106,7 +106,7 @@ export async function DELETE(
   }
 
   const existing = await prisma.user.findFirst({
-    where: { id, companyId: user.companyId },
+    where: { id, companyId: user.companyId, deletedAt: null },
   })
 
   if (!existing) {
@@ -117,10 +117,10 @@ export async function DELETE(
     return errorResponse('User is already deactivated')
   }
 
-  // Soft delete: set isActive to false instead of actually deleting
+  // Soft delete: set isActive to false and set deletedAt timestamp
   await prisma.user.update({
     where: { id },
-    data: { isActive: false },
+    data: { isActive: false, deletedAt: new Date() },
   })
 
   await createAuditLog({
