@@ -124,3 +124,36 @@ Stage Summary:
 - TASK 5 COMPLETE: Financial Data Range - 1,400-4,500 AED rent range enforced
 - Build PASSING, deployment LIVE at al-reef-al-junoobi.vercel.app
 - No "Jawad" or "Building A/B/C/D" references remain in codebase
+
+---
+Task ID: production-reseed
+Agent: Main Agent
+Task: Fix production database - clear old data and re-seed with correct values
+
+Work Log:
+- Discovered production DB had OLD data: "Al Jawad Tower", "Jawad Villas", "Jawad Commercial Center" with 5 tenants having rents of 45,000-120,000 AED
+- Root cause: Code changes were deployed but production DB was never re-seeded with updated data
+- Seed endpoint only works when no data exists (returns 409 if data present)
+- Wrote direct database seed script (scripts/seed-production.js)
+- Fixed parameter mismatch issues (Payment model has no companyId, tenant t-036 missing whatsapp param)
+- Cleared all old data from production PostgreSQL (Neon)
+- Re-seeded with correct data:
+  - 4 properties: Al Reef Al Junoobi Building 1 & 2, Reef Al Madeena Building 1 & 2
+  - 36 tenants with rent range 1,400-4,500 AED
+  - 277 payments across 8 months
+  - 27 expense items
+  - 12 maintenance tasks
+- Pushed unpushed commit (759f19a) to GitHub
+- Vercel auto-deploy triggered and completed successfully
+- Verified live site shows "Al Reef Al Junoobi" (no "Jawad" references)
+
+Stage Summary:
+- Production DB fully re-seeded with correct data
+- All 5 tasks now visible in production:
+  1. PDF Bill Generation - deployed in code, available via View Bill button
+  2. Demo Data Coverage - 36 tenants, 8 months history, varied scenarios
+  3. Property Naming - Al Reef Al Junoobi / Reef Al Madeena (no Jawad references)
+  4. Monthly Report Export - PDF with charts via Export PDF button in Reports
+  5. Financial Data Range - 1,400-4,500 AED (verified: 0 tenants out of range)
+- Site live at https://al-reef-al-junoobi.vercel.app
+- Login: admin@alreef.ae / AlReef@Admin2024!
