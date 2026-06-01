@@ -62,6 +62,16 @@ export default auth((req) => {
     return addSecurityHeaders(NextResponse.next())
   }
 
+  // Allow cron job endpoints (they have their own CRON_SECRET auth)
+  if (pathname.startsWith('/api/cron/')) {
+    return addSecurityHeaders(NextResponse.next())
+  }
+
+  // TEMP: Debug endpoint (remove after verification)
+  if (pathname === '/api/debug-env') {
+    return addSecurityHeaders(NextResponse.next())
+  }
+
   // Allow public assets
   if (
     pathname.startsWith('/_next') ||
