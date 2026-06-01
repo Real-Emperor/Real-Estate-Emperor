@@ -31,3 +31,37 @@ Stage Summary:
 - All bulk operations are atomic via batched transactions
 - Cron jobs isolated per-company with Promise.allSettled()
 - 15 files modified, 762 insertions, 248 deletions
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Phase 3 — P2 Production Hardening
+
+Work Log:
+- Assessed current state: Decimal migration already done in schema, serialization helpers existed, rate limiting already implemented in auth.ts
+- Identified remaining Phase 3 items: security headers, XSS sanitization, env validation, health check, receipt cascade, safeDecimal usage, Prisma migration
+- Added security headers to proxy.ts (CSP, X-Frame-Options, HSTS, X-Content-Type-Options, Referrer-Policy, Permissions-Policy)
+- Added health check endpoint to middleware whitelist (GET /api/health)
+- Created input sanitization helpers: sanitizeString(), sanitizeRichString(), sanitizeEmail()
+- Created environment variable validation module (src/lib/env.ts) with startup checks
+- Created health check endpoint (src/app/api/health/route.ts) with DB connectivity and env validation
+- Fixed receipt cascade on tenant delete and property delete (no orphaned records)
+- Fixed receipt cascade in import route replace mode
+- Migrated all monetary Prisma writes from safeNumber() to safeDecimal() for 2-decimal precision
+- Updated safeDecimal() to return number type (TypeScript compatibility with Prisma generated types)
+- Created Prisma migration for Phase 2+3 schema changes (Float→Decimal, new tables, new columns)
+- Fixed Edge Runtime compatibility in db.ts (process.on guard)
+- Fixed Prisma client log config type issue
+- Verified clean Next.js production build
+- Committed and pushed to GitHub (commit 515a349)
+
+Stage Summary:
+- All Phase 3 production hardening items implemented
+- Security headers protect against clickjacking, XSS, MIME sniffing
+- Input sanitization available for XSS prevention
+- Environment validation prevents startup with missing config
+- Health check endpoint for monitoring (K8s, Datadog, uptime)
+- Receipt cascade ensures no orphaned financial records
+- safeDecimal() ensures 2-decimal precision for all monetary writes
+- Migration SQL covers Float→Decimal + new tables + new columns
+- 15 files modified, 529 insertions, 65 deletions
