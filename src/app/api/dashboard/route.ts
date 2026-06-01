@@ -78,7 +78,7 @@ export async function GET() {
       // Current month collected revenue via aggregate
       prisma.payment.aggregate({
         where: {
-          tenant: { companyId },
+          companyId,
           month: currentMonth,
           year: currentYear,
         },
@@ -117,7 +117,7 @@ export async function GET() {
     // Find tenants who have paid this month (just tenantId)
     const paidTenantIds = await prisma.payment.findMany({
       where: {
-        tenant: { companyId },
+        companyId,
         month: currentMonth,
         year: currentYear,
       },
@@ -149,10 +149,6 @@ export async function GET() {
         status: true,
         latePaymentCount: true,
         tenantScore: true,
-        payments: {
-          where: { month: currentMonth, year: currentYear },
-          select: { id: true, amount: true },
-        },
         property: {
           select: { id: true, name: true },
         },
@@ -192,7 +188,7 @@ export async function GET() {
     const paymentByMonth = await prisma.payment.groupBy({
       by: ['month', 'year'],
       where: {
-        tenant: { companyId },
+        companyId,
         month: { in: chartMonths.map((c) => c.month) },
         year: { in: chartMonths.map((c) => c.year) },
       },
@@ -214,7 +210,7 @@ export async function GET() {
 
     // ─── 6. Recent payments — top 10 only (bounded) ───
     const recentPayments = await prisma.payment.findMany({
-      where: { tenant: { companyId } },
+      where: { companyId },
       include: {
         tenant: {
           select: {

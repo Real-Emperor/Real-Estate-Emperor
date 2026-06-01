@@ -181,3 +181,21 @@ ALTER TABLE "Notification" ADD CONSTRAINT "Notification_companyId_fkey" FOREIGN 
 
 -- The init migration already has this FK, but now we need the relation name
 -- No change needed if FK already exists
+
+-- ═══════════════════════════════════════════════════════
+-- 12. Add companyId to Payment table for direct company queries
+-- ═══════════════════════════════════════════════════════
+
+-- Add companyId column (nullable first to allow existing rows)
+ALTER TABLE "payments" ADD COLUMN "companyId" TEXT;
+
+-- Backfill companyId from tenant relation
+UPDATE "payments" SET "companyId" = "tenants"."companyId"
+FROM "tenants" WHERE "payments"."tenantId" = "tenants"."id";
+
+-- Make companyId NOT NULL now that it's backfilled
+ALTER TABLE "payments" ALTER COLUMN "companyId" SET NOT NULL;
+
+-- Add foreign key and index
+ALTER TABLE "payments" ADD CONSTRAINT "payments_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+CREATE INDEX "payments_companyId_idx" ON "payments"("companyId");

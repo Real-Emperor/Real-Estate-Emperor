@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       prisma.payment.aggregate({
         where: {
           date: { gte: startOfDay, lte: endOfDay },
-          tenant: { companyId },
+          companyId,
         },
         _sum: { amount: true },
       }),
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       prisma.payment.findMany({
         where: {
           date: { gte: startOfDay, lte: endOfDay },
-          tenant: { companyId },
+          companyId,
         },
         include: {
           tenant: {

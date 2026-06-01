@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     const [totalRevenueResult, expectedRevenueResult] = await Promise.all([
       prisma.payment.aggregate({
         where: {
-          tenant: { companyId },
+          companyId,
           month: targetMonth,
           year: targetYear,
         },
@@ -130,7 +130,7 @@ export async function GET(request: Request) {
       prisma.payment.groupBy({
         by: ['month', 'year'],
         where: {
-          tenant: { companyId },
+          companyId,
           month: { in: chartMonths.map((c) => c.month) },
           year: { in: chartMonths.map((c) => c.year) },
         },
@@ -155,6 +155,7 @@ export async function GET(request: Request) {
           },
         },
         select: { date: true, amount: true },
+        take: 5000,  // Bound for scale safety
       }),
     ])
 
@@ -186,7 +187,7 @@ export async function GET(request: Request) {
         date: { gte: startOfMonth, lte: endOfMonth },
       },
       orderBy: { date: 'desc' },
-      take: 100,
+      take: 500,
     })
 
     const data = {

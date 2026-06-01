@@ -238,6 +238,7 @@ export async function POST() {
           if (partialInfo) {
             await prisma.payment.create({
               data: {
+                companyId,
                 tenantId: tenant.id,
                 amount: partialInfo.amount,
                 date: new Date(payYear, payMonth - 1, 3),
@@ -260,6 +261,7 @@ export async function POST() {
             const nextYear = payMonth === 12 ? payYear + 1 : payYear
             await prisma.payment.create({
               data: {
+                companyId,
                 tenantId: tenant.id,
                 amount: tenant.rentAmount,
                 date: new Date(payYear, payMonth - 1, 1),
@@ -273,6 +275,7 @@ export async function POST() {
             })
             await prisma.payment.create({
               data: {
+                companyId,
                 tenantId: tenant.id,
                 amount: tenant.rentAmount,
                 date: new Date(payYear, payMonth - 1, 1),
@@ -308,6 +311,7 @@ export async function POST() {
           const halfRent = Math.round(tenant.rentAmount / 2)
           await prisma.payment.create({
             data: {
+              companyId,
               tenantId: tenant.id,
               amount: halfRent,
               date: new Date(payYear, payMonth - 1, isLate ? 12 : 2),
@@ -321,6 +325,7 @@ export async function POST() {
           })
           await prisma.payment.create({
             data: {
+              companyId,
               tenantId: tenant.id,
               amount: tenant.rentAmount - halfRent,
               date: new Date(payYear, payMonth - 1, isLate ? 18 : 5),
@@ -338,6 +343,7 @@ export async function POST() {
 
         await prisma.payment.create({
           data: {
+            companyId,
             tenantId: tenant.id,
             amount: tenant.rentAmount,
             date: new Date(payYear, payMonth - 1, isLate ? Math.floor(Math.random() * 15) + 10 : Math.floor(Math.random() * 5) + 1),

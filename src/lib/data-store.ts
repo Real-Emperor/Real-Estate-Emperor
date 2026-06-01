@@ -101,6 +101,10 @@ interface DataState {
   getPropertiesWithTenants: (includeArchived?: boolean) => PropertyData[]
   getDashboardData: () => any
   getReportData: (month: number, year: number) => any
+
+  // Server-side data fetching (preferred at scale)
+  fetchDashboardData: () => Promise<any>
+  fetchReportData: (month: number, year: number) => Promise<any>
 }
 
 const DEFAULT_COMPANY: CompanyInfo = {
@@ -182,12 +186,12 @@ export const useDataStore = create<DataState>()(
         // Fetch all data in parallel
         const [companyData, propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, usersData, resetData] = await Promise.all([
           apiCall('/api/company').catch(() => null),
-          apiCall('/api/properties?includeArchived=true&limit=200').catch(() => ({ data: [] })),
-          apiCall('/api/tenants?limit=200').catch(() => ({ data: [] })),
-          apiCall('/api/payments?limit=200').catch(() => ({ data: [] })),
-          apiCall('/api/expenses?limit=200').catch(() => ({ data: [] })),
-          apiCall('/api/maintenance?limit=200').catch(() => ({ data: [] })),
-          apiCall('/api/users?limit=200').catch(() => ({ data: [] })),
+          apiCall('/api/properties?includeArchived=true&limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/tenants?limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/payments?limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/expenses?limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/maintenance?limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/users?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/reset-requests').catch(() => []),
         ])
 
@@ -628,6 +632,27 @@ export const useDataStore = create<DataState>()(
         expenseBreakdown, monthlyExpenses, trend,
         rentalIncome, otherIncome, grossRevenue, vacancyLoss, badDebt,
         grossProfit, costOfOperations, netIncome,
+      }
+    },
+
+    // Server-side data fetching (preferred at scale — uses aggregated server endpoints)
+    fetchDashboardData: async () => {
+      try {
+        const data = await apiCall('/api/dashboard')
+        return data
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error)
+        return null
+      }
+    },
+
+    fetchReportData: async (month: number, year: number) => {
+      try {
+        const data = await apiCall(`/api/reports?month=${month}&year=${year}`)
+        return data
+      } catch (error) {
+        console.error('Failed to fetch report data:', error)
+        return null
       }
     },
   })

@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
             prisma.payment.aggregate({
               where: {
                 date: { gte: startOfDay, lte: endOfDay },
-                tenant: { companyId: company.id },
+                companyId: company.id,
               },
               _sum: { amount: true },
             }),

@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const pagination = parsePaginationParams(searchParams)
 
     const where: any = {
-      tenant: { companyId: user.companyId }, // ALWAYS scope to user's company
+      companyId: user.companyId, // Direct company reference — no JOIN needed
     }
 
     if (month) where.month = safeNumber(month, 0) || undefined
@@ -118,6 +118,7 @@ export async function POST(request: Request) {
     const payment = await prisma.$transaction(async (tx) => {
       const created = await tx.payment.create({
         data: {
+          companyId: user.companyId,
           tenantId,
           amount: parsedAmount,
           date: new Date(date),

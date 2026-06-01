@@ -178,7 +178,7 @@ export function sanitizeEmail(value: unknown): string | null {
 // ─── Pagination ────────────────────────────────────────────────
 
 export const DEFAULT_PAGE_SIZE = 50
-export const MAX_PAGE_SIZE = 200
+export const MAX_PAGE_SIZE = 1000
 
 export interface PaginationParams {
   page: number   // 1-based
