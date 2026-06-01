@@ -110,16 +110,16 @@ model Tenant {
   unitNumber       String?
   unitType         String?    // studio, 1bedroom, 2bedroom, 3bedroom, shop, office
   floor            Int?
-  sizeSqft         Decimal?  @db.DecimalPrecision(10,2)
-  rentAmount       Decimal   @db.DecimalPrecision(10,2)
-  municipalityFee  Decimal?  @db.DecimalPrecision(10,2)
-  securityDeposit  Decimal?  @db.DecimalPrecision(10,2)
+  sizeSqft         Decimal?  @db.Decimal(10,2)
+  rentAmount       Decimal   @db.Decimal(10,2)
+  municipalityFee  Decimal?  @db.Decimal(10,2)
+  securityDeposit  Decimal?  @db.Decimal(10,2)
   paymentMethod    String?    // cash, bank_transfer, cheque
   leaseStart       DateTime?
   leaseEnd         DateTime?
   contractDuration Int?       // in months
   renewalStatus    String?    // active, expiring_soon, expired, renewed
-  newRent          Decimal?  @db.DecimalPrecision(10,2)
+  newRent          Decimal?  @db.Decimal(10,2)
   status           String   @default("active") // active, inactive, evicted, notice
   latePaymentCount Int      @default(0)
   tenantScore      Int      @default(100)
@@ -140,7 +140,7 @@ model Payment {
   id            String   @id @default(cuid())
   tenantId      String
   tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  amount        Decimal   @db.DecimalPrecision(10,2)
+  amount        Decimal   @db.Decimal(10,2)
   date          DateTime
   month         Int
   year          Int
@@ -165,7 +165,7 @@ model Expense {
   company       Company  @relation(fields: [companyId], references: [id])
   category      String
   description   String
-  amount        Decimal   @db.DecimalPrecision(10,2)
+  amount        Decimal   @db.Decimal(10,2)
   date          DateTime
   vendor        String?
   invoiceNumber String?
@@ -193,8 +193,8 @@ model Maintenance {
   vendor        String?
   priority      String    @default("medium") // urgent, high, medium, low
   status        String    @default("pending") // pending, in-progress, completed
-  estimatedCost Decimal?  @db.DecimalPrecision(10,2)
-  actualCost    Decimal?  @db.DecimalPrecision(10,2)
+  estimatedCost Decimal?  @db.Decimal(10,2)
+  actualCost    Decimal?  @db.Decimal(10,2)
   completedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -291,7 +291,7 @@ model Receipt {
   tenant        Tenant   @relation(fields: [tenantId], references: [id])
   paymentId     String?
   receiptNumber String
-  amount        Decimal   @db.DecimalPrecision(10,2)
+  amount        Decimal   @db.Decimal(10,2)
   date          DateTime
   month         Int
   year          Int

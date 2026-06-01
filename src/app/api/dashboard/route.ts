@@ -127,7 +127,7 @@ export async function GET() {
     // Build a map of tenantId -> total paid this month
     const paidMap = new Map<string, number>()
     for (const p of paidTenantIds) {
-      paidMap.set(p.tenantId, (paidMap.get(p.tenantId) || 0) + p.amount)
+      paidMap.set(p.tenantId, (paidMap.get(p.tenantId) || 0) + Number(p.amount))
     }
 
     // Active tenants (lightweight — only fields needed for overdue calc)
@@ -162,14 +162,14 @@ export async function GET() {
     const overdueTenants = activeTenants.filter((t) => !paidMap.has(t.id))
     const partialTenants = activeTenants.filter((t) => {
       const totalPaid = paidMap.get(t.id) || 0
-      return totalPaid > 0 && totalPaid < t.rentAmount
+      return totalPaid > 0 && totalPaid < Number(t.rentAmount)
     })
 
     const overdueAmount =
-      overdueTenants.reduce((sum, t) => sum + t.rentAmount, 0) +
+      overdueTenants.reduce((sum, t) => sum + Number(t.rentAmount), 0) +
       partialTenants.reduce((sum, t) => {
         const paid = paidMap.get(t.id) || 0
-        return sum + (t.rentAmount - paid)
+        return sum + (Number(t.rentAmount) - paid)
       }, 0)
 
     // ─── 5. Chart data — last 6 months via groupBy (NO full-table scan) ───
