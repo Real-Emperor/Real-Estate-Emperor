@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import type { ReportData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
@@ -25,6 +25,7 @@ import {
   Minus,
   Plus,
   FileSpreadsheet,
+  FileText,
 } from 'lucide-react'
 import {
   BarChart,
@@ -42,6 +43,8 @@ import {
   AreaChart,
 } from 'recharts'
 import * as XLSX from 'xlsx'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 import { toast } from 'sonner'
 
 const PIE_COLORS = ['#0D7C3D', '#C5A028', '#0A5C4E', '#C4653A', '#8b5cf6', '#ef4444', '#06b6d4']
@@ -108,8 +111,14 @@ export default function Reports() {
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [exportingPDF, setExportingPDF] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+
+  // Refs for chart sections to capture for PDF
+  const barChartRef = useRef<HTMLDivElement>(null)
+  const pieChartRef = useRef<HTMLDivElement>(null)
+  const areaChartRef = useRef<HTMLDivElement>(null)
 
   // Access control: Owner/Admin only
   const canAccess = authUser && isOwnerOrAdmin(authUser.role)
@@ -140,6 +149,179 @@ export default function Reports() {
   const handlePrint = () => {
     window.print()
   }
+
+  const handleExportPDF = useCallback(async () => {
+    if (!data) return
+    try {
+      setExportingPDF(true)
+      const store = useDataStore.getState()
+      const { company } = store
+      const monthName = getMonthName(selectedMonth, 'en')
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 15
+      const contentWidth = pageWidth - margin * 2
+
+      // ── Page 1: Title Page ──
+      pdf.setFillColor(13, 124, 61) // #0D7C3D
+      pdf.rect(0, 0, pageWidth, 50, 'F')
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(24)
+      pdf.text('Al Reef Al Junoobi', pageWidth / 2, 20, { align: 'center' })
+      pdf.setFontSize(12)
+      pdf.text('Real Estate & General Maintenance L.L.C.', pageWidth / 2, 30, { align: 'center' })
+      pdf.setFontSize(16)
+      pdf.text(`${t('financialSummary', lang)} - ${monthName} ${selectedYear}`, pageWidth / 2, 42, { align: 'center' })
+
+      pdf.setTextColor(0, 0, 0)
+      pdf.setFontSize(10)
+      pdf.text(`${t('generatedOn', lang)}: ${new Date().toLocaleDateString('en-AE', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, 65)
+      pdf.text(`Report Period: ${monthName} ${selectedYear}`, margin, 72)
+
+      // Key metrics box
+      let y = 85
+      pdf.setFillColor(245, 245, 245)
+      pdf.roundedRect(margin, y, contentWidth, 65, 3, 3, 'F')
+      pdf.setFontSize(12)
+      pdf.setTextColor(13, 124, 61)
+      pdf.text(t('financialSummary', lang), margin + 5, y + 10)
+      pdf.setFontSize(10)
+      pdf.setTextColor(0, 0, 0)
+
+      const metrics = [
+        [t('revenue', lang), formatAED(data.totalRevenue)],
+        [t('expenses', lang), formatAED(data.totalExpenses)],
+        [t('profitOrLoss', lang), formatAED(data.profitLoss)],
+        [t('collectionRate', lang), `${data.collectionRate}%`],
+        [t('occupancyRate', lang), `${data.occupancyRate}%`],
+        [t('grossRevenue', lang), formatAED(data.grossRevenue)],
+        [t('netIncome', lang), formatAED(data.netIncome)],
+      ]
+      metrics.forEach(([label, value], idx) => {
+        const rowY = y + 18 + idx * 7
+        pdf.text(label, margin + 8, rowY)
+        pdf.text(value, margin + contentWidth - 8, rowY, { align: 'right' })
+      })
+
+      // ── Page 2: Charts ──
+      // Capture bar chart
+      if (barChartRef.current) {
+        try {
+          const canvas = await html2canvas(barChartRef.current, { scale: 2, backgroundColor: '#ffffff', logging: false })
+          const imgData = canvas.toDataURL('image/png')
+          pdf.addPage()
+          pdf.setFillColor(13, 124, 61)
+          pdf.rect(0, 0, pageWidth, 15, 'F')
+          pdf.setTextColor(255, 255, 255)
+          pdf.setFontSize(12)
+          pdf.text(`${t('sixMonthTrend', lang)} - ${monthName} ${selectedYear}`, pageWidth / 2, 10, { align: 'center' })
+          pdf.setTextColor(0, 0, 0)
+          const imgW = contentWidth
+          const imgH = (canvas.height / canvas.width) * imgW
+          pdf.addImage(imgData, 'PNG', margin, 20, imgW, Math.min(imgH, 120))
+        } catch { /* skip chart if capture fails */ }
+      }
+
+      // Capture pie chart
+      if (pieChartRef.current) {
+        try {
+          const canvas = await html2canvas(pieChartRef.current, { scale: 2, backgroundColor: '#ffffff', logging: false })
+          const imgData = canvas.toDataURL('image/png')
+          const imgW = contentWidth * 0.8
+          const imgH = (canvas.height / canvas.width) * imgW
+          const currentY = pdf.internal.pageSize.getHeight() - 20 > (pdf as any).lastY ? 140 : 20
+          pdf.addImage(imgData, 'PNG', margin + contentWidth * 0.1, currentY, imgW, Math.min(imgH, 100))
+        } catch { /* skip chart if capture fails */ }
+      }
+
+      // ── Page 3: Revenue Analysis Chart ──
+      if (areaChartRef.current) {
+        try {
+          const canvas = await html2canvas(areaChartRef.current, { scale: 2, backgroundColor: '#ffffff', logging: false })
+          const imgData = canvas.toDataURL('image/png')
+          pdf.addPage()
+          pdf.setFillColor(13, 124, 61)
+          pdf.rect(0, 0, pageWidth, 15, 'F')
+          pdf.setTextColor(255, 255, 255)
+          pdf.setFontSize(12)
+          pdf.text(`${t('revenueAnalysis', lang)} - ${monthName} ${selectedYear}`, pageWidth / 2, 10, { align: 'center' })
+          pdf.setTextColor(0, 0, 0)
+          const imgW = contentWidth
+          const imgH = (canvas.height / canvas.width) * imgW
+          pdf.addImage(imgData, 'PNG', margin, 20, imgW, Math.min(imgH, 140))
+        } catch { /* skip chart if capture fails */ }
+      }
+
+      // ── P&L Statement ──
+      let plY = 170
+      pdf.setFontSize(12)
+      pdf.setTextColor(13, 124, 61)
+      pdf.text(t('profitAndLoss', lang), margin, plY)
+      plY += 8
+      pdf.setFontSize(9)
+      pdf.setTextColor(0, 0, 0)
+
+      const plItems = [
+        [t('rentalIncome', lang), formatAED(data.rentalIncome), ''],
+        [t('otherIncome', lang), formatAED(data.otherIncome), ''],
+        [t('grossRevenue', lang), formatAED(data.grossRevenue), 'bold'],
+        [t('vacancyLoss', lang), `-${formatAED(data.vacancyLoss)}`, 'red'],
+        [t('badDebt', lang), `-${formatAED(data.badDebt)}`, 'red'],
+        [t('grossProfit', lang), formatAED(data.grossProfit), data.grossProfit >= 0 ? 'green' : 'red'],
+        [t('operatingExpenses', lang), `-${formatAED(data.costOfOperations)}`, 'red'],
+        [t('netIncome', lang), formatAED(data.netIncome), data.netIncome >= 0 ? 'green' : 'red'],
+      ]
+      plItems.forEach(([label, value, style]) => {
+        if (plY > pageHeight - 20) { pdf.addPage(); plY = 20 }
+        if (style === 'bold') pdf.setFont('helvetica', 'bold')
+        else pdf.setFont('helvetica', 'normal')
+        pdf.text(label, margin, plY)
+        pdf.text(value, margin + contentWidth, plY, { align: 'right' })
+        plY += 6
+      })
+
+      // Expense breakdown table
+      if (plY > pageHeight - 60) { pdf.addPage(); plY = 20 }
+      plY += 5
+      pdf.setFontSize(11)
+      pdf.setTextColor(13, 124, 61)
+      pdf.text(t('expenseBreakdown', lang), margin, plY)
+      plY += 7
+      pdf.setFontSize(9)
+      pdf.setTextColor(0, 0, 0)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text(t('expenseCategory', lang), margin, plY)
+      pdf.text(t('amount', lang), margin + contentWidth, plY, { align: 'right' })
+      plY += 2
+      pdf.line(margin, plY, margin + contentWidth, plY)
+      plY += 4
+      pdf.setFont('helvetica', 'normal')
+      Object.entries(data.expenseBreakdown).forEach(([key, value]) => {
+        if (plY > pageHeight - 20) { pdf.addPage(); plY = 20 }
+        pdf.text(getExpenseCategoryLabelExport(key), margin, plY)
+        pdf.text(formatAED(value), margin + contentWidth, plY, { align: 'right' })
+        plY += 5
+      })
+
+      // Footer on all pages
+      const totalPages = pdf.getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i)
+        pdf.setFontSize(7)
+        pdf.setTextColor(150, 150, 150)
+        pdf.text(`Al Reef Al Junoobi Real Estate | ${monthName} ${selectedYear} Report | Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' })
+      }
+
+      pdf.save(`Al_Reef_Report_${monthName}_${selectedYear}.pdf`)
+      toast.success(t('exportSuccess', lang))
+    } catch (error) {
+      console.error('PDF Export failed:', error)
+      toast.error(t('exportFailed', lang))
+    } finally {
+      setExportingPDF(false)
+    }
+  }, [selectedMonth, selectedYear, lang, data])
 
   const handleExportXLSX = useCallback(() => {
     try {
@@ -408,6 +590,18 @@ export default function Reports() {
             )}
             {exporting ? t('loading', lang) : t('exportData', lang)}
           </Button>
+          <Button
+            onClick={handleExportPDF}
+            disabled={exportingPDF}
+            className="bg-emerald hover:bg-emerald/90 text-white"
+          >
+            {exportingPDF ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <FileText className="w-4 h-4 mr-2" />
+            )}
+            {exportingPDF ? t('loading', lang) : t('exportPDF', lang)}
+          </Button>
           <Button onClick={handlePrint} variant="outline" className="border-emerald text-emerald">
             <Download className="w-4 h-4 mr-2" />
             {t('printReport', lang)}
@@ -482,7 +676,7 @@ export default function Reports() {
       {/* Charts */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Revenue vs Expenses Trend */}
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2" ref={barChartRef}>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">{t('sixMonthTrend', lang)}</CardTitle>
           </CardHeader>
@@ -507,7 +701,7 @@ export default function Reports() {
         </Card>
 
         {/* Expense Breakdown Pie */}
-        <Card>
+        <Card ref={pieChartRef}>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">{t('expenseBreakdown', lang)}</CardTitle>
           </CardHeader>
@@ -544,7 +738,7 @@ export default function Reports() {
       </div>
 
       {/* Revenue Analysis Section */}
-      <Card>
+      <Card ref={areaChartRef}>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-emerald" />

@@ -338,6 +338,24 @@ export const translations = {
   exportData: { en: 'Export Data', ar: 'تصدير البيانات', bn: 'ডেটা রপ্তানি', ur: 'ڈیٹا برآمد کریں' },
   exportSuccess: { en: 'Data exported successfully!', ar: 'تم تصدير البيانات بنجاح!', bn: 'ডেটা সফলভাবে রপ্তানি হয়েছে!', ur: 'ڈیٹا کامیابی سے برآمد ہو گیا!' },
   exportFailed: { en: 'Export failed. Please try again.', ar: 'فشل التصدير. يرجى المحاولة مرة أخرى.', bn: 'রপ্তানি ব্যর্থ। আবার চেষ্টা করুন।', ur: 'برآمد ناکام ہوا۔ دوبارہ کوشش کریں۔' },
+
+  // Bill / Invoice (Task 1)
+  viewBill: { en: 'View Bill', ar: 'عرض الفاتورة', bn: 'বিল দেখুন', ur: 'بل دیکھیں' },
+  downloadBill: { en: 'Download PDF', ar: 'تحميل PDF', bn: 'PDF ডাউনলোড', ur: 'PDF ڈاؤنلوڈ' },
+  invoice: { en: 'Invoice', ar: 'فاتورة', bn: 'চালান', ur: 'انوائس' },
+  billTo: { en: 'Bill To', ar: 'فاتورة إلى', bn: 'বিল প্রাপক', ur: 'بل بنام' },
+  subtotal: { en: 'Subtotal', ar: 'المجموع الفرعي', bn: 'উপমোট', ur: 'ذیلی مجموع' },
+  totalDue: { en: 'Total Due', ar: 'الإجمالي المستحق', bn: 'মোট বকেয়া', ur: 'کل واجب الادا' },
+  paymentStatus: { en: 'Payment Status', ar: 'حالة الدفع', bn: 'পেমেন্ট স্ট্যাটাস', ur: 'ادائیگی کی حالت' },
+  dueDate: { en: 'Due Date', ar: 'تاريخ الاستحقاق', bn: 'দেয়ার তারিখ', ur: 'ادائیگی کی تاریخ' },
+  invoiceDate: { en: 'Invoice Date', ar: 'تاريخ الفاتورة', bn: 'চালানের তারিখ', ur: 'انوائس کی تاریخ' },
+  taxId: { en: 'Tax Registration No.', ar: 'الرقم الضريبي', bn: 'কর নিবন্ধন নম্বর', ur: 'ٹیکس رجسٹریشن نمبر' },
+  commercialLicense: { en: 'Commercial License', ar: 'الرخصة التجارية', bn: 'বাণিজ্যিক লাইসেন্স', ur: 'کمرشل لائسنس' },
+
+  // PDF Report Export (Task 4)
+  exportPDF: { en: 'Export PDF', ar: 'تصدير PDF', bn: 'PDF রপ্তানি', ur: 'PDF ایکسپورٹ' },
+  financialSummary: { en: 'Financial Summary', ar: 'ملخص مالي', bn: 'আর্থিক সারাংশ', ur: 'مالی خلاصہ' },
+  generatedOn: { en: 'Generated on', ar: 'تم الإنشاء في', bn: 'তৈরির তারিখ', ur: 'بنایا گیا' },
 } as const
 
 export type TranslationKey = keyof typeof translations

@@ -13,7 +13,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Banknote, MessageCircle, Check, AlertTriangle, Clock, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Banknote, MessageCircle, Check, AlertTriangle, Clock, Loader2, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
+import BillInvoice from '@/components/bill-invoice'
 
 export default function RentCollection() {
   const { language, authUser } = useAppStore()
@@ -25,6 +26,10 @@ export default function RentCollection() {
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [payingTenant, setPayingTenant] = useState<TenantData | null>(null)
   const [payForm, setPayForm] = useState({ amount: 0, method: 'cash', reference: '', notes: '', paymentDate: new Date().toISOString().split('T')[0] })
+
+  // Bill invoice dialog
+  const [billDialogOpen, setBillDialogOpen] = useState(false)
+  const [billTenant, setBillTenant] = useState<TenantData | null>(null)
 
   // WhatsApp language selection dialog
   const [whatsappLangDialogOpen, setWhatsappLangDialogOpen] = useState(false)
@@ -333,6 +338,13 @@ export default function RentCollection() {
                       <MessageCircle className="w-3 h-3" />
                     </button>
                   )}
+                  <button
+                    onClick={() => { setBillTenant(tenant); setBillDialogOpen(true) }}
+                    className="flex items-center justify-center gap-1 px-3 py-1 rounded-md text-xs border border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                    title={t('viewBill', language)}
+                  >
+                    <FileText className="w-3 h-3" />
+                  </button>
                 </div>
               </CardContent>
             </Card>
@@ -390,6 +402,26 @@ export default function RentCollection() {
               {t('confirmPayment', language)}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bill Invoice Dialog */}
+      <Dialog open={billDialogOpen} onOpenChange={setBillDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('viewBill', language)}</DialogTitle>
+          </DialogHeader>
+          {billTenant && (
+            <BillInvoice
+              tenant={billTenant}
+              property={billTenant.property || undefined}
+              month={selectedMonth}
+              year={selectedYear}
+              paymentStatus={getTenantPaymentStatus(billTenant)}
+              paidAmount={(billTenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear).reduce((sum, p) => sum + p.amount, 0)}
+              language={language}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
