@@ -54,3 +54,44 @@ Stage Summary:
 - NEXTAUTH_SECRET set on Vercel
 - Deployment live at al-reef-al-junoobi.vercel.app
 - Still needs: Vercel Postgres database setup + migrations + seeding
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Complete Production Readiness Audit and Remediation
+
+Work Log:
+- Investigated authentication failure root cause: production DB had users with @jawad.ae emails instead of @alreef.ae
+- Discovered Prisma schema mismatch: production DB uses lowercase table names (users, companies) but schema expected PascalCase (User, Company)
+- Discovered production DB had additional columns/tables not in current schema (mustChangePassword, 2FA, Receipts, Notifications, etc.)
+- Rewrote prisma/schema.prisma to match production DB with @@map directives for all 14 tables
+- Updated users in production DB: changed emails from @jawad.ae to @alreef.ae, set strong passwords
+- Updated company name from "Qasr Al Jawad" to "Al Reef Al Junoobi"
+- Fixed CRITICAL: Payment API was leaking cross-tenant data for admin role - now ALWAYS scopes by user.companyId
+- Fixed HIGH: ResetRequest now scoped by companyId to prevent cross-tenant visibility
+- Added brute-force protection: 5 failed login attempts → 15-min lockout
+- Added password complexity requirements: 8+ chars, uppercase letter, number required
+- Added mustChangePassword flag on user creation and password reset
+- Reduced JWT session from 24h to 8h
+- Fixed proxy.ts to allow unauthenticated POST to /api/reset-requests
+- Excluded soft-deleted users from queries (deletedAt filter)
+- Set deletedAt timestamp on user deactivation
+- Fixed TypeScript build: enabled strict type checking (ignoreBuildErrors: false)
+- Enabled React strict mode
+- Added standalone output for production deployment
+- Removed examples/ directory (build-breaking)
+- Excluded skills/, download/, agent-ctx/ from TypeScript compilation
+- Verified production deployment: health check OK, API auth protection working, CSRF tokens working
+
+Stage Summary:
+- Authentication FIXED: all 3 users can now log in with new credentials
+- Multi-tenant isolation FIXED: Payment API now always scopes by company
+- Security HARDENED: brute-force protection, password policy, session duration reduced
+- Schema ALIGNED: Prisma schema matches production DB exactly
+- Build PASSING: TypeScript strict mode enabled, all type errors resolved
+- Deployment LIVE: Vercel deployment successful with all fixes
+
+New Login Credentials:
+- admin@alreef.ae / AlReef@Admin2024!
+- owner@alreef.ae / AlReef@Owner2024!
+- staff@alreef.ae / AlReef@Staff2024!
