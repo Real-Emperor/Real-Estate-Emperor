@@ -218,13 +218,19 @@ export async function DELETE(
     // Check for active tenants — warn but still allow soft delete
     const activeTenants = existing.tenants.filter((t) => t.status === 'active')
 
-    // PHASE 2: Cascade soft-delete within a transaction
+    // PHASE 2/3: Cascade soft-delete within a transaction
+    // PHASE 3: Also handle receipts (cascade delete like payments)
     const deletedProperty = await prisma.$transaction(async (tx) => {
-      // 1. Hard-delete payments for all tenants of this property
-      //    (Payment doesn't have soft-delete; cascading via tenant)
+      // 1. Hard-delete receipts and payments for all tenants of this property
+      //    (Receipts/Payments don't have soft-delete; cascading via tenant)
       const propertyTenantIds = existing.tenants.map(t => t.id)
 
       if (propertyTenantIds.length > 0) {
+        // PHASE 3: Delete receipts before payments (FK constraint order)
+        await tx.receipt.deleteMany({
+          where: { tenantId: { in: propertyTenantIds } },
+        })
+
         await tx.payment.deleteMany({
           where: { tenantId: { in: propertyTenantIds } },
         })

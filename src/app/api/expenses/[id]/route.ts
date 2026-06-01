@@ -9,6 +9,7 @@ import {
   forbiddenResponse,
   isFinancialUser,
   safeNumber,
+  safeDecimal,
   parseOCCVersion,
   occUpdate,
 } from '@/lib/api-utils'
@@ -53,8 +54,8 @@ export async function PUT(
       building,
     } = body
 
-    // NaN guard for amount if provided
-    const parsedAmount = amount !== undefined ? safeNumber(amount, -1) : undefined
+    // PHASE 3: Use safeDecimal for monetary precision
+    const parsedAmount = amount !== undefined ? safeDecimal(amount) : undefined
     if (parsedAmount !== undefined && parsedAmount <= 0) {
       return errorResponse('amount must be greater than zero')
     }

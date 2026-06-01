@@ -7,6 +7,7 @@ import {
   successResponse,
   unauthorizedResponse,
   safeNumber,
+  safeDecimal,
   parsePaginationParams,
   paginatedResponse,
   validatePropertyOwnership,
@@ -77,9 +78,9 @@ export async function POST(request: Request) {
       resolvedCompletedAt = new Date()
     }
 
-    // NaN guards for costs
-    const parsedEstimatedCost = estimatedCost ? safeNumber(estimatedCost) : null
-    const parsedActualCost = actualCost ? safeNumber(actualCost) : null
+    // NaN guards for costs (PHASE 3: safeDecimal for monetary precision)
+    const parsedEstimatedCost = estimatedCost ? safeDecimal(estimatedCost) : null
+    const parsedActualCost = actualCost ? safeDecimal(actualCost) : null
 
     const item = await prisma.maintenance.create({
       data: {

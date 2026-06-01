@@ -8,6 +8,7 @@ import {
   unauthorizedResponse,
   forbiddenResponse,
   safeNumber,
+  safeDecimal,
   safeInt,
   validatePropertyOwnership,
 } from '@/lib/api-utils'
@@ -189,7 +190,7 @@ export async function POST(request: Request) {
       const now = new Date()
 
       await prisma.$transaction(async (tx) => {
-        // Soft delete payments (via tenants)
+        // PHASE 3: Also soft-delete receipts (cascade before tenants)
         const companyTenants = await tx.tenant.findMany({
           where: { companyId, deletedAt: null },
           select: { id: true },
@@ -197,6 +198,11 @@ export async function POST(request: Request) {
         const tenantIds = companyTenants.map(t => t.id)
 
         if (tenantIds.length > 0) {
+          // Delete receipts before payments (FK constraint order)
+          await tx.receipt.deleteMany({
+            where: { tenantId: { in: tenantIds } },
+          })
+
           await tx.payment.deleteMany({
             where: { tenantId: { in: tenantIds } },
           })
@@ -336,10 +342,10 @@ export async function POST(request: Request) {
                 unitNumber: tenantData.unitNumber?.trim() || null,
                 unitType: tenantData.unitType || null,
                 floor: tenantData.floor ? safeInt(tenantData.floor) : null,
-                sizeSqft: tenantData.sizeSqft ? safeNumber(tenantData.sizeSqft) : null,
-                rentAmount: safeNumber(tenantData.rentAmount, 0),
-                municipalityFee: tenantData.municipalityFee ? safeNumber(tenantData.municipalityFee) : Math.round(safeNumber(tenantData.rentAmount, 0) * 0.05),
-                securityDeposit: tenantData.securityDeposit ? safeNumber(tenantData.securityDeposit) : null,
+                sizeSqft: tenantData.sizeSqft ? safeDecimal(tenantData.sizeSqft) : null,
+                rentAmount: safeDecimal(tenantData.rentAmount, '0'),
+                municipalityFee: tenantData.municipalityFee ? safeDecimal(tenantData.municipalityFee) : safeDecimal(safeNumber(tenantData.rentAmount, 0) * 0.05),
+                securityDeposit: tenantData.securityDeposit ? safeDecimal(tenantData.securityDeposit) : null,
                 paymentMethod: tenantData.paymentMethod || null,
                 leaseStart: tenantData.leaseStart ? new Date(tenantData.leaseStart) : null,
                 leaseEnd: tenantData.leaseEnd ? new Date(tenantData.leaseEnd) : null,
@@ -388,7 +394,7 @@ export async function POST(request: Request) {
                 companyId,
                 category: expenseData.category,
                 description: expenseData.description.trim(),
-                amount: safeNumber(expenseData.amount, 0),
+                amount: safeDecimal(expenseData.amount, '0'),
                 date: new Date(expenseData.date),
                 vendor: expenseData.vendor?.trim() || null,
                 invoiceNumber: expenseData.invoiceNumber?.trim() || null,
@@ -450,8 +456,8 @@ export async function POST(request: Request) {
                 vendor: maintData.vendor?.trim() || null,
                 priority: maintData.priority || 'medium',
                 status: maintData.status || 'pending',
-                estimatedCost: maintData.estimatedCost ? safeNumber(maintData.estimatedCost) : null,
-                actualCost: maintData.actualCost ? safeNumber(maintData.actualCost) : null,
+                estimatedCost: maintData.estimatedCost ? safeDecimal(maintData.estimatedCost) : null,
+                actualCost: maintData.actualCost ? safeDecimal(maintData.actualCost) : null,
                 completedAt: maintData.status === 'completed' ? new Date() : null,
               },
             })

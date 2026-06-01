@@ -9,6 +9,7 @@ import {
   forbiddenResponse,
   isFinancialUser,
   safeNumber,
+  safeDecimal,
   parsePaginationParams,
   paginatedResponse,
 } from '@/lib/api-utils'
@@ -95,8 +96,8 @@ export async function POST(request: Request) {
     if (month === undefined || month === null) return errorResponse('month is required')
     if (year === undefined || year === null) return errorResponse('year is required')
 
-    // NaN guards
-    const parsedAmount = safeNumber(amount, -1)
+    // PHASE 3: Use safeDecimal for monetary precision
+    const parsedAmount = safeDecimal(amount)
     if (parsedAmount <= 0) return errorResponse('amount must be greater than zero')
     const parsedMonth = safeNumber(month, 0)
     const parsedYear = safeNumber(year, 0)

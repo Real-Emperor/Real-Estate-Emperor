@@ -9,6 +9,7 @@ import {
   forbiddenResponse,
   isOwnerOrAdmin,
   safeNumber,
+  safeDecimal,
   safeInt,
   parsePaginationParams,
   paginatedResponse,
@@ -79,7 +80,8 @@ export async function POST(request: Request) {
     }
 
     // NaN guards for all numeric fields
-    const parsedRentAmount = safeNumber(body.rentAmount, -1)
+    // PHASE 3: Use safeDecimal for monetary precision
+    const parsedRentAmount = safeDecimal(body.rentAmount)
     if (parsedRentAmount <= 0) return errorResponse('rentAmount must be greater than zero')
 
     // Verify the property belongs to the user's company
@@ -112,16 +114,16 @@ export async function POST(request: Request) {
         unitNumber: body.unitNumber || null,
         unitType: body.unitType || null,
         floor: body.floor ? safeInt(body.floor) : null,
-        sizeSqft: body.sizeSqft ? safeNumber(body.sizeSqft) : null,
+        sizeSqft: body.sizeSqft ? safeDecimal(body.sizeSqft) : null,
         rentAmount: parsedRentAmount,
-        municipalityFee: body.municipalityFee ? safeNumber(body.municipalityFee) : null,
-        securityDeposit: body.securityDeposit ? safeNumber(body.securityDeposit) : null,
+        municipalityFee: body.municipalityFee ? safeDecimal(body.municipalityFee) : null,
+        securityDeposit: body.securityDeposit ? safeDecimal(body.securityDeposit) : null,
         paymentMethod: body.paymentMethod || null,
         leaseStart: body.leaseStart ? new Date(body.leaseStart) : null,
         leaseEnd: body.leaseEnd ? new Date(body.leaseEnd) : null,
         contractDuration: body.contractDuration ? safeInt(body.contractDuration) : null,
         renewalStatus: body.renewalStatus || null,
-        newRent: body.newRent ? safeNumber(body.newRent) : null,
+        newRent: body.newRent ? safeDecimal(body.newRent) : null,
         status: body.status || 'active',
         latePaymentCount: body.latePaymentCount ? safeInt(body.latePaymentCount) : 0,
         tenantScore: body.tenantScore ? safeInt(body.tenantScore, 100) : 100,

@@ -85,20 +85,94 @@ export function safeInt(value: unknown, fallback: number = 0): number {
 }
 
 /**
- * PHASE 3: Safely convert a value to a Decimal-compatible string for Prisma.
- * Returns a string representation suitable for Prisma Decimal fields.
+ * PHASE 3: Safely convert a value to a Decimal-compatible value for Prisma.
+ * Returns a number (safe for Prisma Decimal fields) with 2 decimal precision.
  * Guarantees no NaN or Infinity values reach the database.
+ * Note: Returns number type for TypeScript compatibility with Prisma generated types.
  */
-export function safeDecimal(value: unknown, fallback: string = '0'): string {
-  if (value === null || value === undefined) return fallback
+export function safeDecimal(value: unknown, fallback: string = '0'): number {
+  if (value === null || value === undefined) return Number(fallback)
   // Handle Prisma.Decimal objects
   if (typeof value === 'object' && typeof (value as any).toFixed === 'function') {
-    return (value as any).toString()
+    const n = Number((value as any).toString())
+    return Number.isFinite(n) ? Number(n.toFixed(2)) : Number(fallback)
   }
   const n = Number(value)
-  if (!Number.isFinite(n)) return fallback
+  if (!Number.isFinite(n)) return Number(fallback)
   // Limit to 2 decimal places for monetary values
-  return n.toFixed(2)
+  return Number(n.toFixed(2))
+}
+
+// ─── Input Sanitization ────────────────────────────────────────
+
+/**
+ * PHASE 3: Sanitize a string value to prevent XSS attacks.
+ * Strips HTML tags, encodes dangerous characters, and trims whitespace.
+ * Use for ALL user-supplied string input before storing in the database.
+ */
+export function sanitizeString(value: unknown): string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value !== 'string') return null
+
+  let sanitized = value.trim()
+
+  // Return null for empty strings
+  if (!sanitized) return null
+
+  // Strip HTML tags (basic protection against stored XSS)
+  sanitized = sanitized.replace(/<[^>]*>/g, '')
+
+  // Encode dangerous characters that could be used in XSS
+  sanitized = sanitized
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+
+  return sanitized
+}
+
+/**
+ * PHASE 3: Sanitize a string value but allow basic formatting.
+ * Only strips script tags and event handlers — allows safe HTML if needed.
+ * Use for fields that might need line breaks or basic formatting (e.g., notes, descriptions).
+ */
+export function sanitizeRichString(value: unknown): string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value !== 'string') return null
+
+  let sanitized = value.trim()
+
+  // Return null for empty strings
+  if (!sanitized) return null
+
+  // Remove script tags and their content
+  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+
+  // Remove event handlers (onclick, onload, onerror, etc.)
+  sanitized = sanitized.replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '')
+
+  // Remove javascript: URLs
+  sanitized = sanitized.replace(/javascript\s*:/gi, '')
+
+  return sanitized
+}
+
+/**
+ * PHASE 3: Validate and sanitize an email address.
+ * Returns the cleaned email or null if invalid.
+ */
+export function sanitizeEmail(value: unknown): string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value !== 'string') return null
+
+  const email = value.trim().toLowerCase()
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+  if (!emailRegex.test(email)) return null
+
+  return email
 }
 
 // ─── Pagination ────────────────────────────────────────────────

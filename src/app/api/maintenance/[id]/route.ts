@@ -10,6 +10,7 @@ import {
   isSystemAdmin,
   isOwnerOrAdmin,
   safeNumber,
+  safeDecimal,
   parseOCCVersion,
   occUpdate,
   validatePropertyOwnership,
@@ -64,12 +65,12 @@ export async function PUT(
       resolvedCompletedAt = new Date()
     }
 
-    // NaN guards for costs
+    // NaN guards for costs (PHASE 3: safeDecimal for monetary precision)
     const parsedEstimatedCost = estimatedCost !== undefined
-      ? (estimatedCost ? safeNumber(estimatedCost) : null)
+      ? (estimatedCost ? safeDecimal(estimatedCost) : null)
       : existing.estimatedCost
     const parsedActualCost = actualCost !== undefined
-      ? (actualCost ? safeNumber(actualCost) : null)
+      ? (actualCost ? safeDecimal(actualCost) : null)
       : existing.actualCost
 
     // Build update data

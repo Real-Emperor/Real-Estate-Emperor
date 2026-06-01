@@ -9,6 +9,7 @@ import {
   forbiddenResponse,
   isFinancialUser,
   safeNumber,
+  safeDecimal,
   parsePaginationParams,
   paginatedResponse,
 } from '@/lib/api-utils'
@@ -90,8 +91,8 @@ export async function POST(request: Request) {
     if (amount === undefined || amount === null) return errorResponse('amount is required')
     if (!date) return errorResponse('date is required')
 
-    // NaN guards
-    const parsedAmount = safeNumber(amount, -1)
+    // PHASE 3: Use safeDecimal for monetary precision
+    const parsedAmount = safeDecimal(amount)
     if (parsedAmount <= 0) return errorResponse('amount must be greater than zero')
 
     const expense = await prisma.expense.create({

@@ -10,6 +10,7 @@ import {
   isOwnerOrAdmin,
   isFinancialUser,
   safeNumber,
+  safeDecimal,
   safeInt,
   parseOCCVersion,
   occUpdate,
@@ -121,16 +122,16 @@ export async function PUT(
     if (body.unitNumber !== undefined) data.unitNumber = body.unitNumber || null
     if (body.unitType !== undefined) data.unitType = body.unitType || null
     if (body.floor !== undefined) data.floor = body.floor ? safeInt(body.floor) : null
-    if (body.sizeSqft !== undefined) data.sizeSqft = body.sizeSqft ? safeNumber(body.sizeSqft) : null
-    if (body.rentAmount !== undefined) data.rentAmount = safeNumber(body.rentAmount, existing.rentAmount)
-    if (body.municipalityFee !== undefined) data.municipalityFee = body.municipalityFee ? safeNumber(body.municipalityFee) : null
-    if (body.securityDeposit !== undefined) data.securityDeposit = body.securityDeposit ? safeNumber(body.securityDeposit) : null
+    if (body.sizeSqft !== undefined) data.sizeSqft = body.sizeSqft ? safeDecimal(body.sizeSqft) : null
+    if (body.rentAmount !== undefined) data.rentAmount = safeDecimal(body.rentAmount)
+    if (body.municipalityFee !== undefined) data.municipalityFee = body.municipalityFee ? safeDecimal(body.municipalityFee) : null
+    if (body.securityDeposit !== undefined) data.securityDeposit = body.securityDeposit ? safeDecimal(body.securityDeposit) : null
     if (body.paymentMethod !== undefined) data.paymentMethod = body.paymentMethod || null
     if (body.leaseStart !== undefined) data.leaseStart = body.leaseStart ? new Date(body.leaseStart) : null
     if (body.leaseEnd !== undefined) data.leaseEnd = body.leaseEnd ? new Date(body.leaseEnd) : null
     if (body.contractDuration !== undefined) data.contractDuration = body.contractDuration ? safeInt(body.contractDuration) : null
     if (body.renewalStatus !== undefined) data.renewalStatus = body.renewalStatus || null
-    if (body.newRent !== undefined) data.newRent = body.newRent ? safeNumber(body.newRent) : null
+    if (body.newRent !== undefined) data.newRent = body.newRent ? safeDecimal(body.newRent) : null
     if (body.status !== undefined) data.status = body.status
     if (body.latePaymentCount !== undefined) data.latePaymentCount = safeInt(body.latePaymentCount)
     if (body.tenantScore !== undefined) data.tenantScore = safeInt(body.tenantScore, 100)
@@ -216,14 +217,20 @@ export async function DELETE(
       return errorResponse('Tenant not found', 404)
     }
 
-    // PHASE 2: Cascade delete within a transaction
+    // PHASE 2/3: Cascade delete within a transaction
+    // PHASE 3: Also handle receipts (cascade delete)
     await prisma.$transaction(async (tx) => {
-      // 1. Hard-delete all payments for this tenant
+      // 1. Hard-delete all receipts for this tenant
+      await tx.receipt.deleteMany({
+        where: { tenantId: id },
+      })
+
+      // 2. Hard-delete all payments for this tenant
       await tx.payment.deleteMany({
         where: { tenantId: id },
       })
 
-      // 2. Soft delete the tenant
+      // 3. Soft delete the tenant
       await tx.tenant.update({
         where: { id },
         data: {
