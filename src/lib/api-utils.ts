@@ -25,9 +25,9 @@ export function isFinancialUser(role: string): boolean {
   return role === 'owner' || role === 'admin'
 }
 
-// Check if user is system admin
+// Check if user is system admin (owner or admin — both manage users/settings)
 export function isSystemAdmin(role: string): boolean {
-  return role === 'admin'
+  return role === 'admin' || role === 'owner'
 }
 
 // ─── Audit Logging ─────────────────────────────────────────────

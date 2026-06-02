@@ -74,5 +74,5 @@ export function isOwnerOrAdmin(role: string): boolean {
 }
 
 export function isAdminOnly(role: string): boolean {
-  return role === 'admin'
+  return role === 'admin' || role === 'owner'
 }

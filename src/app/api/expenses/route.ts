@@ -20,10 +20,8 @@ export async function GET(request: Request) {
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
 
-    // Only owner/admin can access expenses
-    if (!isFinancialUser(user.role)) {
-      return forbiddenResponse('Only owners and admins can view expenses')
-    }
+    // All authenticated users can view expenses (staff need visibility for their submissions)
+    // Staff see all expenses but cannot edit/delete them
 
     const { searchParams } = new URL(request.url)
     const pagination = parsePaginationParams(searchParams)
@@ -67,10 +65,9 @@ export async function POST(request: Request) {
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
 
-    // Only owner/admin can create expenses
-    if (!isFinancialUser(user.role)) {
-      return forbiddenResponse('Only owners and admins can create expenses')
-    }
+    // All authenticated users can create expenses
+    // Staff submit expenses for maintenance, supplies, operations, etc.
+    // Only owner/admin can edit/delete (handled in PUT/DELETE routes)
 
     const body = await request.json()
 

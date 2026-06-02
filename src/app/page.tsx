@@ -114,7 +114,7 @@ function AppContent() {
       case 'tenants': return <Tenants />
       case 'rent': return <RentCollection />
       case 'maintenance': return <Maintenance />
-      case 'expenses': return isFinancialUser ? <Expenses /> : <AccessDenied />
+      case 'expenses': return <Expenses />
       case 'daily-report': return isFinancialUser ? <DailyExpensesReport /> : <AccessDenied />
       case 'reports': return isFinancialUser ? <Reports /> : <AccessDenied />
       case 'contracts': return <Contracts />

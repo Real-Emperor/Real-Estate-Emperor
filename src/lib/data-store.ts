@@ -444,12 +444,17 @@ export const useDataStore = create<DataState>()(
 
     clearData: () => {
       set({
+        company: DEFAULT_COMPANY,
+        users: [],
+        resetRequests: [],
         properties: [],
         tenants: [],
         payments: [],
         expenses: [],
         maintenanceItems: [],
         isSeeded: false,
+        isLoading: false,
+        isInitialized: false, // CRITICAL: Reset so next login triggers fetchAllData
       })
     },
 

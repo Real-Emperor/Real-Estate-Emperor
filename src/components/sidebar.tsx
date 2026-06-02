@@ -7,6 +7,7 @@ import type { Language } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { getNameByLang } from '@/lib/i18n'
 import { useDataStore } from '@/lib/data-store'
+import { signOut } from 'next-auth/react'
 import {
   LayoutDashboard,
   Building2,
@@ -33,7 +34,7 @@ const navItems: { page: PageType; icon: React.ElementType; key: string; financia
   { page: 'tenants', icon: Users, key: 'tenants' },
   { page: 'rent', icon: Banknote, key: 'rentCollection' },
   { page: 'maintenance', icon: Wrench, key: 'maintenance' },
-  { page: 'expenses', icon: Receipt, key: 'expenses', financialOnly: true },
+  { page: 'expenses', icon: Receipt, key: 'expenses' },
   { page: 'daily-report', icon: FileText, key: 'dailyReport', financialOnly: true },
   { page: 'reports', icon: BarChart3, key: 'reports', financialOnly: true },
   { page: 'contracts', icon: FileText, key: 'contracts' },
@@ -42,6 +43,7 @@ const navItems: { page: PageType; icon: React.ElementType; key: string; financia
 
 export default function Sidebar() {
   const { currentPage, setCurrentPage, language, setLanguage, sidebarOpen, toggleSidebar, authUser, logout } = useAppStore()
+  const { clearData } = useDataStore()
   const pendingResetCount = useDataStore(s => s.resetRequests.filter(r => r.status === 'pending').length)
   const isFinancialUser = authUser ? isOwnerOrAdmin(authUser.role) : false
   const isSystemAdmin = authUser ? isAdminOnly(authUser.role) : false
@@ -192,7 +194,10 @@ export default function Sidebar() {
                   </p>
                 </div>
                 <button
-                  onClick={logout}
+                  onClick={() => {
+                    clearData() // Clear stale data from Zustand store
+                    signOut({ callbackUrl: '/' }) // Properly clear NextAuth session
+                  }}
                   className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all shrink-0"
                   title={t('logout', language)}
                 >

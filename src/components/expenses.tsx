@@ -34,8 +34,9 @@ export default function Expenses() {
     vendor: '', invoiceNumber: '', recurring: false, building: '',
   })
 
-  // Access control: Owner/Admin only
-  const canAccess = authUser && isOwnerOrAdmin(authUser.role)
+  // Access control: Owner/Admin have full access; Staff can view and create
+  const canAccess = !!authUser
+  const canModify = authUser && isOwnerOrAdmin(authUser.role)
 
   const fetchExpenses = useCallback(() => {
     try {
@@ -124,6 +125,9 @@ export default function Expenses() {
       </div>
     )
   }
+
+  // Staff users can create expenses but not edit/delete
+  const showEditDelete = canModify
 
   return (
     <div className="space-y-6">
@@ -222,12 +226,16 @@ export default function Expenses() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(expense)} className="p-1.5 rounded hover:bg-muted text-muted-foreground">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => handleDelete(expense.id)} className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {showEditDelete && (
+                          <>
+                            <button onClick={() => openEdit(expense)} className="p-1.5 rounded hover:bg-muted text-muted-foreground">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => handleDelete(expense.id)} className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
