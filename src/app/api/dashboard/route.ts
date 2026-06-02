@@ -227,11 +227,32 @@ export async function GET() {
       take: 10,
     })
 
-    // ─── 7. Due soon ───
+    // ─── 7. Per-tenant payment status (for Payment Status Board) ───
     const dayOfMonth = now.getDate()
+    const activeTenantsWithStatus = activeTenants.map((t) => {
+      const totalPaid = paidMap.get(t.id) || 0
+      let paymentStatus: 'paid' | 'partial' | 'overdue' | 'unpaid' | 'due-soon' = 'overdue'
+      if (totalPaid >= Number(t.rentAmount)) {
+        paymentStatus = 'paid'
+      } else if (totalPaid > 0) {
+        paymentStatus = 'partial'
+      } else {
+        // Calendar-based status for unpaid tenants
+        if (dayOfMonth <= 2) {
+          paymentStatus = 'due-soon'
+        } else if (dayOfMonth <= 4) {
+          paymentStatus = 'unpaid'
+        } else {
+          paymentStatus = 'overdue'
+        }
+      }
+      return { ...t, paymentStatus, totalPaid: financialAccess ? totalPaid : 0 }
+    })
+
+    // ─── 8. Due soon ───
     const dueSoon = dayOfMonth <= 5 ? overdueTenants : []
 
-    // ─── 8. Properties with tenant counts — lightweight ───
+    // ─── 9. Properties with tenant counts — lightweight ───
     const properties = await prisma.property.findMany({
       where: { companyId, deletedAt: null },
       select: {
@@ -263,7 +284,7 @@ export async function GET() {
       }
     })
 
-    // ─── 9. Maintenance items — only recent/active (bounded to 50) ───
+    // ─── 10. Maintenance items — only recent/active (bounded to 50) ───
     const maintenanceItems = await prisma.maintenance.findMany({
       where: { companyId, deletedAt: null, status: { not: 'completed' } },
       include: {
@@ -275,7 +296,7 @@ export async function GET() {
       take: 50,
     })
 
-    // ─── 10. Expenses — only current month for dashboard (bounded) ───
+    // ─── 11. Expenses — only current month for dashboard (bounded) ───
     const expensesThisMonth = await prisma.expense.findMany({
       where: {
         companyId,
@@ -321,8 +342,8 @@ export async function GET() {
       dueSoon: dueSoon.map((t) =>
         financialMask(t, ['rentAmount', 'municipalityFee', 'securityDeposit', 'newRent'])
       ),
-      activeTenantsList: activeTenants.map((t) =>
-        financialMask(t, ['rentAmount', 'municipalityFee', 'securityDeposit', 'newRent'])
+      activeTenantsList: activeTenantsWithStatus.map((t) =>
+        financialMask(t, ['rentAmount', 'municipalityFee', 'securityDeposit', 'newRent', 'totalPaid'])
       ),
       recentPayments: financialAccess
         ? recentPayments.map((p) => serialize(p))

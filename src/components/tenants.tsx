@@ -124,6 +124,8 @@ export default function Tenants() {
   const [whatsappRemindAll, setWhatsappRemindAll] = useState(false)
 
   const isPrivileged = authUser ? isOwnerOrAdmin(authUser.role) : true
+  // Staff can create tenants but not edit/delete (isPrivileged = owner/admin only for edit/delete)
+  const canCreate = true // All authenticated users can create tenants
 
   const fetchData = useCallback(() => {
     try {
@@ -182,7 +184,7 @@ export default function Tenants() {
     setProfileOpen(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true)
     try {
       const store = useDataStore.getState()
@@ -198,21 +200,27 @@ export default function Tenants() {
         contractDuration: form.contractDuration ? Number(form.contractDuration) : null,
       }
       if (editing) {
-        store.updateTenant(editing.id, body)
+        await store.updateTenant(editing.id, body)
       } else {
-        store.addTenant(body)
+        await store.addTenant(body)
       }
       setDialogOpen(false)
       fetchData()
+    } catch (error: any) {
+      alert(error.message || 'Failed to save tenant')
     } finally {
       setSaving(false)
     }
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('deleteTenant', language))) return
-    useDataStore.getState().deleteTenant(id)
-    fetchData()
+    try {
+      await useDataStore.getState().deleteTenant(id)
+      fetchData()
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete tenant')
+    }
   }
 
   const updateForm = (field: keyof TenantFormState, value: string) => {
@@ -400,6 +408,7 @@ export default function Tenants() {
                             <button
                               onClick={(e) => { e.stopPropagation(); openEdit(tenant) }}
                               className="p-1.5 rounded hover:bg-muted text-muted-foreground"
+                              style={{ display: isPrivileged ? undefined : 'none' }}
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>

@@ -61,7 +61,7 @@ export default function Maintenance() {
     setDialogOpen(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const store = useDataStore.getState()
     const body = {
       ...form,
@@ -71,28 +71,43 @@ export default function Maintenance() {
       actualCost: form.actualCost ? Number(form.actualCost) : null,
       propertyId: form.propertyId && form.propertyId !== 'none' ? form.propertyId : null,
     }
-    if (editing) {
-      store.updateMaintenance(editing.id, body as any)
-    } else {
-      store.addMaintenance(body as any)
+    try {
+      if (editing) {
+        await store.updateMaintenance(editing.id, body as any)
+      } else {
+        await store.addMaintenance(body as any)
+      }
+      setDialogOpen(false)
+      fetchData()
+    } catch (error) {
+      console.error('Failed to save maintenance task:', error)
+      alert('Failed to save maintenance task. Please try again.')
     }
-    setDialogOpen(false)
-    fetchData()
   }
 
-  const updateStatus = (id: string, newStatus: string) => {
+  const updateStatus = async (id: string, newStatus: string) => {
     const updates: any = { status: newStatus }
     if (newStatus === 'completed') {
       updates.completedAt = new Date().toISOString()
     }
-    useDataStore.getState().updateMaintenance(id, updates)
-    fetchData()
+    try {
+      await useDataStore.getState().updateMaintenance(id, updates)
+      fetchData()
+    } catch (error) {
+      console.error('Failed to update status:', error)
+      alert('Failed to update status. Please try again.')
+    }
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('deleteTask', lang))) return
-    useDataStore.getState().deleteMaintenance(id)
-    fetchData()
+    try {
+      await useDataStore.getState().deleteMaintenance(id)
+      fetchData()
+    } catch (error) {
+      console.error('Failed to delete maintenance task:', error)
+      alert('Failed to delete maintenance task. Please try again.')
+    }
   }
 
   const columns = [

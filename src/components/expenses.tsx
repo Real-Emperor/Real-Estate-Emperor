@@ -73,7 +73,7 @@ export default function Expenses() {
     setDialogOpen(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const store = useDataStore.getState()
     const body = {
       ...form,
@@ -83,19 +83,29 @@ export default function Expenses() {
       recurring: form.recurring,
       building: form.building || null,
     }
-    if (editing) {
-      store.updateExpense(editing.id, body)
-    } else {
-      store.addExpense(body)
+    try {
+      if (editing) {
+        await store.updateExpense(editing.id, body)
+      } else {
+        await store.addExpense(body)
+      }
+      setDialogOpen(false)
+      fetchExpenses()
+    } catch (error) {
+      console.error('Failed to save expense:', error)
+      alert('Failed to save expense. Please try again.')
     }
-    setDialogOpen(false)
-    fetchExpenses()
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('deleteExpense', lang))) return
-    useDataStore.getState().deleteExpense(id)
-    fetchExpenses()
+    try {
+      await useDataStore.getState().deleteExpense(id)
+      fetchExpenses()
+    } catch (error) {
+      console.error('Failed to delete expense:', error)
+      alert('Failed to delete expense. Please try again.')
+    }
   }
 
   const filtered = expenses.filter(e => categoryFilter === 'all' || e.category === categoryFilter)

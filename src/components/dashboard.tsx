@@ -46,9 +46,10 @@ export default function Dashboard() {
   const [whatsappLangDialogOpen, setWhatsappLangDialogOpen] = useState(false)
   const [whatsappTargetTenant, setWhatsappTargetTenant] = useState<any>(null)
 
-  const fetchData = useCallback(() => {
+  const fetchData = useCallback(async () => {
     try {
-      const dashboardData = useDataStore.getState().getDashboardData()
+      // Use server-side endpoint as single source of truth — handles role-based masking correctly
+      const dashboardData = await useDataStore.getState().fetchDashboardData()
       if (dashboardData) {
         setData(dashboardData)
       }
@@ -246,28 +247,9 @@ export default function Dashboard() {
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {data.activeTenantsList.map((tenant: any) => {
-              const payments = tenant.payments || []
-              const monthPayments = payments.filter((p: any) => p.month === currentMonth && p.year === currentYear)
-              const totalPaid = monthPayments.reduce((sum: number, p: any) => sum + p.amount, 0)
-
-              let status: 'paid' | 'overdue' | 'unpaid' | 'partial' | 'inactive' | 'due-soon'
-              if (tenant.status !== 'active') {
-                status = 'inactive'
-              } else if (totalPaid >= tenant.rentAmount) {
-                status = 'paid'
-              } else if (totalPaid > 0) {
-                status = 'partial'
-              } else {
-                // Calendar-based status for unpaid tenants
-                const dayOfMonth = now.getDate()
-                if (dayOfMonth <= 2) {
-                  status = 'due-soon'
-                } else if (dayOfMonth <= 4) {
-                  status = 'unpaid'
-                } else {
-                  status = 'overdue'
-                }
-              }
+              // Server-computed payment status — single source of truth, consistent across all roles
+              const status: 'paid' | 'overdue' | 'unpaid' | 'partial' | 'inactive' | 'due-soon' =
+                tenant.paymentStatus || 'overdue'
 
               return (
                 <div

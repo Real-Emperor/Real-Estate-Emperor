@@ -16,15 +16,13 @@ import {
 
 // GET /api/payments — list payments with pagination (scoped to user's company)
 // Query params: ?month=X&year=Y&tenantId=Z&page=N&limit=N
+// Staff can view payments but amounts are masked (set to 0) for non-financial users
 export async function GET(request: Request) {
   try {
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
 
-    // Staff can record payments but only owner/admin can view financial details
-    if (!isFinancialUser(user.role)) {
-      return forbiddenResponse('Only owners and admins can view payment records')
-    }
+    const financialAccess = isFinancialUser(user.role)
 
     const { searchParams } = new URL(request.url)
     const month = searchParams.get('month')
@@ -60,7 +58,13 @@ export async function GET(request: Request) {
       prisma.payment.count({ where }),
     ])
 
-    return successResponse(paginatedResponse(payments.map(serialize), total, pagination))
+    // Mask amounts for non-financial users (staff) — they can see payment records but not amounts
+    const serializedPayments = payments.map(serialize)
+    const mappedPayments = financialAccess
+      ? serializedPayments
+      : serializedPayments.map((p: any) => ({ ...p, amount: 0 }))
+
+    return successResponse(paginatedResponse(mappedPayments, total, pagination))
   } catch (error) {
     console.error('Error fetching payments:', error)
     return errorResponse('Failed to fetch payments', 500)

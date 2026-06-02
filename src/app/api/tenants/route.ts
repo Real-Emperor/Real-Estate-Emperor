@@ -60,17 +60,12 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/tenants - Create a new tenant (owner/admin only)
-// PHASE 2: RBAC — staff cannot create tenants
+// POST /api/tenants - Create a new tenant (all authenticated users)
+// Staff can create tenants but only owner/admin can edit/delete
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
-
-    // PHASE 2: RBAC — only owner/admin can create tenants
-    if (!isOwnerOrAdmin(user.role)) {
-      return forbiddenResponse('Only owners and admins can create tenants')
-    }
 
     const body = await request.json()
 

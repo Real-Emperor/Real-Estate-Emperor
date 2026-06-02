@@ -108,27 +108,32 @@ export default function RentCollection() {
     setPayDialogOpen(true)
   }
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (!payingTenant) return
     const paymentDateObj = new Date(payForm.paymentDate)
     const isLate = paymentDateObj.getDate() > 5
     const daysLate = isLate ? paymentDateObj.getDate() - 5 : 0
 
-    useDataStore.getState().addPayment({
-      tenantId: payingTenant.id,
-      amount: payForm.amount,
-      date: paymentDateObj.toISOString(),
-      month: selectedMonth,
-      year: selectedYear,
-      method: payForm.method,
-      reference: payForm.reference || null,
-      receiptNumber: null,
-      notes: payForm.notes || null,
-      isLate,
-      daysLate,
-    })
-    setPayDialogOpen(false)
-    fetchData()
+    try {
+      await useDataStore.getState().addPayment({
+        tenantId: payingTenant.id,
+        amount: payForm.amount,
+        date: paymentDateObj.toISOString(),
+        month: selectedMonth,
+        year: selectedYear,
+        method: payForm.method,
+        reference: payForm.reference || null,
+        receiptNumber: null,
+        notes: payForm.notes || null,
+        isLate,
+        daysLate,
+      })
+      setPayDialogOpen(false)
+      fetchData()
+    } catch (error) {
+      console.error('Failed to record payment:', error)
+      alert('Failed to record payment. Please try again.')
+    }
   }
 
   const prevMonth = () => {

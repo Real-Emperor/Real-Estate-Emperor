@@ -54,6 +54,7 @@ interface DataState {
 
   // Data fetching
   fetchAllData: () => Promise<void>
+  refreshAllData: () => Promise<void>
 
   // User Management (Admin only)
   addUser: (data: Omit<LocalUser, 'id' | 'isActive'>) => Promise<LocalUser>
@@ -184,6 +185,7 @@ export const useDataStore = create<DataState>()(
 
       try {
         // Fetch all data in parallel
+        // Staff can now view payments (amounts masked) and users (still blocked via 403 catch)
         const [companyData, propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, usersData, resetData] = await Promise.all([
           apiCall('/api/company').catch(() => null),
           apiCall('/api/properties?includeArchived=true&limit=1000').catch(() => ({ data: [] })),
@@ -219,6 +221,36 @@ export const useDataStore = create<DataState>()(
       } catch (error) {
         console.error('Failed to fetch data:', error)
         set({ isLoading: false, isInitialized: true })
+      }
+    },
+
+    // Refresh all data after mutations — forces re-fetch to ensure consistency
+    refreshAllData: async () => {
+      try {
+        const [propertiesData, tenantsData, paymentsData, expensesData, maintenanceData] = await Promise.all([
+          apiCall('/api/properties?includeArchived=true&limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/tenants?limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/payments?limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/expenses?limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/maintenance?limit=1000').catch(() => ({ data: [] })),
+        ])
+
+        const extractData = (resp: any): any[] => {
+          if (!resp) return []
+          if (Array.isArray(resp)) return resp
+          if (resp.data && Array.isArray(resp.data)) return resp.data
+          return []
+        }
+
+        set({
+          properties: extractData(propertiesData),
+          tenants: extractData(tenantsData),
+          payments: extractData(paymentsData),
+          expenses: extractData(expensesData),
+          maintenanceItems: extractData(maintenanceData),
+        })
+      } catch (error) {
+        console.error('Failed to refresh data:', error)
       }
     },
 
@@ -310,6 +342,7 @@ export const useDataStore = create<DataState>()(
         body: JSON.stringify(data),
       })
       set(s => ({ properties: [...s.properties, { ...newProp, tenants: [] }] }))
+      await get().refreshAllData()
     },
 
     updateProperty: async (id, data) => {
@@ -320,6 +353,7 @@ export const useDataStore = create<DataState>()(
       set(s => ({
         properties: s.properties.map(p => p.id === id ? { ...p, ...updated } : p),
       }))
+      await get().refreshAllData()
     },
 
     deleteProperty: async (id) => {
@@ -328,6 +362,7 @@ export const useDataStore = create<DataState>()(
         properties: s.properties.filter(p => p.id !== id),
         tenants: s.tenants.filter(t => t.propertyId !== id),
       }))
+      await get().refreshAllData()
     },
 
     archiveProperty: async (id, archived) => {
@@ -338,6 +373,7 @@ export const useDataStore = create<DataState>()(
       set(s => ({
         properties: s.properties.map(p => p.id === id ? { ...p, archived } : p),
       }))
+      await get().refreshAllData()
     },
 
     // Tenants CRUD
@@ -347,6 +383,7 @@ export const useDataStore = create<DataState>()(
         body: JSON.stringify(data),
       })
       set(s => ({ tenants: [...s.tenants, { ...newTenant, payments: [] }] }))
+      await get().refreshAllData()
     },
 
     updateTenant: async (id, data) => {
@@ -357,6 +394,7 @@ export const useDataStore = create<DataState>()(
       set(s => ({
         tenants: s.tenants.map(t => t.id === id ? { ...t, ...updated } : t),
       }))
+      await get().refreshAllData()
     },
 
     deleteTenant: async (id) => {
@@ -365,6 +403,7 @@ export const useDataStore = create<DataState>()(
         tenants: s.tenants.filter(t => t.id !== id),
         payments: s.payments.filter(p => p.tenantId !== id),
       }))
+      await get().refreshAllData()
     },
 
     // Payments
@@ -385,6 +424,7 @@ export const useDataStore = create<DataState>()(
           } : t),
         }))
       }
+      await get().refreshAllData()
     },
 
     // Expenses CRUD
@@ -394,6 +434,7 @@ export const useDataStore = create<DataState>()(
         body: JSON.stringify(data),
       })
       set(s => ({ expenses: [...s.expenses, newExpense] }))
+      await get().refreshAllData()
     },
 
     updateExpense: async (id, data) => {
@@ -404,11 +445,13 @@ export const useDataStore = create<DataState>()(
       set(s => ({
         expenses: s.expenses.map(e => e.id === id ? { ...e, ...updated } : e),
       }))
+      await get().refreshAllData()
     },
 
     deleteExpense: async (id) => {
       await apiCall(`/api/expenses/${id}`, { method: 'DELETE' })
       set(s => ({ expenses: s.expenses.filter(e => e.id !== id) }))
+      await get().refreshAllData()
     },
 
     // Maintenance CRUD
@@ -418,6 +461,7 @@ export const useDataStore = create<DataState>()(
         body: JSON.stringify(data),
       })
       set(s => ({ maintenanceItems: [...s.maintenanceItems, newItem] }))
+      await get().refreshAllData()
     },
 
     updateMaintenance: async (id, data) => {
@@ -428,11 +472,13 @@ export const useDataStore = create<DataState>()(
       set(s => ({
         maintenanceItems: s.maintenanceItems.map(m => m.id === id ? { ...m, ...updated } : m),
       }))
+      await get().refreshAllData()
     },
 
     deleteMaintenance: async (id) => {
       await apiCall(`/api/maintenance/${id}`, { method: 'DELETE' })
       set(s => ({ maintenanceItems: s.maintenanceItems.filter(m => m.id !== id) }))
+      await get().refreshAllData()
     },
 
     // Seed

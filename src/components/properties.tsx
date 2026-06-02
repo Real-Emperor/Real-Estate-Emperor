@@ -34,6 +34,8 @@ export default function Properties() {
   })
 
   const canSeeRevenue = isOwnerOrAdmin(authUser?.role || '')
+  const canCreate = true // All authenticated users can create properties
+  const canModify = isOwnerOrAdmin(authUser?.role || '') // Only owner/admin can edit/archive/delete
 
   const fetchProperties = useCallback(() => {
     try {
@@ -69,26 +71,38 @@ export default function Properties() {
     setDialogOpen(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const body = { ...form, totalUnits: Number(form.totalUnits), floors: Number(form.floors) }
-    if (editing) {
-      useDataStore.getState().updateProperty(editing.id, body)
-    } else {
-      useDataStore.getState().addProperty(body)
+    try {
+      if (editing) {
+        await useDataStore.getState().updateProperty(editing.id, body)
+      } else {
+        await useDataStore.getState().addProperty(body)
+      }
+      setDialogOpen(false)
+      fetchProperties()
+    } catch (error: any) {
+      alert(error.message || 'Failed to save property')
     }
-    setDialogOpen(false)
-    fetchProperties()
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('deleteProperty', language))) return
-    useDataStore.getState().deleteProperty(id)
-    fetchProperties()
+    try {
+      await useDataStore.getState().deleteProperty(id)
+      fetchProperties()
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete property')
+    }
   }
 
-  const handleArchive = (id: string, archived: boolean) => {
-    useDataStore.getState().archiveProperty(id, archived)
-    fetchProperties()
+  const handleArchive = async (id: string, archived: boolean) => {
+    try {
+      await useDataStore.getState().archiveProperty(id, archived)
+      fetchProperties()
+    } catch (error: any) {
+      alert(error.message || 'Failed to archive property')
+    }
   }
 
   if (loading) {
@@ -152,15 +166,21 @@ export default function Properties() {
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => handleArchive(p.id, !p.archived)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title={p.archived ? t('archiveProperty', language) : t('archiveProperty', language)}>
-                      {p.archived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-                    </button>
-                    <button onClick={() => openEdit(p)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {canModify && (
+                      <button onClick={() => handleArchive(p.id, !p.archived)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title={p.archived ? t('archiveProperty', language) : t('archiveProperty', language)}>
+                        {p.archived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                    {canModify && (
+                      <button onClick={() => openEdit(p)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {canModify && (
+                      <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
