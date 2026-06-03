@@ -18,8 +18,8 @@ export async function GET(request: Request) {
     if (!user) return unauthorizedResponse()
 
     // Only admin can view reset requests
-    if (!isSystemAdmin(user.role) && user.role !== 'owner') {
-      return forbiddenResponse('Only admins and owners can view reset requests')
+    if (!isSystemAdmin(user.role)) {
+      return forbiddenResponse('Only admins can view reset requests')
     }
 
     const { searchParams } = new URL(request.url)

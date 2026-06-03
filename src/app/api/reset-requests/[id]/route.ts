@@ -22,9 +22,9 @@ export async function PATCH(
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
 
-    // Only admin/owner can resolve/dismiss reset requests
-    if (!isSystemAdmin(user.role) && user.role !== 'owner') {
-      return forbiddenResponse('Only admins and owners can manage reset requests')
+    // Only admin can resolve/dismiss reset requests
+    if (!isSystemAdmin(user.role)) {
+      return forbiddenResponse('Only admins can manage reset requests')
     }
 
     const { id } = await params

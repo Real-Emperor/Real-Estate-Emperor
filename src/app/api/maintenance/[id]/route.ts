@@ -7,7 +7,6 @@ import {
   successResponse,
   unauthorizedResponse,
   forbiddenResponse,
-  isSystemAdmin,
   isOwnerOrAdmin,
   safeNumber,
   safeDecimal,
@@ -154,7 +153,7 @@ export async function DELETE(
     if (!user) return unauthorizedResponse()
 
     // Only owner or admin can delete
-    if (user.role !== 'owner' && !isSystemAdmin(user.role)) {
+    if (!isOwnerOrAdmin(user.role)) {
       return forbiddenResponse('Only owners or admins can delete maintenance items')
     }
 

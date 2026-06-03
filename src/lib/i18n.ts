@@ -301,6 +301,8 @@ export const translations = {
   // Additional keys for Maintenance, Expenses, Reports
   invoiceNumber: { en: 'Invoice Number', ar: 'رقم الفاتورة', bn: 'চালান নম্বর', ur: 'انوائس نمبر' },
   searchInvoice: { en: 'Search Invoice #', ar: 'بحث رقم الفاتورة', bn: 'চালান নম্বর খুঁজুন', ur: 'انوائس نمبر تلاش کریں' },
+  noInvoiceFound: { en: 'No invoice found', ar: 'لم يتم العثور على فاتورة', bn: 'কোনো চালান পাওয়া যায়নি', ur: 'کوئی انوائس نہیں ملا' },
+  tryDifferentSearch: { en: 'Try a different invoice number (e.g. INV-202606-101)', ar: 'جرّب رقم فاتورة مختلف (مثال: INV-202606-101)', bn: 'ভিন্ন চালান নম্বর চেষ্টা করুন (যেমন: INV-202606-101)', ur: 'مختلف انوائس نمبر آزمائیں (مثلاً: INV-202606-101)' },
   printReport: { en: 'Print Report', ar: 'طباعة التقرير', bn: 'প্রতিবেদন মুদ্রণ', ur: 'رپورٹ پرنٹ کریں' },
   thisMonthTotal: { en: 'This Month Total', ar: 'إجمالي هذا الشهر', bn: 'এই মাসের মোট', ur: 'اس مہینے کا کل' },
   expenseDetails: { en: 'Expense Details', ar: 'تفاصيل المصروفات', bn: 'ব্যয়ের বিস্তারিত', ur: 'اخراجات کی تفصیلات' },

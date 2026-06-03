@@ -47,13 +47,25 @@ export default function RentCollection() {
     setInvoiceSearching(true)
     try {
       const res = await fetch(`/api/invoices/search?q=${encodeURIComponent(invoiceSearch.trim())}`)
+      if (!res.ok) {
+        // Handle auth errors and server errors
+        setInvoiceSearchResults([])
+        setInvoiceSearchOpen(true)
+        return
+      }
       const data = await res.json()
       if (data.success) {
         setInvoiceSearchResults(data.data.results)
         setInvoiceSearchOpen(true)
+      } else {
+        // API returned an error message
+        setInvoiceSearchResults([])
+        setInvoiceSearchOpen(true)
       }
     } catch (e) {
       console.error('Invoice search failed:', e)
+      setInvoiceSearchResults([])
+      setInvoiceSearchOpen(true)
     } finally {
       setInvoiceSearching(false)
     }
@@ -562,8 +574,16 @@ export default function RentCollection() {
           </DialogHeader>
           <div className="space-y-3 py-2">
             {invoiceSearchResults && invoiceSearchResults.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                {t('noResults', language)}
+              <div className="text-center py-8">
+                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                  <Search className="w-6 h-6 text-gray-400" />
+                </div>
+                <p className="text-muted-foreground font-medium">
+                  {t('noInvoiceFound', language) || `No invoice found for "${invoiceSearch}"`}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('tryDifferentSearch', language) || 'Try searching with a different invoice number (e.g. INV-202606-101)'}
+                </p>
               </div>
             )}
             {invoiceSearchResults && invoiceSearchResults.map((result: any, idx: number) => (
