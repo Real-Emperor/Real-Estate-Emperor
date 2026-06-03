@@ -48,7 +48,7 @@ model User {
   nameAr               String?
   nameBn               String?
   nameUr               String?
-  role                 String         @default("staff") // owner, admin, staff
+  role                 String         @default("staff") // owner, admin, accountant, staff
   mustChangePassword   Boolean        @default(false)
   passwordChangedAt    DateTime?
   companyId            String

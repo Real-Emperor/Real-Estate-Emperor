@@ -34,7 +34,7 @@ export interface LocalUser {
   nameAr: string
   nameBn: string
   nameUr: string
-  role: 'owner' | 'admin' | 'staff'
+  role: 'owner' | 'admin' | 'staff' | 'accountant'
   companyId: string
   isActive: boolean
 }
@@ -269,12 +269,21 @@ export const useDataStore = create<DataState>()(
 
     // User Management
     generateRandomPassword: () => {
-      const chars = 'abcdefghijkmnpqrstuvwxyz23456789!@#'
-      let password = ''
-      for (let i = 0; i < 10; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length))
+      const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+      const lowercase = 'abcdefghijkmnpqrstuvwxyz'
+      const digits = '23456789'
+      const special = '!@#'
+      // Ensure at least one of each required category (password policy: min 8 chars, 1 uppercase, 1 number)
+      let password =
+        uppercase.charAt(Math.floor(Math.random() * uppercase.length)) +
+        digits.charAt(Math.floor(Math.random() * digits.length)) +
+        special.charAt(Math.floor(Math.random() * special.length))
+      const allChars = uppercase + lowercase + digits + special
+      for (let i = 3; i < 12; i++) {
+        password += allChars.charAt(Math.floor(Math.random() * allChars.length))
       }
-      return password
+      // Shuffle to avoid predictable positions
+      return password.split('').sort(() => Math.random() - 0.5).join('')
     },
 
     addUser: async (data) => {

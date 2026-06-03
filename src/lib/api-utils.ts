@@ -20,9 +20,9 @@ export async function getAuthUser() {
   }
 }
 
-// Check if user has financial access (owner or admin)
+// Check if user has financial access (owner, admin, or accountant)
 export function isFinancialUser(role: string): boolean {
-  return role === 'owner' || role === 'admin'
+  return role === 'owner' || role === 'admin' || role === 'accountant'
 }
 
 // Check if user is system admin (admin only — manages users/settings)
@@ -296,11 +296,11 @@ export function conflictResponse(message: string = 'Record was modified by anoth
 // ─── RBAC Helpers ───────────────────────────────────────────────
 
 /**
- * Check if the user role is owner or admin (financial user).
+ * Check if the user role is owner, admin, or accountant (financial user).
  * Used for write operations on Properties, Tenants, Expenses, etc.
  */
 export function isOwnerOrAdmin(role: string): boolean {
-  return role === 'owner' || role === 'admin'
+  return role === 'owner' || role === 'admin' || role === 'accountant'
 }
 
 // ─── Optimistic Concurrency Control ────────────────────────────

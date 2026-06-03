@@ -39,6 +39,14 @@ export async function PUT(
     const body = await request.json()
     const { email, name, nameAr, nameBn, nameUr, role, isActive } = body
 
+    // Validate role if being changed
+    if (role !== undefined) {
+      const validRoles = ['owner', 'admin', 'staff', 'accountant']
+      if (!validRoles.includes(role)) {
+        return errorResponse(`Invalid role. Must be one of: ${validRoles.join(', ')}`)
+      }
+    }
+
     // If email is being changed, check for uniqueness
     if (email && email !== existing.email) {
       const emailTaken = await prisma.user.findUnique({

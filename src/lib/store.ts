@@ -11,7 +11,7 @@ export interface AuthUser {
   nameAr?: string
   nameBn?: string
   nameUr?: string
-  role: 'owner' | 'admin' | 'staff'
+  role: 'owner' | 'admin' | 'staff' | 'accountant'
   companyId: string
   mustChangePassword?: boolean
 }
@@ -70,7 +70,7 @@ export const useAppStore = create<AppState>()(
 )
 
 export function isOwnerOrAdmin(role: string): boolean {
-  return role === 'owner' || role === 'admin'
+  return role === 'owner' || role === 'admin' || role === 'accountant'
 }
 
 export function isAdminOnly(role: string): boolean {

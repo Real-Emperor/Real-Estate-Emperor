@@ -31,6 +31,7 @@ import {
   Trash2,
   KeyRound,
   Copy,
+  Banknote,
   Eye,
   EyeOff,
   ShieldCheck,
@@ -69,7 +70,7 @@ export default function UserManagement() {
   const [newNameBn, setNewNameBn] = useState('')
   const [newNameUr, setNewNameUr] = useState('')
   const [newEmail, setNewEmail] = useState('')
-  const [newRole, setNewRole] = useState<'owner' | 'admin' | 'staff'>('staff')
+  const [newRole, setNewRole] = useState<'owner' | 'admin' | 'staff' | 'accountant'>('staff')
   const [newPassword, setNewPassword] = useState('')
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string; name: string } | null>(null)
 
@@ -79,7 +80,7 @@ export default function UserManagement() {
   const [editNameBn, setEditNameBn] = useState('')
   const [editNameUr, setEditNameUr] = useState('')
   const [editEmail, setEditEmail] = useState('')
-  const [editRole, setEditRole] = useState<'owner' | 'admin' | 'staff'>('staff')
+  const [editRole, setEditRole] = useState<'owner' | 'admin' | 'staff' | 'accountant'>('staff')
 
   // Reset password
   const [resetNewPassword, setResetNewPassword] = useState('')
@@ -91,43 +92,55 @@ export default function UserManagement() {
   const getRoleIcon = (role: string) => {
     if (role === 'admin') return <Shield className="w-4 h-4 text-purple-600" />
     if (role === 'owner') return <ShieldCheck className="w-4 h-4 text-emerald-600" />
+    if (role === 'accountant') return <Banknote className="w-4 h-4 text-blue-600" />
     return <User className="w-4 h-4 text-muted-foreground" />
   }
 
   const getRoleLabel = (role: string) => {
     if (role === 'owner') return t('ownerRole', lang)
     if (role === 'admin') return t('adminRole', lang)
+    if (role === 'accountant') return t('accountantRole', lang)
     return t('staffRole', lang)
   }
 
   const getRoleBadgeClass = (role: string) => {
     if (role === 'admin') return 'bg-purple-100 text-purple-700 border-purple-200'
     if (role === 'owner') return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+    if (role === 'accountant') return 'bg-blue-100 text-blue-700 border-blue-200'
     return 'bg-gray-100 text-gray-700 border-gray-200'
   }
 
-  const handleAddUser = () => {
+  const [addError, setAddError] = useState('')
+  const [editError, setEditError] = useState('')
+
+  const handleAddUser = async () => {
     if (users.some(u => u.email === newEmail)) {
       alert(t('emailAlreadyExists', lang))
       return
     }
 
+    setAddError('')
     const password = newPassword || generateRandomPassword()
-    const user = addUser({
-      email: newEmail,
-      password,
-      name: newName,
-      nameAr: newNameAr,
-      nameBn: newNameBn,
-      nameUr: newNameUr,
-      role: newRole,
-      companyId: 'company-1',
-    })
 
-    setCreatedCredentials({ email: newEmail, password, name: newName })
-    setShowCredentialsDialog(true)
-    setShowAddDialog(false)
-    resetAddForm()
+    try {
+      await addUser({
+        email: newEmail,
+        password,
+        name: newName,
+        nameAr: newNameAr,
+        nameBn: newNameBn,
+        nameUr: newNameUr,
+        role: newRole,
+        companyId: 'company-1',
+      })
+
+      setCreatedCredentials({ email: newEmail, password, name: newName })
+      setShowCredentialsDialog(true)
+      setShowAddDialog(false)
+      resetAddForm()
+    } catch (error: any) {
+      setAddError(error.message || (lang === 'en' ? 'Failed to create user' : 'فشل إنشاء المستخدم'))
+    }
   }
 
   const resetAddForm = () => {
@@ -138,24 +151,30 @@ export default function UserManagement() {
     setNewEmail('')
     setNewRole('staff')
     setNewPassword('')
+    setAddError('')
   }
 
-  const handleEditUser = () => {
+  const handleEditUser = async () => {
     if (!selectedUser) return
     if (editEmail !== selectedUser.email && users.some(u => u.email === editEmail)) {
       alert(t('emailAlreadyExists', lang))
       return
     }
-    updateUser(selectedUser.id, {
-      name: editName,
-      nameAr: editNameAr,
-      nameBn: editNameBn,
-      nameUr: editNameUr,
-      email: editEmail,
-      role: editRole,
-    })
-    setShowEditDialog(false)
-    setSelectedUser(null)
+    setEditError('')
+    try {
+      await updateUser(selectedUser.id, {
+        name: editName,
+        nameAr: editNameAr,
+        nameBn: editNameBn,
+        nameUr: editNameUr,
+        email: editEmail,
+        role: editRole,
+      })
+      setShowEditDialog(false)
+      setSelectedUser(null)
+    } catch (error: any) {
+      setEditError(error.message || (lang === 'en' ? 'Failed to update user' : 'فشل تحديث المستخدم'))
+    }
   }
 
   const handleDeleteUser = () => {
@@ -576,13 +595,14 @@ export default function UserManagement() {
             </div>
             <div>
               <Label>{t('role', lang)} *</Label>
-              <Select value={newRole} onValueChange={(v) => setNewRole(v as 'owner' | 'admin' | 'staff')}>
+              <Select value={newRole} onValueChange={(v) => setNewRole(v as 'owner' | 'admin' | 'staff' | 'accountant')}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="owner">{t('ownerRole', lang)}</SelectItem>
                   <SelectItem value="admin">{t('adminRole', lang)}</SelectItem>
+                  <SelectItem value="accountant">{t('accountantRole', lang)}</SelectItem>
                   <SelectItem value="staff">{t('staffRole', lang)}</SelectItem>
                 </SelectContent>
               </Select>
@@ -603,8 +623,14 @@ export default function UserManagement() {
               </div>
             </div>
           </div>
+          {addError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              {addError}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>{t('cancel', lang)}</Button>
+            <Button variant="outline" onClick={() => { setShowAddDialog(false); setAddError('') }}>{t('cancel', lang)}</Button>
             <Button onClick={handleAddUser} disabled={!newName || !newEmail} className="bg-deep-teal hover:bg-deep-teal/90 text-white">
               {t('addNewUser', lang)}
             </Button>
@@ -648,20 +674,27 @@ export default function UserManagement() {
             </div>
             <div>
               <Label>{t('role', lang)} *</Label>
-              <Select value={editRole} onValueChange={(v) => setEditRole(v as 'owner' | 'admin' | 'staff')}>
+              <Select value={editRole} onValueChange={(v) => setEditRole(v as 'owner' | 'admin' | 'staff' | 'accountant')}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="owner">{t('ownerRole', lang)}</SelectItem>
                   <SelectItem value="admin">{t('adminRole', lang)}</SelectItem>
+                  <SelectItem value="accountant">{t('accountantRole', lang)}</SelectItem>
                   <SelectItem value="staff">{t('staffRole', lang)}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
+          {editError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              {editError}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>{t('cancel', lang)}</Button>
+            <Button variant="outline" onClick={() => { setShowEditDialog(false); setEditError('') }}>{t('cancel', lang)}</Button>
             <Button onClick={handleEditUser} disabled={!editName || !editEmail} className="bg-blue-600 hover:bg-blue-700 text-white">
               {t('save', lang)}
             </Button>

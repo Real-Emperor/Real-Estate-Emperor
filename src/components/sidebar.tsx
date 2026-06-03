@@ -59,12 +59,14 @@ export default function Sidebar() {
   const getRoleIcon = (role: string) => {
     if (role === 'admin') return <Shield className="w-3 h-3" />
     if (role === 'owner') return <ShieldCheck className="w-3 h-3" />
+    if (role === 'accountant') return <Banknote className="w-3 h-3" />
     return <User className="w-3 h-3" />
   }
 
   const getRoleLabel = (role: string) => {
     if (role === 'owner') return t('ownerRole', language)
     if (role === 'admin') return t('adminRole', language)
+    if (role === 'accountant') return t('accountantRole', language)
     return t('staffRole', language)
   }
 

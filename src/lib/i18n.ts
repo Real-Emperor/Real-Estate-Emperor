@@ -30,6 +30,7 @@ export const translations = {
   logout: { en: 'Sign Out', ar: 'تسجيل الخروج', bn: 'সাইন আউট', ur: 'خروج' },
   ownerRole: { en: 'Owner', ar: 'المالك', bn: 'মালিক', ur: 'مالک' },
   adminRole: { en: 'Admin', ar: 'المدير', bn: 'প্রশাসক', ur: 'ناظم' },
+  accountantRole: { en: 'Accountant', ar: 'المحاسب', bn: 'হিসাবরক্ষক', ur: 'اکاؤنٹنٹ' },
   staffRole: { en: 'Staff', ar: 'الموظف', bn: 'কর্মচারী', ur: 'ملازم' },
 
   // Navigation

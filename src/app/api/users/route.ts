@@ -80,6 +80,12 @@ export async function POST(request: Request) {
       return errorResponse('Email, password, and name are required')
     }
 
+    // Validate role is one of the allowed values
+    const validRoles = ['owner', 'admin', 'staff', 'accountant']
+    if (role && !validRoles.includes(role)) {
+      return errorResponse(`Invalid role. Must be one of: ${validRoles.join(', ')}`)
+    }
+
     // Password policy: minimum 8 chars, at least 1 uppercase, 1 number
     if (password.length < 8) {
       return errorResponse('Password must be at least 8 characters long')
