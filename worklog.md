@@ -90,3 +90,28 @@ Stage Summary:
 - Vercel deployment successful and validated
 - Health endpoint: {"status":"healthy","database":{"status":"healthy","latencyMs":747},"environment":{"status":"healthy"}}
 - Security headers: CSP, X-Frame-Options, HSTS, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Add Accountant Role + Fix User Creation Bug
+
+Work Log:
+- Investigated complete codebase: role system, permission helpers, user creation flow, UI components
+- Identified root cause of user creation bug: generateRandomPassword() missing uppercase letters + handleAddUser() not awaiting API call
+- Added 'accountant' role to all TypeScript union types (AuthUser, LocalUser)
+- Updated permission helpers: isOwnerOrAdmin, isFinancialUser to include 'accountant'
+- Added accountant to UI: role dropdowns, role icons (Banknote), badge classes (blue), labels
+- Added i18n translations: EN=Accountant, AR=المحاسب, BN=হিসাবরক্ষক, UR=اکاؤنٹنٹ
+- Fixed generateRandomPassword: now ensures 1 uppercase + 1 digit + 1 special char
+- Fixed handleAddUser: made async with try/catch, added error state display
+- Fixed handleEditUser: made async with try/catch, added error state display
+- Added role validation whitelist on POST/PUT /api/users endpoints
+- Updated Prisma schema comment to document accountant role
+- Committed and pushed to GitHub, Vercel auto-deployed successfully (READY/PROMOTED)
+
+Stage Summary:
+- Accountant role fully implemented with Owner-level financial permissions (no admin access)
+- User creation bug fixed: passwords now comply with policy, errors displayed properly
+- API hardened: role validation on create/update user endpoints
+- Deployment: commit 98d73e0 live on al-reef-al-junoobi.vercel.app
