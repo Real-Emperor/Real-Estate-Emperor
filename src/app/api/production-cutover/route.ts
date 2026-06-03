@@ -1,3 +1,4 @@
+import { NextRequest } from 'next/server'
 import prisma from '@/lib/db'
 import {
   getAuthUser,
@@ -9,18 +10,35 @@ import {
 } from '@/lib/api-utils'
 
 // POST /api/production-cutover — Remove all demo data and update company identity
-// Only owner/admin can execute this. Irreversible.
-export async function POST() {
+// Auth: NextAuth session (owner/admin) OR CRON_SECRET Bearer token (programmatic access)
+export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthUser()
-    if (!user) return unauthorizedResponse()
+    // Check for CRON_SECRET auth first (programmatic access)
+    const authHeader = request.headers.get('authorization')
+    const isCronAuth = authHeader === `Bearer ${process.env.CRON_SECRET}`
 
-    // Only owner or admin can execute cutover
-    if (user.role !== 'owner' && user.role !== 'admin') {
-      return forbiddenResponse('Only owners and admins can execute production cutover')
+    let companyId: string
+    let userId: string
+
+    if (isCronAuth) {
+      // Programmatic access via CRON_SECRET — find the first owner/admin company
+      const ownerUser = await prisma.user.findFirst({
+        where: { role: { in: ['owner', 'admin'] } },
+        select: { id: true, companyId: true },
+      })
+      if (!ownerUser) return unauthorizedResponse()
+      companyId = ownerUser.companyId
+      userId = ownerUser.id
+    } else {
+      // Session-based auth
+      const user = await getAuthUser()
+      if (!user) return unauthorizedResponse()
+      if (user.role !== 'owner' && user.role !== 'admin') {
+        return forbiddenResponse('Only owners and admins can execute production cutover')
+      }
+      companyId = user.companyId
+      userId = user.id
     }
-
-    const companyId = user.companyId
 
     // ═══ DELETE ALL DEMO DATA IN CORRECT ORDER (respecting foreign keys) ═══
     
@@ -78,7 +96,7 @@ export async function POST() {
       action: 'DELETE',
       entity: 'Company',
       entityId: companyId,
-      userId: user.id,
+      userId,
       companyId,
       details: JSON.stringify({
         operation: 'PRODUCTION_CUTOVER',
