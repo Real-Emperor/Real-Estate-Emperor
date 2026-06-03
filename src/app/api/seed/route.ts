@@ -51,10 +51,10 @@ export async function POST() {
     const building1 = await prisma.property.create({
       data: {
         companyId,
-        name: 'Al Reef Al Junoobi - Building 1',
-        nameAr: 'الريف الجنوبي - المبنى 1',
-        nameBn: 'আল রিফ আল জুনুবি - ভবন ১',
-        nameUr: 'الریف الجنوبی - عمارت 1',
+        name: 'Al Reef Al Madeena - Building 1',
+        nameAr: 'الريف المدينة - المبنى 1',
+        nameBn: 'আল রিফ আল মাদিনা - ভবন ১',
+        nameUr: 'الریف المدینہ - عمارت 1',
         type: 'apartment',
         address: 'Street 5, Khalifa City A, Abu Dhabi',
         totalUnits: 15,
@@ -65,10 +65,10 @@ export async function POST() {
     const building2 = await prisma.property.create({
       data: {
         companyId,
-        name: 'Al Reef Al Junoobi - Building 2',
-        nameAr: 'الريف الجنوبي - المبنى 2',
-        nameBn: 'আল রিফ আল জুনুবি - ভবন ২',
-        nameUr: 'الریف الجنوبی - عمارت 2',
+        name: 'Al Reef Al Madeena - Building 2',
+        nameAr: 'الريف المدينة - المبنى 2',
+        nameBn: 'আল রিফ আল মাদিনা - ভবন ২',
+        nameUr: 'الریف المدینہ - عمارت 2',
         type: 'apartment',
         address: 'Street 7, Khalifa City A, Abu Dhabi',
         totalUnits: 14,
@@ -116,7 +116,7 @@ export async function POST() {
     // ═══════════════════════════════════════════════════════════
 
     const tenantsData = [
-      // ── Al Reef Al Junoobi - Building 1 (10 tenants) ──
+      // ── Al Reef Al Madeena - Building 1 (10 tenants) ──
       { name: 'Muhammad Ali', nameAr: 'محمد علي', nameBn: 'মুহাম্মদ আলী', nameUr: 'محمد علی', phone: '050-588-9844', whatsapp: '050-588-9844', emiratesId: '784-1990-1234567-1', nationality: 'Pakistani', employer: 'Emirates NBD', unitNumber: '101', unitType: 'studio', floor: 1, sizeSqft: 440, rentAmount: 1800, paymentMethod: 'bank_transfer', latePaymentCount: 0, tenantScore: 97, propertyId: building1.id, leaseStart: new Date(currentYear - 1, 0, 1), leaseEnd: new Date(currentYear + 1, 11, 31), contractDuration: 36, status: 'active' },
       { name: 'Ahmed Khan', nameAr: 'أحمد خان', nameBn: 'আহমেদ খান', nameUr: 'احمد خان', phone: '050-501-5342', whatsapp: '050-501-5342', emiratesId: '784-1988-2345678-2', nationality: 'Pakistani', employer: 'Lulu Group', unitNumber: '102', unitType: 'studio', floor: 1, sizeSqft: 444, rentAmount: 1500, paymentMethod: 'cheque', latePaymentCount: 1, tenantScore: 85, propertyId: building1.id, leaseStart: new Date(currentYear - 1, 2, 1), leaseEnd: new Date(currentYear + 1, 1, 28), contractDuration: 24, status: 'active' },
       { name: 'Fatima Noor', nameAr: 'فاطمة نور', nameBn: 'ফাতিমা নূর', nameUr: 'فاطمہ نور', phone: '050-295-6577', whatsapp: '050-295-6577', emiratesId: '784-1995-3456789-3', nationality: 'Syrian', employer: 'Abu Dhabi Municipality', unitNumber: '103', unitType: 'studio', floor: 1, sizeSqft: 448, rentAmount: 1700, paymentMethod: 'bank_transfer', latePaymentCount: 2, tenantScore: 72, propertyId: building1.id, leaseStart: new Date(currentYear - 1, 5, 1), leaseEnd: new Date(currentYear, 4, 30), contractDuration: 12, status: 'active' },
@@ -128,7 +128,7 @@ export async function POST() {
       { name: 'Hassan Al Farsi', nameAr: 'حسن الفارسي', nameBn: 'হাসান আল ফারসি', nameUr: 'حسن الفارسی', phone: '050-268-5177', whatsapp: '050-268-5177', emiratesId: '784-1985-9012345-9', nationality: 'Emirati', employer: 'ADNOC', unitNumber: '302', unitType: '2bedroom', floor: 3, sizeSqft: 1150, rentAmount: 4200, paymentMethod: 'bank_transfer', latePaymentCount: 0, tenantScore: 96, propertyId: building1.id, leaseStart: new Date(currentYear - 1, 1, 1), leaseEnd: new Date(currentYear + 2, 0, 31), contractDuration: 36, status: 'active' },
       { name: 'Nadia Al Suwaidi', nameAr: 'نادية السويدي', nameBn: 'নাদিয়া আল সুওয়াইদি', nameUr: 'نادیہ السویدی', phone: '050-778-3344', whatsapp: '050-778-3344', emiratesId: '784-1994-0123456-0', nationality: 'Emirati', employer: 'Abu Dhabi Council', unitNumber: '401', unitType: '1bedroom', floor: 4, sizeSqft: 720, rentAmount: 2500, paymentMethod: 'bank_transfer', latePaymentCount: 0, tenantScore: 99, propertyId: building1.id, leaseStart: new Date(currentYear - 0, 0, 1), leaseEnd: new Date(currentYear + 1, 11, 31), contractDuration: 24, status: 'active' },
 
-      // ── Al Reef Al Junoobi - Building 2 (9 tenants) ──
+      // ── Al Reef Al Madeena - Building 2 (9 tenants) ──
       { name: 'Habibur Rahman', nameAr: 'حبيب الرحمن', nameBn: 'হাবিবুর রহমান', nameUr: 'حب الرحمن', phone: '050-217-6593', whatsapp: '050-217-6593', emiratesId: '784-1996-1122334-1', nationality: 'Bangladeshi', employer: 'Al Reef Maintenance', unitNumber: '107', unitType: 'studio', floor: 1, sizeSqft: 460, rentAmount: 1400, paymentMethod: 'cash', latePaymentCount: 2, tenantScore: 70, propertyId: building2.id, leaseStart: new Date(currentYear - 1, 0, 1), leaseEnd: new Date(currentYear + 0, 11, 31), contractDuration: 24, status: 'active' },
       { name: 'Rizwan Ahmed', nameAr: 'رضوان أحمد', nameBn: 'রিজওয়ান আহমেদ', nameUr: 'رضوان احمد', phone: '050-657-2469', whatsapp: '050-657-2469', emiratesId: '784-1996-2233445-2', nationality: 'Pakistani', employer: 'Etihad Airways', unitNumber: '108', unitType: 'studio', floor: 1, sizeSqft: 465, rentAmount: 1900, paymentMethod: 'bank_transfer', latePaymentCount: 1, tenantScore: 82, propertyId: building2.id, leaseStart: new Date(currentYear - 1, 4, 1), leaseEnd: new Date(currentYear + 1, 3, 30), contractDuration: 24, status: 'active' },
       { name: 'Amina Khatun', nameAr: 'أمينة خاتون', nameBn: 'আমিনা খাতুন', nameUr: 'امینہ خاتون', phone: '050-112-3344', whatsapp: '050-112-3344', emiratesId: '784-1997-3344556-3', nationality: 'Bangladeshi', employer: 'Emirates Hospital', unitNumber: '201', unitType: '1bedroom', floor: 2, sizeSqft: 730, rentAmount: 2400, paymentMethod: 'cash', latePaymentCount: 0, tenantScore: 100, propertyId: building2.id, leaseStart: new Date(currentYear - 1, 0, 1), leaseEnd: new Date(currentYear + 1, 11, 31), contractDuration: 36, status: 'active' },
@@ -381,13 +381,13 @@ export async function POST() {
       { category: 'utilities', description: 'Gas supply - March', amount: 1200, vendor: 'ADNOC Gas', invoiceNumber: 'GAS-5501', recurring: true, building: 'All Buildings' },
 
       // Maintenance - mix of recurring and one-time
-      { category: 'maintenance', description: 'AC repair B-108', amount: 380, vendor: 'CoolTech Services', invoiceNumber: 'INV-2010', recurring: false, building: 'Al Reef Al Junoobi - Building 2' },
-      { category: 'maintenance', description: 'Elevator maintenance - Al Reef Building 1', amount: 1800, vendor: 'Schindler Elevators', invoiceNumber: 'INV-2030', recurring: true, building: 'Al Reef Al Junoobi - Building 1' },
-      { category: 'maintenance', description: 'Painting - Hallway Al Reef Building 1', amount: 3200, vendor: 'ColorPro Painters', invoiceNumber: 'INV-2031', recurring: false, building: 'Al Reef Al Junoobi - Building 1' },
+      { category: 'maintenance', description: 'AC repair B-108', amount: 380, vendor: 'CoolTech Services', invoiceNumber: 'INV-2010', recurring: false, building: 'Al Reef Al Madeena - Building 2' },
+      { category: 'maintenance', description: 'Elevator maintenance - Al Reef Building 1', amount: 1800, vendor: 'Schindler Elevators', invoiceNumber: 'INV-2030', recurring: true, building: 'Al Reef Al Madeena - Building 1' },
+      { category: 'maintenance', description: 'Painting - Hallway Al Reef Building 1', amount: 3200, vendor: 'ColorPro Painters', invoiceNumber: 'INV-2031', recurring: false, building: 'Al Reef Al Madeena - Building 1' },
       { category: 'maintenance', description: 'Plumbing repair - Reef Madeena Bldg 1', amount: 750, vendor: 'Al Fix Plumbing', invoiceNumber: 'INV-2040', recurring: false, building: 'Reef Al Madeena - Building 1' },
       { category: 'maintenance', description: 'Elevator maintenance - Reef Madeena Bldg 1', amount: 1600, vendor: 'Schindler Elevators', invoiceNumber: 'INV-2032', recurring: true, building: 'Reef Al Madeena - Building 1' },
       { category: 'maintenance', description: 'Elevator maintenance - Reef Madeena Bldg 2', amount: 1500, vendor: 'Schindler Elevators', invoiceNumber: 'INV-2033', recurring: true, building: 'Reef Al Madeena - Building 2' },
-      { category: 'maintenance', description: 'Elevator maintenance - Al Reef Building 2', amount: 1700, vendor: 'Schindler Elevators', invoiceNumber: 'INV-2034', recurring: true, building: 'Al Reef Al Junoobi - Building 2' },
+      { category: 'maintenance', description: 'Elevator maintenance - Al Reef Building 2', amount: 1700, vendor: 'Schindler Elevators', invoiceNumber: 'INV-2034', recurring: true, building: 'Al Reef Al Madeena - Building 2' },
 
       // Leasing Commission
       { category: 'leasing', description: 'Leasing commission - 2 new tenants', amount: 4600, vendor: 'Al Reef Leasing', invoiceNumber: 'INV-2020', recurring: false, building: 'All Buildings' },

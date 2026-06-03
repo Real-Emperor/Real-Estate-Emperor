@@ -166,10 +166,10 @@ export default function BillInvoice({
     pdf.rect(0, 0, pageWidth, 35, 'F')
     pdf.setTextColor(255, 255, 255)
     pdf.setFontSize(18)
-    pdf.text('Al Reef Al Junoobi', margin, 15)
+    pdf.text('Al Reef Al Madeena', margin, 15)
     pdf.setFontSize(9)
-    pdf.text('Real Estate & General Maintenance L.L.C.', margin, 22)
-    pdf.text(`Tel: +971-2-555-0100 | Email: info@alreefjunoobi.ae`, margin, 28)
+    pdf.text('Real Estate Management and General Maintenance - L.L.C - S.P.C', margin, 22)
+    pdf.text(`Tel: +971504225590 | Email: alreef.junoobi@gmail.com`, margin, 28)
 
     // Invoice title
     pdf.setFontSize(22)
@@ -301,8 +301,8 @@ export default function BillInvoice({
     const pageHeight = pdf.internal.pageSize.getHeight()
     pdf.setFontSize(7)
     pdf.setTextColor(150, 150, 150)
-    pdf.text('Al Reef Al Junoobi Real Estate & General Maintenance L.L.C. | Khalifa City A, Abu Dhabi, UAE', pageWidth / 2, pageHeight - 8, { align: 'center' })
-    pdf.text('Thank you for your payment. For questions, contact info@alreefjunoobi.ae or +971-2-555-0100', pageWidth / 2, pageHeight - 4, { align: 'center' })
+    pdf.text('Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C | Near LuLu Muraba\'a, Al Ain City, Abu Dhabi, UAE', pageWidth / 2, pageHeight - 8, { align: 'center' })
+    pdf.text('Thank you for your payment. For questions, contact alreef.junoobi@gmail.com or +971504225590', pageWidth / 2, pageHeight - 4, { align: 'center' })
 
     pdf.save(`${invoiceNumber}.pdf`)
   }
@@ -341,17 +341,17 @@ export default function BillInvoice({
         <div className="flex justify-between items-start border-b-2 border-emerald-600 pb-4 mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-10 h-10 rounded bg-emerald-600 flex items-center justify-center text-white font-bold text-lg">AR</div>
+              <div className="w-10 h-10 rounded bg-emerald-600 flex items-center justify-center text-white font-bold text-lg">AM</div>
               <div>
-                <h1 className="text-xl font-bold text-emerald-700">Al Reef Al Junoobi</h1>
-                <p className="text-xs text-gray-500">Real Estate & General Maintenance L.L.C.</p>
+                <h1 className="text-xl font-bold text-emerald-700">Al Reef Al Madeena</h1>
+                <p className="text-xs text-gray-500">Real Estate Management and General Maintenance - L.L.C - S.P.C</p>
               </div>
             </div>
             <div className="text-xs text-gray-500 mt-2 space-y-0.5">
-              <p>Khalifa City A, Abu Dhabi, UAE</p>
-              <p>Tel: +971-2-555-0100 | Email: info@alreefjunoobi.ae</p>
+              <p>Near LuLu Muraba'a, Al Ain City, Abu Dhabi, UAE</p>
+              <p>Tel: +971504225590 / +971568452161 | Email: alreef.junoobi@gmail.com</p>
               <p>{t('taxId', language)}: 300000000000003</p>
-              <p>{t('commercialLicense', language)}: CN-1234567</p>
+              <p>{t('commercialLicense', language)}: CN-6177648</p>
             </div>
           </div>
           <div className="text-right">
@@ -465,8 +465,8 @@ export default function BillInvoice({
 
         {/* Footer */}
         <div className="border-t border-gray-200 pt-4 text-center text-xs text-gray-400">
-          <p>Al Reef Al Junoobi Real Estate & General Maintenance L.L.C. | Khalifa City A, Abu Dhabi, UAE</p>
-          <p>Thank you for your payment. For questions, contact info@alreefjunoobi.ae or +971-2-555-0100</p>
+          <p>Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C | Near LuLu Muraba'a, Al Ain City, Abu Dhabi, UAE</p>
+          <p>Thank you for your payment. For questions, contact alreef.junoobi@gmail.com or +971504225590</p>
         </div>
       </div>
 

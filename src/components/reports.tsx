@@ -168,9 +168,9 @@ export default function Reports() {
       pdf.rect(0, 0, pageWidth, 50, 'F')
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(24)
-      pdf.text('Al Reef Al Junoobi', pageWidth / 2, 20, { align: 'center' })
+      pdf.text('Al Reef Al Madeena', pageWidth / 2, 20, { align: 'center' })
       pdf.setFontSize(12)
-      pdf.text('Real Estate & General Maintenance L.L.C.', pageWidth / 2, 30, { align: 'center' })
+      pdf.text('Real Estate Management and General Maintenance - L.L.C - S.P.C', pageWidth / 2, 30, { align: 'center' })
       pdf.setFontSize(16)
       pdf.text(`${t('financialSummary', lang)} - ${monthName} ${selectedYear}`, pageWidth / 2, 42, { align: 'center' })
 
@@ -310,7 +310,7 @@ export default function Reports() {
         pdf.setPage(i)
         pdf.setFontSize(7)
         pdf.setTextColor(150, 150, 150)
-        pdf.text(`Al Reef Al Junoobi Real Estate | ${monthName} ${selectedYear} Report | Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' })
+        pdf.text(`Al Reef Al Madeena Real Estate | ${monthName} ${selectedYear} Report | Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' })
       }
 
       pdf.save(`Al_Reef_Report_${monthName}_${selectedYear}.pdf`)

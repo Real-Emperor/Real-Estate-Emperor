@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Banknote, MessageCircle, Check, AlertTriangle, Clock, Loader2, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
+import { Banknote, MessageCircle, Check, AlertTriangle, Clock, Loader2, ChevronLeft, ChevronRight, FileText, Search } from 'lucide-react'
 import BillInvoice from '@/components/bill-invoice'
 
 export default function RentCollection() {
@@ -35,6 +35,29 @@ export default function RentCollection() {
   const [whatsappLangDialogOpen, setWhatsappLangDialogOpen] = useState(false)
   const [whatsappTargetTenant, setWhatsappTargetTenant] = useState<TenantData | null>(null)
   const [whatsappRemindAll, setWhatsappRemindAll] = useState(false)
+
+  // Invoice search
+  const [invoiceSearch, setInvoiceSearch] = useState('')
+  const [invoiceSearchResults, setInvoiceSearchResults] = useState<any[] | null>(null)
+  const [invoiceSearching, setInvoiceSearching] = useState(false)
+  const [invoiceSearchOpen, setInvoiceSearchOpen] = useState(false)
+
+  const searchInvoice = async () => {
+    if (!invoiceSearch.trim() || invoiceSearch.trim().length < 2) return
+    setInvoiceSearching(true)
+    try {
+      const res = await fetch(`/api/invoices/search?q=${encodeURIComponent(invoiceSearch.trim())}`)
+      const data = await res.json()
+      if (data.success) {
+        setInvoiceSearchResults(data.data.results)
+        setInvoiceSearchOpen(true)
+      }
+    } catch (e) {
+      console.error('Invoice search failed:', e)
+    } finally {
+      setInvoiceSearching(false)
+    }
+  }
 
   const canSeeRevenue = isOwnerOrAdmin(authUser?.role || '')
 
@@ -182,10 +205,26 @@ export default function RentCollection() {
         <div>
           <h1 className="text-2xl font-bold">{t('rentCollection', language)}</h1>
         </div>
-        <Button onClick={openRemindAllDialog} variant="outline" className="border-emerald text-emerald hover:bg-emerald/10">
-          <MessageCircle className="w-4 h-4 mr-2" />
-          {t('remindAllUnpaid', language)}
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-white rounded-lg border px-2 py-1">
+            <Search className="w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder={t('searchInvoice', language) || 'Search Invoice #'}
+              value={invoiceSearch}
+              onChange={e => setInvoiceSearch(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && searchInvoice()}
+              className="border-0 outline-none text-sm w-32 lg:w-48 bg-transparent"
+            />
+            <Button size="sm" onClick={searchInvoice} disabled={invoiceSearching} className="h-7 px-2 bg-emerald hover:bg-emerald/90 text-white">
+              {invoiceSearching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+            </Button>
+          </div>
+          <Button onClick={openRemindAllDialog} variant="outline" className="border-emerald text-emerald hover:bg-emerald/10">
+            <MessageCircle className="w-4 h-4 mr-2" />
+            {t('remindAllUnpaid', language)}
+          </Button>
+        </div>
       </div>
 
       {/* Month Selector */}
@@ -508,6 +547,63 @@ export default function RentCollection() {
                 {t('sendBengali', language)}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice Search Results Dialog */}
+      <Dialog open={invoiceSearchOpen} onOpenChange={setInvoiceSearchOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5 text-emerald-600" />
+              {t('searchInvoice', language) || 'Invoice Search'} — {invoiceSearch}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {invoiceSearchResults && invoiceSearchResults.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                {t('noResults', language)}
+              </div>
+            )}
+            {invoiceSearchResults && invoiceSearchResults.map((result: any, idx: number) => (
+              <div key={idx} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={result.type === 'tenant_invoice' ? 'default' : 'secondary'} className={result.type === 'tenant_invoice' ? 'bg-emerald text-white' : ''}>
+                        {result.type === 'tenant_invoice' ? t('invoice', language) || 'Invoice' : t('expenses', language) || 'Expense'}
+                      </Badge>
+                      <span className="font-mono font-bold text-sm">{result.invoiceNumber}</span>
+                    </div>
+                    <p className="text-sm text-gray-700 mt-1">{result.description}</p>
+                  </div>
+                  <div className="text-right">
+                    {canSeeRevenue && <p className="font-bold text-sm">{formatAED(result.amount)}</p>}
+                    <Badge className={cn2('text-xs', getPaymentStatusColor(result.paymentStatus))}>
+                      {result.paymentStatus === 'paid' && (t('paid', language) || 'Paid')}
+                      {result.paymentStatus === 'partial' && (t('partial', language) || 'Partial')}
+                      {result.paymentStatus === 'overdue' && (t('overdue', language) || 'Overdue')}
+                      {result.paymentStatus === 'unpaid' && (t('unpaid', language) || 'Unpaid')}
+                      {result.paymentStatus === 'due-soon' && (t('dueSoon', language) || 'Due Soon')}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  {result.tenantName && <span>{result.tenantName}</span>}
+                  {result.propertyName && <span>{result.propertyName}</span>}
+                  {result.unitNumber && <span>{t('unitNumber', language)}: {result.unitNumber}</span>}
+                  {result.vendor && <span>{t('vendor', language)}: {result.vendor}</span>}
+                  {result.building && <span>{result.building}</span>}
+                </div>
+                {result.paidAmount !== undefined && canSeeRevenue && (
+                  <div className="flex gap-4 mt-2 text-xs">
+                    <span className="text-emerald-600">{t('paid', language)}: {formatAED(result.paidAmount)}</span>
+                    {result.remaining > 0 && <span className="text-red-600">{t('remaining', language)}: {formatAED(result.remaining)}</span>}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </DialogContent>
       </Dialog>

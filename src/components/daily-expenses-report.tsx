@@ -239,11 +239,11 @@ export default function DailyExpensesReport() {
       // Company name
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(22)
-      pdf.text('Al Reef Al Junoobi', m, 18)
+      pdf.text('Al Reef Al Madeena', m, 18)
       pdf.setFontSize(10)
-      pdf.text('Real Estate & General Maintenance L.L.C.', m, 26)
+      pdf.text('Real Estate Management and General Maintenance - L.L.C - S.P.C', m, 26)
       pdf.setFontSize(9)
-      pdf.text('Street 5, Khalifa City A, Abu Dhabi, UAE', m, 33)
+      pdf.text("Near LuLu Muraba'a, Al Ain City, Abu Dhabi, UAE", m, 33)
 
       // Report title — right aligned
       pdf.setFontSize(18)
@@ -444,7 +444,7 @@ export default function DailyExpensesReport() {
       pdf.rect(0, 0, pw, 14, 'F')
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(9)
-      pdf.text('Al Reef Al Junoobi', m, 9)
+      pdf.text('Al Reef Al Madeena', m, 9)
       pdf.setFontSize(8)
       pdf.text(`${t('dailyExpensesReport', lang)} — ${formatDate(selectedDate + 'T00:00:00.000Z')}`, pw - m, 9, { align: 'right' })
       y = 22
@@ -616,7 +616,7 @@ export default function DailyExpensesReport() {
         drawLine(m, ph - 12, pw - m, ph - 12, '#E5E7EB', 0.3)
         pdf.setFontSize(6.5)
         pdf.setTextColor(150, 150, 150)
-        pdf.text(`Al Reef Al Junoobi Real Estate & General Maintenance L.L.C. | ${t('dailyExpensesReport', lang)} | ${formatDate(selectedDate + 'T00:00:00.000Z')}`, m, ph - 7)
+        pdf.text(`Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C | ${t('dailyExpensesReport', lang)} | ${formatDate(selectedDate + 'T00:00:00.000Z')}`, m, ph - 7)
         pdf.text(`Page ${i} of ${totalPages}`, pw - m, ph - 7, { align: 'right' })
         pdf.text('CONFIDENTIAL', pw / 2, ph - 7, { align: 'center' })
       }
@@ -645,7 +645,7 @@ export default function DailyExpensesReport() {
       // ─── SHEET 1: EXECUTIVE SUMMARY ───
       const summaryRows: any[][] = [
         // Row 1: Company name (merged visually)
-        [company.name || 'Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.'],
+        [company.name || 'Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C'],
         // Row 2: Report title
         [t('dailyExpensesReport', lang).toUpperCase()],
         // Row 3: Date
