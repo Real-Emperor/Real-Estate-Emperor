@@ -91,7 +91,7 @@ export default function LoginPage() {
           <p className="text-white/70 text-lg mb-8">
             {t('loginSubtitle', language)}
           </p>
-          <div className="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/10 max-w-sm">
+          <div className="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/10 max-w-sm mx-auto">
             <Shield className="w-8 h-8 text-gold mx-auto mb-3" />
             <p className="text-white/80 text-sm">
               {language === 'en' && 'Secure access with role-based permissions. Staff cannot view financial data.'}
