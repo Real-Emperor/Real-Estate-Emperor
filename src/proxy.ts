@@ -67,6 +67,11 @@ export default auth((req) => {
     return addSecurityHeaders(NextResponse.next())
   }
 
+  // Allow production cutover endpoint (has its own CRON_SECRET auth)
+  if (pathname === '/api/production-cutover') {
+    return addSecurityHeaders(NextResponse.next())
+  }
+
 
   // Allow public assets
   if (
