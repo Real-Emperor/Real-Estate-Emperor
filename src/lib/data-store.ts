@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { PropertyData, TenantData, PaymentData, ExpenseData, MaintenanceData } from '@/lib/types'
+import type { PropertyData, TenantData, PaymentData, ExpenseData, MaintenanceData, ReservationData } from '@/lib/types'
 
 // Company info
 export interface CompanyInfo {
@@ -48,6 +48,7 @@ interface DataState {
   payments: PaymentData[]
   expenses: ExpenseData[]
   maintenanceItems: MaintenanceData[]
+  reservations: ReservationData[]
   isSeeded: boolean
   isLoading: boolean
   isInitialized: boolean
@@ -55,6 +56,13 @@ interface DataState {
   // Data fetching
   fetchAllData: () => Promise<void>
   refreshAllData: () => Promise<void>
+
+  // Reservations CRUD
+  addReservation: (data: any) => Promise<void>
+  updateReservation: (id: string, data: any) => Promise<void>
+  cancelReservation: (id: string) => Promise<void>
+  convertReservation: (id: string, data: { depositAppliedTo: string; rentAmount: number; paymentMethod?: string; leaseStart?: string; leaseEnd?: string; contractDuration?: number }) => Promise<void>
+  deleteReservation: (id: string) => Promise<void>
 
   // User Management (Admin only)
   addUser: (data: Omit<LocalUser, 'id' | 'isActive'>) => Promise<LocalUser>
@@ -174,6 +182,7 @@ export const useDataStore = create<DataState>()(
     payments: [],
     expenses: [],
     maintenanceItems: [],
+    reservations: [],
     isSeeded: false,
     isLoading: false,
     isInitialized: false,
@@ -186,7 +195,7 @@ export const useDataStore = create<DataState>()(
       try {
         // Fetch all data in parallel
         // Staff can now view payments (amounts masked) and users (still blocked via 403 catch)
-        const [companyData, propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, usersData, resetData] = await Promise.all([
+        const [companyData, propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, usersData, resetData, reservationsData] = await Promise.all([
           apiCall('/api/company').catch(() => null),
           apiCall('/api/properties?includeArchived=true&limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/tenants?limit=1000').catch(() => ({ data: [] })),
@@ -195,6 +204,7 @@ export const useDataStore = create<DataState>()(
           apiCall('/api/maintenance?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/users?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/reset-requests').catch(() => []),
+          apiCall('/api/reservations?limit=1000').catch(() => ({ data: [] })),
         ])
 
         // Helper to extract data from paginated or plain responses
@@ -214,6 +224,7 @@ export const useDataStore = create<DataState>()(
           maintenanceItems: extractData(maintenanceData),
           users: extractData(usersData),
           resetRequests: extractData(resetData),
+          reservations: extractData(reservationsData),
           isSeeded: true, // If data was fetched, it's seeded
           isInitialized: true,
           isLoading: false,
@@ -227,12 +238,13 @@ export const useDataStore = create<DataState>()(
     // Refresh all data after mutations — forces re-fetch to ensure consistency
     refreshAllData: async () => {
       try {
-        const [propertiesData, tenantsData, paymentsData, expensesData, maintenanceData] = await Promise.all([
+        const [propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, reservationsData] = await Promise.all([
           apiCall('/api/properties?includeArchived=true&limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/tenants?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/payments?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/expenses?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/maintenance?limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/reservations?limit=1000').catch(() => ({ data: [] })),
         ])
 
         const extractData = (resp: any): any[] => {
@@ -248,6 +260,7 @@ export const useDataStore = create<DataState>()(
           payments: extractData(paymentsData),
           expenses: extractData(expensesData),
           maintenanceItems: extractData(maintenanceData),
+          reservations: extractData(reservationsData),
         })
       } catch (error) {
         console.error('Failed to refresh data:', error)
@@ -481,6 +494,44 @@ export const useDataStore = create<DataState>()(
       await get().refreshAllData()
     },
 
+    // Reservations CRUD
+    addReservation: async (data) => {
+      await apiCall('/api/reservations', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+      await get().refreshAllData()
+    },
+
+    updateReservation: async (id, data) => {
+      await apiCall(`/api/reservations/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      })
+      await get().refreshAllData()
+    },
+
+    cancelReservation: async (id) => {
+      await apiCall(`/api/reservations/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action: 'cancel' }),
+      })
+      await get().refreshAllData()
+    },
+
+    convertReservation: async (id, data) => {
+      await apiCall(`/api/reservations/${id}/convert`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+      await get().refreshAllData()
+    },
+
+    deleteReservation: async (id) => {
+      await apiCall(`/api/reservations/${id}`, { method: 'DELETE' })
+      await get().refreshAllData()
+    },
+
     // Seed
     seedData: async () => {
       await apiCall('/api/seed', { method: 'POST' })
@@ -498,6 +549,7 @@ export const useDataStore = create<DataState>()(
         payments: [],
         expenses: [],
         maintenanceItems: [],
+        reservations: [],
         isSeeded: false,
         isLoading: false,
         isInitialized: false, // CRITICAL: Reset so next login triggers fetchAllData

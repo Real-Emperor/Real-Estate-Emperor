@@ -16,6 +16,7 @@ import Expenses from '@/components/expenses'
 import DailyExpensesReport from '@/components/daily-expenses-report'
 import Reports from '@/components/reports'
 import Contracts from '@/components/contracts'
+import Reservations from '@/components/reservations'
 import UserManagement from '@/components/user-management'
 import { Loader2 } from 'lucide-react'
 
@@ -112,6 +113,7 @@ function AppContent() {
       case 'dashboard': return <Dashboard />
       case 'properties': return <Properties />
       case 'tenants': return <Tenants />
+      case 'reservations': return <Reservations />
       case 'rent': return <RentCollection />
       case 'maintenance': return <Maintenance />
       case 'expenses': return <Expenses />

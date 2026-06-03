@@ -26,12 +26,14 @@ import {
   ShieldCheck,
   User,
   Settings,
+  CalendarCheck,
 } from 'lucide-react'
 
 const navItems: { page: PageType; icon: React.ElementType; key: string; financialOnly?: boolean; adminOnly?: boolean }[] = [
   { page: 'dashboard', icon: LayoutDashboard, key: 'dashboard' },
   { page: 'properties', icon: Building2, key: 'properties' },
   { page: 'tenants', icon: Users, key: 'tenants' },
+  { page: 'reservations', icon: CalendarCheck, key: 'reservations' },
   { page: 'rent', icon: Banknote, key: 'rentCollection' },
   { page: 'maintenance', icon: Wrench, key: 'maintenance' },
   { page: 'expenses', icon: Receipt, key: 'expenses' },

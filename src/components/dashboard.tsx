@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Loader2,
   Lock,
+  CalendarCheck,
 } from 'lucide-react'
 import {
   BarChart,
@@ -236,6 +237,54 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Reservation Summary */}
+      {data.reservationStats && (data.reservationStats.pendingCount > 0 || data.reservationStats.confirmedCount > 0) && (
+        <Card className="border-l-4 border-l-sky-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <CalendarCheck className="w-5 h-5 text-sky-500" />
+                <h3 className="font-semibold">{t('reservations', lang)}</h3>
+              </div>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  useAppStore.getState().setCurrentPage('reservations')
+                }}
+                className="text-xs text-sky-600 hover:text-sky-800 font-medium"
+              >
+                {t('viewDetails', lang)} →
+              </a>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-amber-50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-amber-600">{data.reservationStats.pendingCount}</p>
+                <p className="text-xs text-amber-700">{t('pending', lang)}</p>
+              </div>
+              <div className="bg-sky-50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-sky-600">{data.reservationStats.confirmedCount}</p>
+                <p className="text-xs text-sky-700">{t('confirmed', lang)}</p>
+              </div>
+              <div className="bg-emerald-50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-emerald-600">{data.reservationStats.convertedCount}</p>
+                <p className="text-xs text-emerald-700">{t('converted', lang)}</p>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-purple-600">{data.reservationStats.upcomingMoveIns}</p>
+                <p className="text-xs text-purple-700">{t('upcomingMoveIns', lang)}</p>
+              </div>
+            </div>
+            {canSeeFinancials && data.reservationStats.totalDepositsCollected > 0 && (
+              <div className="mt-3 pt-3 border-t flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">{t('depositCollected', lang)}</span>
+                <span className="font-semibold text-sm text-sky-600">{formatAED(data.reservationStats.totalDepositsCollected)}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Payment Status Board */}
       <Card>

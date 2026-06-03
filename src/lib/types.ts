@@ -1,4 +1,4 @@
-export type PageType = 'dashboard' | 'properties' | 'tenants' | 'rent' | 'maintenance' | 'expenses' | 'daily-report' | 'reports' | 'contracts' | 'settings'
+export type PageType = 'dashboard' | 'properties' | 'tenants' | 'rent' | 'maintenance' | 'expenses' | 'daily-report' | 'reports' | 'contracts' | 'reservations' | 'settings'
 
 export interface DashboardData {
   company: {
@@ -34,6 +34,14 @@ export interface DashboardData {
   properties: PropertyData[]
   expenses: ExpenseData[]
   maintenanceItems: MaintenanceData[]
+  reservationStats?: {
+    pendingCount: number
+    confirmedCount: number
+    convertedCount: number
+    cancelledCount: number
+    totalDepositsCollected: number
+    upcomingMoveIns: number
+  }
 }
 
 export interface PropertyData {
@@ -160,4 +168,32 @@ export interface ReportData {
   grossProfit: number
   costOfOperations: number
   netIncome: number
+}
+
+export interface ReservationData {
+  id: string
+  companyId: string
+  propertyId: string
+  unitNumber: string | null
+  prospectName: string
+  prospectNameAr: string | null
+  prospectNameBn: string | null
+  prospectNameUr: string | null
+  prospectPhone: string
+  prospectWhatsapp: string | null
+  prospectEmail: string | null
+  reservationDate: string
+  expectedMoveInDate: string | null
+  expiryDate: string | null
+  depositAmount: number
+  depositStatus: string
+  depositPaymentMethod: string | null
+  depositReference: string | null
+  status: string
+  convertedTenantId: string | null
+  depositAppliedTo: string | null
+  depositAppliedAmount: number | null
+  notes: string | null
+  createdAt: string
+  property?: { id: string; name: string; nameAr: string | null; nameBn: string | null; nameUr: string | null }
 }

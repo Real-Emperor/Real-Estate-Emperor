@@ -307,6 +307,44 @@ export async function GET() {
       take: 50,
     })
 
+    // ─── 12. Reservation stats ───
+    const [
+      pendingReservationsCount,
+      confirmedReservationsCount,
+      convertedReservationsCount,
+      cancelledReservationsCount,
+      totalDepositsCollectedAggregate,
+      upcomingMoveInsCount,
+    ] = await Promise.all([
+      prisma.reservation.count({
+        where: { companyId, deletedAt: null, status: 'pending' },
+      }),
+      prisma.reservation.count({
+        where: { companyId, deletedAt: null, status: 'confirmed' },
+      }),
+      prisma.reservation.count({
+        where: { companyId, deletedAt: null, status: 'converted' },
+      }),
+      prisma.reservation.count({
+        where: { companyId, deletedAt: null, status: 'cancelled' },
+      }),
+      prisma.reservation.aggregate({
+        where: { companyId, deletedAt: null, depositStatus: 'paid' },
+        _sum: { depositAmount: true },
+      }),
+      prisma.reservation.count({
+        where: {
+          companyId,
+          deletedAt: null,
+          status: 'confirmed',
+          expectedMoveInDate: {
+            gte: now,
+            lte: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+          },
+        },
+      }),
+    ])
+
     // ─── Build response ───
     const financialMask = (obj: any, fields: string[]) => {
       if (financialAccess) return serialize(obj)
@@ -362,6 +400,14 @@ export async function GET() {
             amount: 0,
           })),
       maintenanceItems: maintenanceItems.map((m) => serialize(m)),
+      reservationStats: {
+        pendingCount: pendingReservationsCount,
+        confirmedCount: confirmedReservationsCount,
+        convertedCount: convertedReservationsCount,
+        cancelledCount: cancelledReservationsCount,
+        totalDepositsCollected: financialAccess ? safeNumber(totalDepositsCollectedAggregate._sum.depositAmount) : 0,
+        upcomingMoveIns: upcomingMoveInsCount,
+      },
     }
 
     return successResponse(data)

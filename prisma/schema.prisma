@@ -35,6 +35,7 @@ model Company {
   backupRecords BackupRecord[]
   receipts      Receipt[]
   notifications Notification[]
+  reservations  Reservation[]
 
   @@map("companies")
 }
@@ -83,8 +84,9 @@ model Property {
   deletedAt   DateTime?  // soft delete
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  tenants     Tenant[]
-  maintenance Maintenance[]
+  tenants      Tenant[]
+  maintenance  Maintenance[]
+  reservations Reservation[]
 
   @@index([companyId])
   @@index([archived])
@@ -225,6 +227,43 @@ model ResetRequest {
 
   @@index([status])
   @@map("reset_requests")
+}
+
+model Reservation {
+  id                  String    @id @default(cuid())
+  companyId           String
+  company             Company   @relation(fields: [companyId], references: [id])
+  propertyId          String
+  property            Property  @relation(fields: [propertyId], references: [id])
+  unitNumber          String?
+  prospectName        String
+  prospectNameAr      String?
+  prospectNameBn      String?
+  prospectNameUr      String?
+  prospectPhone       String
+  prospectWhatsapp    String?
+  prospectEmail       String?
+  reservationDate     DateTime  @default(now())
+  expectedMoveInDate  DateTime?
+  expiryDate          DateTime?
+  depositAmount       Decimal   @db.Decimal(10,2)
+  depositStatus       String    @default("unpaid") // unpaid, partial, paid, refunded
+  depositPaymentMethod String?  // cash, bank_transfer, cheque
+  depositReference    String?
+  status              String    @default("pending") // pending, confirmed, cancelled, converted, expired
+  convertedTenantId   String?   // FK to Tenant after conversion
+  depositAppliedTo    String?   // security_deposit, first_rent, advance, other
+  depositAppliedAmount Decimal? @db.Decimal(10,2)
+  notes               String?
+  deletedAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([propertyId])
+  @@index([status])
+  @@index([depositStatus])
+  @@map("reservations")
 }
 
 model AuditLog {
