@@ -67,6 +67,17 @@ export default function RentCollection() {
   const [cancelAdjustmentDialogOpen, setCancelAdjustmentDialogOpen] = useState(false)
   const [cancelAdjustmentTarget, setCancelAdjustmentTarget] = useState<RentAdjustmentData | null>(null)
   const [cancelAdjustmentReason, setCancelAdjustmentReason] = useState('')
+  const [editAdjustmentDialogOpen, setEditAdjustmentDialogOpen] = useState(false)
+  const [editAdjustmentTarget, setEditAdjustmentTarget] = useState<RentAdjustmentData | null>(null)
+  const [editAdjustmentForm, setEditAdjustmentForm] = useState({
+    amount: 0,
+    adjustmentType: 'maintenance_delay',
+    reason: '',
+    notes: '',
+    effectiveMonth: new Date().getMonth() + 1,
+    effectiveYear: new Date().getFullYear(),
+    durationMonths: 1,
+  })
   const [adjustmentLoading, setAdjustmentLoading] = useState(false)
   const [adjustmentError, setAdjustmentError] = useState('')
 
@@ -233,6 +244,45 @@ export default function RentCollection() {
       fetchData()
     } catch (error: any) {
       setAdjustmentError(error?.message || 'Failed to create adjustment')
+    } finally {
+      setAdjustmentLoading(false)
+    }
+  }
+
+  const openEditAdjustmentDialog = (adjustment: RentAdjustmentData) => {
+    setEditAdjustmentTarget(adjustment)
+    setEditAdjustmentForm({
+      amount: adjustment.amount,
+      adjustmentType: adjustment.adjustmentType,
+      reason: adjustment.reason,
+      notes: adjustment.notes || '',
+      effectiveMonth: adjustment.effectiveMonth,
+      effectiveYear: adjustment.effectiveYear,
+      durationMonths: adjustment.durationMonths,
+    })
+    setAdjustmentError('')
+    setEditAdjustmentDialogOpen(true)
+  }
+
+  const handleEditAdjustment = async () => {
+    if (!editAdjustmentTarget) return
+    setAdjustmentLoading(true)
+    setAdjustmentError('')
+    try {
+      await useDataStore.getState().updateAdjustment(editAdjustmentTarget.id, {
+        amount: editAdjustmentForm.amount,
+        adjustmentType: editAdjustmentForm.adjustmentType,
+        reason: editAdjustmentForm.reason,
+        notes: editAdjustmentForm.notes || null,
+        effectiveMonth: editAdjustmentForm.effectiveMonth,
+        effectiveYear: editAdjustmentForm.effectiveYear,
+        durationMonths: editAdjustmentForm.durationMonths,
+      })
+      setEditAdjustmentDialogOpen(false)
+      setEditAdjustmentTarget(null)
+      fetchData()
+    } catch (error: any) {
+      setAdjustmentError(error?.message || 'Failed to update adjustment')
     } finally {
       setAdjustmentLoading(false)
     }
@@ -652,13 +702,22 @@ export default function RentCollection() {
                               )}
                             </div>
                             {canSeeRevenue && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setCancelAdjustmentTarget(adjustment); setCancelAdjustmentReason(''); setCancelAdjustmentDialogOpen(true) }}
-                                className="p-1 hover:bg-white rounded transition-colors ml-2"
-                                title={t('cancelAdjustment', language)}
-                              >
-                                <X className="w-3 h-3 text-amber-600" />
-                              </button>
+                              <div className="flex items-center gap-1 ml-2">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openEditAdjustmentDialog(adjustment) }}
+                                  className="p-1 hover:bg-white rounded transition-colors"
+                                  title={t('editAdjustment', language)}
+                                >
+                                  <Pencil className="w-3 h-3 text-blue-600" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setCancelAdjustmentTarget(adjustment); setCancelAdjustmentReason(''); setCancelAdjustmentDialogOpen(true) }}
+                                  className="p-1 hover:bg-white rounded transition-colors"
+                                  title={t('cancelAdjustment', language)}
+                                >
+                                  <X className="w-3 h-3 text-red-500" />
+                                </button>
+                              </div>
                             )}
                           </div>
                         ))}
@@ -1179,6 +1238,74 @@ export default function RentCollection() {
             <Button onClick={handleCancelAdjustment} disabled={adjustmentLoading} variant="destructive">
               {adjustmentLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <X className="w-4 h-4 mr-2" />}
               {t('cancelAdjustment', language)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Adjustment Dialog */}
+      <Dialog open={editAdjustmentDialogOpen} onOpenChange={setEditAdjustmentDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <Pencil className="w-5 h-5" />
+              {t('editAdjustment', language)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>{t('adjustmentAmount', language)}</Label>
+              <Input type="number" min={1} value={editAdjustmentForm.amount} onChange={e => setEditAdjustmentForm({ ...editAdjustmentForm, amount: Number(e.target.value) || 0 })} />
+            </div>
+            <div>
+              <Label>{t('adjustmentType', language)}</Label>
+              <Select value={editAdjustmentForm.adjustmentType} onValueChange={v => setEditAdjustmentForm({ ...editAdjustmentForm, adjustmentType: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="maintenance_delay">{t('maintenance_delay', language)}</SelectItem>
+                  <SelectItem value="flood_damage">{t('flood_damage', language)}</SelectItem>
+                  <SelectItem value="utility_failure">{t('utility_failure', language)}</SelectItem>
+                  <SelectItem value="goodwill">{t('goodwill', language)}</SelectItem>
+                  <SelectItem value="contract_amendment">{t('contract_amendment', language)}</SelectItem>
+                  <SelectItem value="owner_discount">{t('owner_discount', language)}</SelectItem>
+                  <SelectItem value="other">{t('other', language)}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{t('adjustmentReason', language)}</Label>
+              <Input value={editAdjustmentForm.reason} onChange={e => setEditAdjustmentForm({ ...editAdjustmentForm, reason: e.target.value })} />
+            </div>
+            <div>
+              <Label>{t('notes', language)}</Label>
+              <Input value={editAdjustmentForm.notes} onChange={e => setEditAdjustmentForm({ ...editAdjustmentForm, notes: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>{t('effectiveMonth', language)}</Label>
+                <Input type="number" min={1} max={12} value={editAdjustmentForm.effectiveMonth} onChange={e => setEditAdjustmentForm({ ...editAdjustmentForm, effectiveMonth: Number(e.target.value) || 1 })} />
+              </div>
+              <div>
+                <Label>{t('effectiveYear', language)}</Label>
+                <Input type="number" min={2020} max={2030} value={editAdjustmentForm.effectiveYear} onChange={e => setEditAdjustmentForm({ ...editAdjustmentForm, effectiveYear: Number(e.target.value) || 2026 })} />
+              </div>
+            </div>
+            <div>
+              <Label>{t('durationMonths', language)}</Label>
+              <Input type="number" min={1} max={12} value={editAdjustmentForm.durationMonths} onChange={e => setEditAdjustmentForm({ ...editAdjustmentForm, durationMonths: Number(e.target.value) || 1 })} />
+            </div>
+          </div>
+          {adjustmentError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-red-700">{adjustmentError}</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditAdjustmentDialogOpen(false); setAdjustmentError('') }}>{t('cancel', language)}</Button>
+            <Button onClick={handleEditAdjustment} disabled={editAdjustmentForm.amount <= 0 || !editAdjustmentForm.reason || adjustmentLoading} className="bg-amber-600 hover:bg-amber-700 text-white">
+              {adjustmentLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Pencil className="w-4 h-4 mr-2" />}
+              {t('save', language)}
             </Button>
           </DialogFooter>
         </DialogContent>
