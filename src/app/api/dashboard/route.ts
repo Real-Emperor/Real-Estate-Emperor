@@ -98,6 +98,18 @@ export async function GET() {
     const occupiedUnits = occupiedUnitsAggregate
     const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0
 
+    // ─── Current month adjustments total ───
+    const currentMonthAdjustmentsAggregate = await prisma.rentAdjustment.aggregate({
+      where: {
+        companyId,
+        status: 'approved',
+        effectiveMonth: currentMonth,
+        effectiveYear: currentYear,
+      },
+      _sum: { amount: true },
+    })
+    const totalAdjustments = safeNumber(currentMonthAdjustmentsAggregate._sum.amount)
+
     // ─── 3. Current month expenses — aggregate only (FIX: filter for current month) ───
     const startOfMonth = new Date(currentYear, currentMonth - 1, 1)
     const endOfMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999)
@@ -360,6 +372,7 @@ export async function GET() {
       stats: {
         expectedRevenue: financialAccess ? expectedRevenue : 0,
         collectedRevenue: financialAccess ? collectedRevenue : 0,
+        totalAdjustments: financialAccess ? totalAdjustments : 0,
         overdueCount: overdueTenants.length,
         overdueAmount: financialAccess ? overdueAmount : 0,
         activeTenants: activeTenantsCount,
