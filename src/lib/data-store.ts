@@ -90,6 +90,8 @@ interface DataState {
 
   // Payments CRUD
   addPayment: (data: Omit<PaymentData, 'id' | 'createdAt' | 'tenant'>) => Promise<void>
+  updatePayment: (id: string, data: Partial<PaymentData> & { reason?: string }) => Promise<void>
+  deletePayment: (id: string, reason?: string) => Promise<void>
 
   // Expenses CRUD
   addExpense: (data: Omit<ExpenseData, 'id' | 'companyId' | 'createdAt'>) => Promise<void>
@@ -446,6 +448,27 @@ export const useDataStore = create<DataState>()(
           } : t),
         }))
       }
+      await get().refreshAllData()
+    },
+
+    updatePayment: async (id, data) => {
+      const { reason, ...paymentData } = data
+      const updated = await apiCall(`/api/payments/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...paymentData, reason }),
+      })
+      set(s => ({
+        payments: s.payments.map(p => p.id === id ? { ...p, ...updated } : p),
+      }))
+      await get().refreshAllData()
+    },
+
+    deletePayment: async (id, reason) => {
+      const url = reason
+        ? `/api/payments/${id}?reason=${encodeURIComponent(reason)}`
+        : `/api/payments/${id}`
+      await apiCall(url, { method: 'DELETE' })
+      set(s => ({ payments: s.payments.filter(p => p.id !== id) }))
       await get().refreshAllData()
     },
 

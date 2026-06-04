@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import type { TenantData, PropertyData } from '@/lib/types'
+import type { TenantData, PropertyData, PaymentData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { formatAED, getPaymentStatusColor, cn2 } from '@/lib/utils'
@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Banknote, MessageCircle, Check, AlertTriangle, Clock, Loader2, ChevronLeft, ChevronRight, FileText, Search } from 'lucide-react'
+import { Banknote, MessageCircle, Check, AlertTriangle, Clock, Loader2, ChevronLeft, ChevronRight, FileText, Search, Pencil, Trash2, ChevronDown, ChevronUp, X } from 'lucide-react'
 import BillInvoice from '@/components/bill-invoice'
 
 export default function RentCollection() {
@@ -35,6 +35,16 @@ export default function RentCollection() {
   const [whatsappLangDialogOpen, setWhatsappLangDialogOpen] = useState(false)
   const [whatsappTargetTenant, setWhatsappTargetTenant] = useState<TenantData | null>(null)
   const [whatsappRemindAll, setWhatsappRemindAll] = useState(false)
+
+  // Payment edit/delete state
+  const [expandedTenant, setExpandedTenant] = useState<string | null>(null)
+  const [editPaymentDialog, setEditPaymentDialog] = useState(false)
+  const [deletePaymentDialog, setDeletePaymentDialog] = useState(false)
+  const [selectedPayment, setSelectedPayment] = useState<PaymentData | null>(null)
+  const [editForm, setEditForm] = useState({ amount: 0, date: '', method: 'cash', reference: '', notes: '', isLate: false })
+  const [deleteReason, setDeleteReason] = useState('')
+  const [paymentError, setPaymentError] = useState('')
+  const [paymentActionLoading, setPaymentActionLoading] = useState(false)
 
   // Invoice search
   const [invoiceSearch, setInvoiceSearch] = useState('')
@@ -141,6 +151,73 @@ export default function RentCollection() {
     const paid = (tenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear).reduce((sum, p) => sum + p.amount, 0)
     setPayForm({ amount: tenant.rentAmount - paid, method: 'cash', reference: '', notes: '', paymentDate: new Date().toISOString().split('T')[0] })
     setPayDialogOpen(true)
+  }
+
+  const openEditPaymentDialog = (payment: PaymentData) => {
+    setSelectedPayment(payment)
+    const paymentDate = payment.date ? new Date(payment.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+    setEditForm({
+      amount: payment.amount,
+      date: paymentDate,
+      method: payment.method || 'cash',
+      reference: payment.reference || '',
+      notes: payment.notes || '',
+      isLate: payment.isLate,
+    })
+    setPaymentError('')
+    setEditPaymentDialog(true)
+  }
+
+  const openDeletePaymentDialog = (payment: PaymentData) => {
+    setSelectedPayment(payment)
+    setDeleteReason('')
+    setPaymentError('')
+    setDeletePaymentDialog(true)
+  }
+
+  const handleEditPayment = async () => {
+    if (!selectedPayment) return
+    setPaymentActionLoading(true)
+    setPaymentError('')
+    try {
+      const paymentDateObj = new Date(editForm.date)
+      const isLate = editForm.isLate || paymentDateObj.getDate() > 5
+      const daysLate = isLate ? Math.max(0, paymentDateObj.getDate() - 5) : 0
+
+      await useDataStore.getState().updatePayment(selectedPayment.id, {
+        amount: editForm.amount,
+        date: paymentDateObj.toISOString(),
+        method: editForm.method,
+        reference: editForm.reference || null,
+        notes: editForm.notes || null,
+        isLate,
+        daysLate,
+      })
+      setEditPaymentDialog(false)
+      setSelectedPayment(null)
+      fetchData()
+    } catch (error: any) {
+      setPaymentError(error?.message || 'Failed to update payment')
+    } finally {
+      setPaymentActionLoading(false)
+    }
+  }
+
+  const handleDeletePayment = async () => {
+    if (!selectedPayment) return
+    setPaymentActionLoading(true)
+    setPaymentError('')
+    try {
+      await useDataStore.getState().deletePayment(selectedPayment.id, deleteReason || undefined)
+      setDeletePaymentDialog(false)
+      setSelectedPayment(null)
+      setDeleteReason('')
+      fetchData()
+    } catch (error: any) {
+      setPaymentError(error?.message || 'Failed to delete payment')
+    } finally {
+      setPaymentActionLoading(false)
+    }
   }
 
   const handlePay = async () => {
@@ -337,6 +414,8 @@ export default function RentCollection() {
           const status = getTenantPaymentStatus(tenant)
           const paid = (tenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear).reduce((sum, p) => sum + p.amount, 0)
           const remaining = tenant.rentAmount - paid
+          const tenantPayments = (tenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear)
+          const isExpanded = expandedTenant === tenant.id
 
           return (
             <Card key={tenant.id} className={cn2('card-hover', (status === 'overdue' || status === 'unpaid') && 'ring-1 ring-red-300')}>
@@ -402,6 +481,74 @@ export default function RentCollection() {
                     <FileText className="w-3 h-3" />
                   </button>
                 </div>
+
+                {/* Payment History Toggle */}
+                {tenantPayments.length > 0 && (
+                  <div className="mt-3 border-t pt-2">
+                    <button
+                      onClick={() => setExpandedTenant(isExpanded ? null : tenant.id)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+                    >
+                      {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      {tenantPayments.length} {tenantPayments.length === 1 ? (language === 'ar' ? 'دفعة' : language === 'bn' ? 'পেমেন্ট' : language === 'ur' ? 'ادائیگی' : 'payment') : (language === 'ar' ? 'دفعات' : language === 'bn' ? 'পেমেন্টসমূহ' : language === 'ur' ? 'ادائیگیاں' : 'payments')}
+                      {canSeeRevenue && (
+                        <span className="ml-auto font-medium text-emerald-600">
+                          {formatAED(paid)}
+                        </span>
+                      )}
+                    </button>
+
+                    {isExpanded && (
+                      <div className="mt-2 space-y-2">
+                        {tenantPayments.map(payment => (
+                          <div key={payment.id} className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 text-xs">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                {canSeeRevenue && <span className="font-semibold">{formatAED(payment.amount)}</span>}
+                                <span className="text-muted-foreground">
+                                  {payment.date ? new Date(payment.date).toLocaleDateString(language === 'ar' ? 'ar-AE' : 'en-AE', { day: 'numeric', month: 'short' }) : ''}
+                                </span>
+                                {payment.method && (
+                                  <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                    {payment.method}
+                                  </Badge>
+                                )}
+                                {payment.isLate && (
+                                  <Badge variant="outline" className="text-[10px] px-1 py-0 border-red-300 text-red-600">
+                                    {language === 'ar' ? 'متأخر' : language === 'bn' ? 'বিলম্বিত' : language === 'ur' ? 'دیر' : 'Late'}
+                                  </Badge>
+                                )}
+                              </div>
+                              {payment.reference && (
+                                <p className="text-muted-foreground mt-0.5 truncate">
+                                  Ref: {payment.reference}
+                                </p>
+                              )}
+                            </div>
+                            {canSeeRevenue && (
+                              <div className="flex items-center gap-1 shrink-0 ml-2">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openEditPaymentDialog(payment) }}
+                                  className="p-1 hover:bg-white rounded transition-colors"
+                                  title={language === 'ar' ? 'تعديل الدفعة' : language === 'bn' ? 'পেমেন্ট সম্পাদনা' : language === 'ur' ? 'ادائیگی میں ترمیم' : 'Edit payment'}
+                                >
+                                  <Pencil className="w-3 h-3 text-blue-600" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openDeletePaymentDialog(payment) }}
+                                  className="p-1 hover:bg-white rounded transition-colors"
+                                  title={language === 'ar' ? 'حذف الدفعة' : language === 'bn' ? 'পেমেন্ট মুছুন' : language === 'ur' ? 'ادائیگی حذف کریں' : 'Delete payment'}
+                                >
+                                  <Trash2 className="w-3 h-3 text-red-600" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )
@@ -625,6 +772,116 @@ export default function RentCollection() {
               </div>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Payment Dialog */}
+      <Dialog open={editPaymentDialog} onOpenChange={setEditPaymentDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-blue-600" />
+              {language === 'ar' ? 'تعديل الدفعة' : language === 'bn' ? 'পেমেন্ট সম্পাদনা' : language === 'ur' ? 'ادائیگی میں ترمیم' : 'Edit Payment'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>{t('amount', language)}</Label>
+              <Input type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: Number(e.target.value) })} />
+            </div>
+            <div>
+              <Label>{t('paymentDate', language)}</Label>
+              <Input type="date" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })} />
+            </div>
+            <div>
+              <Label>{t('paymentMethod', language)}</Label>
+              <Select value={editForm.method} onValueChange={v => setEditForm({ ...editForm, method: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">{t('cash', language)}</SelectItem>
+                  <SelectItem value="transfer">{t('bankTransfer', language)}</SelectItem>
+                  <SelectItem value="cheque">{t('cheque', language)}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{t('reference', language)}</Label>
+              <Input value={editForm.reference} onChange={e => setEditForm({ ...editForm, reference: e.target.value })} />
+            </div>
+            <div>
+              <Label>{t('notes', language)}</Label>
+              <Input value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
+            </div>
+          </div>
+          {paymentError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-red-700">{paymentError}</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditPaymentDialog(false); setPaymentError('') }}>{t('cancel', language)}</Button>
+            <Button onClick={handleEditPayment} disabled={editForm.amount <= 0 || paymentActionLoading} className="bg-blue-600 hover:bg-blue-700 text-white">
+              {paymentActionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Pencil className="w-4 h-4 mr-2" />}
+              {t('save', language)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Payment Dialog */}
+      <Dialog open={deletePaymentDialog} onOpenChange={setDeletePaymentDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              {language === 'ar' ? 'حذف الدفعة' : language === 'bn' ? 'পেমেন্ট মুছুন' : language === 'ur' ? 'ادائیگی حذف کریں' : 'Delete Payment'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm text-red-800 font-medium">
+                    {language === 'ar' ? 'هل أنت متأكد من حذف هذه الدفعة؟' : language === 'bn' ? 'আপনি কি এই পেমেন্টটি মুছে ফেলতে চান?' : language === 'ur' ? 'کیا آپ یہ ادائیگی حذف کرنا چاہتے ہیں؟' : 'Are you sure you want to delete this payment?'}
+                  </p>
+                  {selectedPayment && canSeeRevenue && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {formatAED(selectedPayment.amount)} — {selectedPayment.date ? new Date(selectedPayment.date).toLocaleDateString() : ''}
+                    </p>
+                  )}
+                  <p className="text-xs text-red-500 mt-1">
+                    {language === 'ar' ? 'سيتم تحديث حالة الدفع والإيرادات تلقائياً' : language === 'bn' ? 'পেমেন্ট স্ট্যাটাস এবং রেভিনিউ স্বয়ংক্রিয়ভাবে আপডেট হবে' : language === 'ur' ? 'ادائیگی کی حیثیت اور آمدنی خودکار طور پر اپ ڈیٹ ہوگی' : 'Payment status and revenue will be automatically recalculated.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <Label>
+                {language === 'ar' ? 'سبب الحذف (اختياري)' : language === 'bn' ? 'মুছে ফেলার কারণ (ঐচ্ছিক)' : language === 'ur' ? 'حذف کرنے کی وجہ (اختیاری)' : 'Reason for deletion (optional)'}
+              </Label>
+              <Input
+                value={deleteReason}
+                onChange={e => setDeleteReason(e.target.value)}
+                placeholder={language === 'ar' ? 'أدخل سبب الحذف...' : language === 'bn' ? 'মুছে ফেলার কারণ লিখুন...' : language === 'ur' ? 'حذف کرنے کی وجہ درج کریں...' : 'Enter reason for deletion...'}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          {paymentError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-red-700">{paymentError}</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeletePaymentDialog(false); setPaymentError('') }}>{t('cancel', language)}</Button>
+            <Button onClick={handleDeletePayment} disabled={paymentActionLoading} variant="destructive">
+              {paymentActionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              {language === 'ar' ? 'حذف الدفعة' : language === 'bn' ? 'পেমেন্ট মুছুন' : language === 'ur' ? 'ادائیگی حذف کریں' : 'Delete Payment'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
