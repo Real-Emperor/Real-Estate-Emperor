@@ -150,3 +150,33 @@ Stage Summary:
 - Current production deployment: dpl_7MwHuenBr57GbgwCLq9SGeKQPVr9 (git source, READY)
 - All 5 verification stages PASSED
 - Known gaps: Audit log UI not in sidebar navigation, minor ARIA accessibility warnings on dialogs
+
+---
+Task ID: 2-11
+Agent: Main Agent
+Task: Implement Rent Adjustment & Credit System
+
+Work Log:
+- Environment cleanup: Removed duplicate git repo from root, moved al-reef-dashboard/ contents to root level
+- Prisma schema: Added RentAdjustment model with all required fields and relations
+- Database: Pushed schema to Neon PostgreSQL via prisma db push
+- API: Created /api/adjustments (GET+POST) and /api/adjustments/[id] (PUT+DELETE) routes
+- Types: Added RentAdjustmentData interface, updated DashboardData and ReportData
+- Data store: Added adjustments state, CRUD methods, updated calculations
+- i18n: Added 28 translation keys in 4 languages
+- Rent Collection UI: Added "Add Adjustment" button, adjustment form dialog, edit dialog, cancel dialog
+- Invoice breakdown: Shows Original Rent, Payments Received, Approved Adjustments, Remaining Balance
+- Dashboard: Added totalAdjustments to API response, conditional adjustments card
+- Reports: Added adjustment breakdown sections
+- E2E verification: 7/8 steps passed, fixed missing edit adjustment button
+- Fixed dashboard API to include totalAdjustments in stats response
+
+Stage Summary:
+- Commit d8f978f: Initial Rent Adjustment & Credit System (1041 lines across 10 files)
+- Commit 7900e4b: Added edit adjustment button and dialog
+- Commit 05f3f5e: Fixed dashboard API to return totalAdjustments
+- All deployed to al-reef-al-junoobi.vercel.app
+- Feature verified E2E: Create, Edit, Verify, Cancel, Delete all work correctly
+- Invoice calculation: Payments + Adjustments >= Rent → PAID (verified)
+- Audit trail: All adjustment actions create AuditLog entries
+- Cash collected vs adjustments shown separately on dashboard
