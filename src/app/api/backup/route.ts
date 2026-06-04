@@ -1,0 +1,346 @@
+import prisma from '@/lib/db'
+import {
+  getAuthUser,
+  createAuditLog,
+  unauthorizedResponse,
+  forbiddenResponse,
+  errorResponse,
+  successResponse,
+} from '@/lib/api-utils'
+
+// GET /api/backup — Export all company data as JSON (for backup)
+export async function GET() {
+  try {
+    const user = await getAuthUser()
+    if (!user) return unauthorizedResponse()
+
+    // Only owner/admin can create backups
+    if (user.role !== 'owner' && user.role !== 'admin') {
+      return forbiddenResponse('Only owners and admins can create backups')
+    }
+
+    const companyId = user.companyId
+
+    // Fetch all company data
+    const [company, properties, tenants, expenses, maintenance, users, auditLogs] = await Promise.all([
+      prisma.company.findUnique({ where: { id: companyId } }),
+      prisma.property.findMany({ where: { companyId, deletedAt: null } }),
+      prisma.tenant.findMany({
+        where: { companyId, deletedAt: null },
+        include: { payments: true },
+      }),
+      prisma.expense.findMany({ where: { companyId, deletedAt: null } }),
+      prisma.maintenance.findMany({ where: { companyId, deletedAt: null } }),
+      prisma.user.findMany({
+        where: { companyId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          nameAr: true,
+          nameBn: true,
+          nameUr: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+          // Exclude password for security
+        },
+      }),
+      prisma.auditLog.findMany({
+        where: { companyId },
+        orderBy: { createdAt: 'desc' },
+        take: 1000, // Limit to last 1000 entries
+      }),
+    ])
+
+    // Also fetch soft-deleted records for complete backup
+    const [deletedProperties, deletedTenants, deletedExpenses, deletedMaintenance] = await Promise.all([
+      prisma.property.findMany({ where: { companyId, deletedAt: { not: null } } }),
+      prisma.tenant.findMany({
+        where: { companyId, deletedAt: { not: null } },
+        include: { payments: true },
+      }),
+      prisma.expense.findMany({ where: { companyId, deletedAt: { not: null } } }),
+      prisma.maintenance.findMany({ where: { companyId, deletedAt: { not: null } } }),
+    ])
+
+    const backup = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      exportedBy: user.email,
+      company,
+      data: {
+        properties,
+        tenants,
+        expenses,
+        maintenance,
+        users,
+        auditLogs,
+      },
+      deleted: {
+        properties: deletedProperties,
+        tenants: deletedTenants,
+        expenses: deletedExpenses,
+        maintenance: deletedMaintenance,
+      },
+    }
+
+    // Log the backup
+    await createAuditLog({
+      action: 'BACKUP',
+      entity: 'Company',
+      entityId: companyId,
+      userId: user.id,
+      companyId,
+      details: {
+        properties: properties.length,
+        tenants: tenants.length,
+        expenses: expenses.length,
+        maintenance: maintenance.length,
+        users: users.length,
+      },
+    })
+
+    // Return as downloadable JSON
+    return new Response(JSON.stringify(backup, null, 2), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Disposition': `attachment; filename="al-reef-backup-${new Date().toISOString().split('T')[0]}.json"`,
+      },
+    })
+  } catch (error) {
+    console.error('Backup error:', error)
+    return errorResponse('Failed to create backup', 500)
+  }
+}
+
+// POST /api/backup — Restore data from a backup file
+export async function POST(request: Request) {
+  try {
+    const user = await getAuthUser()
+    if (!user) return unauthorizedResponse()
+
+    // Only admin can restore backups
+    if (user.role !== 'admin') {
+      return forbiddenResponse('Only admins can restore backups')
+    }
+
+    const body = await request.json()
+
+    if (!body.version || !body.company || !body.data) {
+      return errorResponse('Invalid backup file format')
+    }
+
+    const companyId = user.companyId
+
+    // Verify the backup belongs to this company
+    if (body.company.id !== companyId) {
+      return errorResponse('Backup file belongs to a different company')
+    }
+
+    // Log the restore attempt
+    await createAuditLog({
+      action: 'RESTORE_START',
+      entity: 'Company',
+      entityId: companyId,
+      userId: user.id,
+      companyId,
+      details: { backupDate: body.exportedAt },
+    })
+
+    const summary = {
+      properties: 0,
+      tenants: 0,
+      payments: 0,
+      expenses: 0,
+      maintenance: 0,
+    }
+
+    // Upsert properties
+    if (body.data.properties) {
+      for (const prop of body.data.properties) {
+        await prisma.property.upsert({
+          where: { id: prop.id },
+          update: {
+            name: prop.name,
+            nameAr: prop.nameAr,
+            nameBn: prop.nameBn,
+            nameUr: prop.nameUr,
+            type: prop.type,
+            address: prop.address,
+            totalUnits: prop.totalUnits,
+            floors: prop.floors,
+            archived: prop.archived,
+          },
+          create: {
+            id: prop.id,
+            companyId,
+            name: prop.name,
+            nameAr: prop.nameAr,
+            nameBn: prop.nameBn,
+            nameUr: prop.nameUr,
+            type: prop.type,
+            address: prop.address,
+            totalUnits: prop.totalUnits,
+            floors: prop.floors,
+            archived: prop.archived,
+          },
+        })
+        summary.properties++
+      }
+    }
+
+    // Upsert tenants
+    if (body.data.tenants) {
+      for (const tenant of body.data.tenants) {
+        await prisma.tenant.upsert({
+          where: { id: tenant.id },
+          update: {
+            name: tenant.name,
+            phone: tenant.phone,
+            rentAmount: tenant.rentAmount,
+            status: tenant.status,
+            unitNumber: tenant.unitNumber,
+          },
+          create: {
+            id: tenant.id,
+            companyId,
+            propertyId: tenant.propertyId,
+            name: tenant.name,
+            nameAr: tenant.nameAr,
+            nameBn: tenant.nameBn,
+            nameUr: tenant.nameUr,
+            phone: tenant.phone,
+            whatsapp: tenant.whatsapp,
+            email: tenant.email,
+            emiratesId: tenant.emiratesId,
+            nationality: tenant.nationality,
+            employer: tenant.employer,
+            emergencyContact: tenant.emergencyContact,
+            unitNumber: tenant.unitNumber,
+            unitType: tenant.unitType,
+            floor: tenant.floor,
+            sizeSqft: tenant.sizeSqft,
+            rentAmount: tenant.rentAmount,
+            municipalityFee: tenant.municipalityFee,
+            securityDeposit: tenant.securityDeposit,
+            paymentMethod: tenant.paymentMethod,
+            leaseStart: tenant.leaseStart ? new Date(tenant.leaseStart) : null,
+            leaseEnd: tenant.leaseEnd ? new Date(tenant.leaseEnd) : null,
+            contractDuration: tenant.contractDuration,
+            renewalStatus: tenant.renewalStatus,
+            newRent: tenant.newRent,
+            status: tenant.status || 'active',
+            latePaymentCount: tenant.latePaymentCount || 0,
+            tenantScore: tenant.tenantScore || 100,
+            notes: tenant.notes,
+          },
+        })
+        summary.tenants++
+
+        // Upsert payments for this tenant
+        if (tenant.payments) {
+          for (const payment of tenant.payments) {
+            await prisma.payment.upsert({
+              where: { id: payment.id },
+              update: {
+                amount: payment.amount,
+                date: new Date(payment.date),
+                month: payment.month,
+                year: payment.year,
+              },
+              create: {
+                id: payment.id,
+                tenantId: tenant.id,
+                amount: payment.amount,
+                date: new Date(payment.date),
+                month: payment.month,
+                year: payment.year,
+                method: payment.method,
+                reference: payment.reference,
+                receiptNumber: payment.receiptNumber,
+                notes: payment.notes,
+                isLate: payment.isLate || false,
+                daysLate: payment.daysLate || 0,
+              },
+            })
+            summary.payments++
+          }
+        }
+      }
+    }
+
+    // Upsert expenses
+    if (body.data.expenses) {
+      for (const expense of body.data.expenses) {
+        await prisma.expense.upsert({
+          where: { id: expense.id },
+          update: {
+            category: expense.category,
+            description: expense.description,
+            amount: expense.amount,
+          },
+          create: {
+            id: expense.id,
+            companyId,
+            category: expense.category,
+            description: expense.description,
+            amount: expense.amount,
+            date: new Date(expense.date),
+            vendor: expense.vendor,
+            invoiceNumber: expense.invoiceNumber,
+            recurring: expense.recurring || false,
+            building: expense.building,
+          },
+        })
+        summary.expenses++
+      }
+    }
+
+    // Upsert maintenance
+    if (body.data.maintenance) {
+      for (const maint of body.data.maintenance) {
+        await prisma.maintenance.upsert({
+          where: { id: maint.id },
+          update: {
+            title: maint.title,
+            status: maint.status,
+          },
+          create: {
+            id: maint.id,
+            companyId,
+            propertyId: maint.propertyId,
+            title: maint.title,
+            description: maint.description,
+            category: maint.category,
+            vendor: maint.vendor,
+            priority: maint.priority || 'medium',
+            status: maint.status || 'pending',
+            estimatedCost: maint.estimatedCost,
+            actualCost: maint.actualCost,
+            completedAt: maint.completedAt ? new Date(maint.completedAt) : null,
+          },
+        })
+        summary.maintenance++
+      }
+    }
+
+    // Log the restore completion
+    await createAuditLog({
+      action: 'RESTORE_COMPLETE',
+      entity: 'Company',
+      entityId: companyId,
+      userId: user.id,
+      companyId,
+      details: summary,
+    })
+
+    return successResponse({
+      message: 'Backup restored successfully',
+      summary,
+    })
+  } catch (error) {
+    console.error('Restore error:', error)
+    return errorResponse('Failed to restore backup', 500)
+  }
+}
