@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import type { TenantData, PropertyData, PaymentData } from '@/lib/types'
+import type { TenantData, PropertyData, PaymentData, RentAdjustmentData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { formatAED, getPaymentStatusColor, cn2 } from '@/lib/utils'
@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Banknote, MessageCircle, Check, AlertTriangle, Clock, Loader2, ChevronLeft, ChevronRight, FileText, Search, Pencil, Trash2, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { Banknote, MessageCircle, Check, AlertTriangle, Clock, Loader2, ChevronLeft, ChevronRight, FileText, Search, Pencil, Trash2, ChevronDown, ChevronUp, X, Plus, MinusCircle } from 'lucide-react'
 import BillInvoice from '@/components/bill-invoice'
 
 export default function RentCollection() {
@@ -51,6 +51,24 @@ export default function RentCollection() {
   const [invoiceSearchResults, setInvoiceSearchResults] = useState<any[] | null>(null)
   const [invoiceSearching, setInvoiceSearching] = useState(false)
   const [invoiceSearchOpen, setInvoiceSearchOpen] = useState(false)
+
+  // Adjustment dialog state
+  const [adjustmentDialogOpen, setAdjustmentDialogOpen] = useState(false)
+  const [adjustmentTenant, setAdjustmentTenant] = useState<TenantData | null>(null)
+  const [adjustmentForm, setAdjustmentForm] = useState({
+    amount: 0,
+    adjustmentType: 'maintenance_delay',
+    reason: '',
+    notes: '',
+    effectiveMonth: new Date().getMonth() + 1,
+    effectiveYear: new Date().getFullYear(),
+    durationMonths: 1,
+  })
+  const [cancelAdjustmentDialogOpen, setCancelAdjustmentDialogOpen] = useState(false)
+  const [cancelAdjustmentTarget, setCancelAdjustmentTarget] = useState<RentAdjustmentData | null>(null)
+  const [cancelAdjustmentReason, setCancelAdjustmentReason] = useState('')
+  const [adjustmentLoading, setAdjustmentLoading] = useState(false)
+  const [adjustmentError, setAdjustmentError] = useState('')
 
   const searchInvoice = async () => {
     if (!invoiceSearch.trim() || invoiceSearch.trim().length < 2) return
@@ -98,11 +116,31 @@ export default function RentCollection() {
 
   const activeTenants = tenants.filter(t => t.status === 'active')
 
+  // Helper: check if adjustment is active in a given month
+  const isAdjustmentActiveInMonth = (a: RentAdjustmentData, month: number, year: number): boolean => {
+    if (a.status !== 'approved') return false
+    const startDate = new Date(a.effectiveYear, a.effectiveMonth - 1, 1)
+    const checkDate = new Date(year, month - 1, 1)
+    const endDate = new Date(
+      a.effectiveYear + Math.floor((a.effectiveMonth - 1 + a.durationMonths) / 12),
+      ((a.effectiveMonth - 1 + a.durationMonths) % 12),
+      0
+    )
+    return checkDate >= startDate && checkDate <= endDate
+  }
+
+  const getTenantAdjustments = (tenant: TenantData): RentAdjustmentData[] => {
+    return (tenant.adjustments || []).filter(a => isAdjustmentActiveInMonth(a, selectedMonth, selectedYear))
+  }
+
   const getTenantPaymentStatus = (tenant: TenantData): 'paid' | 'partial' | 'overdue' | 'unpaid' | 'due-soon' => {
     const payments = (tenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear)
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
-    if (totalPaid >= tenant.rentAmount) return 'paid'
-    if (totalPaid > 0) return 'partial'
+    const tenantAdjustments = getTenantAdjustments(tenant)
+    const totalAdjustments = tenantAdjustments.reduce((sum, a) => sum + a.amount, 0)
+    const totalCredits = totalPaid + totalAdjustments
+    if (totalCredits >= tenant.rentAmount) return 'paid'
+    if (totalCredits > 0) return 'partial'
 
     // Calendar-based status for unpaid tenants
     const now = new Date()
@@ -144,13 +182,77 @@ export default function RentCollection() {
       const paid = (t.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear).reduce((sum, p) => sum + p.amount, 0)
       return s + paid
     }, 0),
+    adjustmentsTotal: activeTenants.reduce((s, t) => {
+      const adj = getTenantAdjustments(t).reduce((sum, a) => sum + a.amount, 0)
+      return s + adj
+    }, 0),
   }
 
   const openPayDialog = (tenant: TenantData) => {
     setPayingTenant(tenant)
     const paid = (tenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear).reduce((sum, p) => sum + p.amount, 0)
-    setPayForm({ amount: tenant.rentAmount - paid, method: 'cash', reference: '', notes: '', paymentDate: new Date().toISOString().split('T')[0] })
+    const adjustments = getTenantAdjustments(tenant).reduce((sum, a) => sum + a.amount, 0)
+    setPayForm({ amount: Math.max(0, tenant.rentAmount - paid - adjustments), method: 'cash', reference: '', notes: '', paymentDate: new Date().toISOString().split('T')[0] })
     setPayDialogOpen(true)
+  }
+
+  const openAdjustmentDialog = (tenant: TenantData) => {
+    setAdjustmentTenant(tenant)
+    setAdjustmentForm({
+      amount: 0,
+      adjustmentType: 'maintenance_delay',
+      reason: '',
+      notes: '',
+      effectiveMonth: selectedMonth,
+      effectiveYear: selectedYear,
+      durationMonths: 1,
+    })
+    setAdjustmentError('')
+    setAdjustmentDialogOpen(true)
+  }
+
+  const handleCreateAdjustment = async () => {
+    if (!adjustmentTenant) return
+    setAdjustmentLoading(true)
+    setAdjustmentError('')
+    try {
+      await useDataStore.getState().addAdjustment({
+        tenantId: adjustmentTenant.id,
+        propertyId: adjustmentTenant.propertyId,
+        amount: adjustmentForm.amount,
+        adjustmentType: adjustmentForm.adjustmentType,
+        reason: adjustmentForm.reason,
+        notes: adjustmentForm.notes || null,
+        effectiveMonth: adjustmentForm.effectiveMonth,
+        effectiveYear: adjustmentForm.effectiveYear,
+        durationMonths: adjustmentForm.durationMonths,
+        status: 'approved',
+        createdBy: authUser?.id || '',
+      })
+      setAdjustmentDialogOpen(false)
+      fetchData()
+    } catch (error: any) {
+      setAdjustmentError(error?.message || 'Failed to create adjustment')
+    } finally {
+      setAdjustmentLoading(false)
+    }
+  }
+
+  const handleCancelAdjustment = async () => {
+    if (!cancelAdjustmentTarget) return
+    setAdjustmentLoading(true)
+    setAdjustmentError('')
+    try {
+      await useDataStore.getState().cancelAdjustment(cancelAdjustmentTarget.id, cancelAdjustmentReason || undefined)
+      setCancelAdjustmentDialogOpen(false)
+      setCancelAdjustmentTarget(null)
+      setCancelAdjustmentReason('')
+      fetchData()
+    } catch (error: any) {
+      setAdjustmentError(error?.message || 'Failed to cancel adjustment')
+    } finally {
+      setAdjustmentLoading(false)
+    }
   }
 
   const openEditPaymentDialog = (payment: PaymentData) => {
@@ -413,7 +515,9 @@ export default function RentCollection() {
         {filteredTenants.map(tenant => {
           const status = getTenantPaymentStatus(tenant)
           const paid = (tenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear).reduce((sum, p) => sum + p.amount, 0)
-          const remaining = tenant.rentAmount - paid
+          const tenantAdjustments = getTenantAdjustments(tenant)
+          const totalAdjustments = tenantAdjustments.reduce((sum, a) => sum + a.amount, 0)
+          const remaining = tenant.rentAmount - paid - totalAdjustments
           const tenantPayments = (tenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear)
           const isExpanded = expandedTenant === tenant.id
 
@@ -441,15 +545,35 @@ export default function RentCollection() {
                 {canSeeRevenue && (
                   <div className="flex items-center justify-between mt-3">
                     <div>
-                      <p className="text-xs text-muted-foreground">{t('rent', language)}</p>
+                      <p className="text-xs text-muted-foreground">{t('originalRent', language)}</p>
                       <p className="font-bold text-sm">{formatAED(tenant.rentAmount)}</p>
                     </div>
                     {status !== 'paid' && (
                       <div>
-                        <p className="text-xs text-muted-foreground">{t('remaining', language)}</p>
+                        <p className="text-xs text-muted-foreground">{t('remainingBalance', language)}</p>
                         <p className="font-bold text-sm text-red-600">{formatAED(remaining)}</p>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Invoice breakdown */}
+                {canSeeRevenue && (paid > 0 || totalAdjustments > 0) && (
+                  <div className="mt-2 bg-muted/30 rounded-lg p-2 text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('paymentsReceived', language)}</span>
+                      <span className="font-medium text-emerald-600">{formatAED(paid)}</span>
+                    </div>
+                    {totalAdjustments > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('approvedAdjustments', language)}</span>
+                        <span className="font-medium text-amber-600">-{formatAED(totalAdjustments)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t pt-1">
+                      <span className="text-muted-foreground">{t('remainingBalance', language)}</span>
+                      <span className={`font-bold ${remaining <= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{formatAED(Math.max(0, remaining))}</span>
+                    </div>
                   </div>
                 )}
 
@@ -463,6 +587,15 @@ export default function RentCollection() {
                       <Check className="w-3 h-3 mr-1" />
                       {t('markPaid', language)}
                     </Button>
+                  )}
+                  {canSeeRevenue && (
+                    <button
+                      onClick={() => openAdjustmentDialog(tenant)}
+                      className="flex items-center justify-center gap-1 px-3 py-1 rounded-md text-xs border border-amber-300 text-amber-700 hover:bg-amber-50"
+                      title={t('createAdjustment', language)}
+                    >
+                      <MinusCircle className="w-3 h-3" />
+                    </button>
                   )}
                   {status !== 'paid' && (
                     <button
@@ -483,23 +616,52 @@ export default function RentCollection() {
                 </div>
 
                 {/* Payment History Toggle */}
-                {tenantPayments.length > 0 && (
+                {(tenantPayments.length > 0 || tenantAdjustments.length > 0) && (
                   <div className="mt-3 border-t pt-2">
                     <button
                       onClick={() => setExpandedTenant(isExpanded ? null : tenant.id)}
                       className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
                     >
                       {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                      {tenantPayments.length} {tenantPayments.length === 1 ? (language === 'ar' ? 'دفعة' : language === 'bn' ? 'পেমেন্ট' : language === 'ur' ? 'ادائیگی' : 'payment') : (language === 'ar' ? 'دفعات' : language === 'bn' ? 'পেমেন্টসমূহ' : language === 'ur' ? 'ادائیگیاں' : 'payments')}
+                      {tenantPayments.length + tenantAdjustments.length} {tenantPayments.length + tenantAdjustments.length === 1 ? (language === 'ar' ? 'عنصر' : language === 'bn' ? 'আইটেম' : language === 'ur' ? 'آئٹم' : 'item') : (language === 'ar' ? 'عناصر' : language === 'bn' ? 'আইটেমসমূহ' : language === 'ur' ? 'آئٹمز' : 'items')}
                       {canSeeRevenue && (
                         <span className="ml-auto font-medium text-emerald-600">
                           {formatAED(paid)}
+                          {totalAdjustments > 0 && <span className="text-amber-600 ml-1">(-{formatAED(totalAdjustments)})</span>}
                         </span>
                       )}
                     </button>
 
                     {isExpanded && (
                       <div className="mt-2 space-y-2">
+                        {/* Adjustments displayed first with amber styling */}
+                        {tenantAdjustments.filter(a => a.status === 'approved').map(adjustment => (
+                          <div key={adjustment.id} className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                {canSeeRevenue && <span className="font-semibold text-amber-700">-{formatAED(adjustment.amount)}</span>}
+                                <Badge variant="outline" className="text-[10px] px-1 py-0 border-amber-300 text-amber-700">
+                                  {t(adjustment.adjustmentType as any, language) || adjustment.adjustmentType}
+                                </Badge>
+                              </div>
+                              <p className="text-amber-600 mt-0.5 truncate text-[11px]">{adjustment.reason}</p>
+                              {adjustment.durationMonths > 1 && (
+                                <p className="text-amber-500 mt-0.5 text-[10px]">
+                                  {getMonthName(adjustment.effectiveMonth, language)} {adjustment.effectiveYear} — {adjustment.durationMonths} {t('months', language)}
+                                </p>
+                              )}
+                            </div>
+                            {canSeeRevenue && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setCancelAdjustmentTarget(adjustment); setCancelAdjustmentReason(''); setCancelAdjustmentDialogOpen(true) }}
+                                className="p-1 hover:bg-white rounded transition-colors ml-2"
+                                title={t('cancelAdjustment', language)}
+                              >
+                                <X className="w-3 h-3 text-amber-600" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
                         {tenantPayments.map(payment => (
                           <div key={payment.id} className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 text-xs">
                             <div className="flex-1 min-w-0">
@@ -884,7 +1046,143 @@ export default function RentCollection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Adjustment Dialog */}
+      <Dialog open={adjustmentDialogOpen} onOpenChange={setAdjustmentDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MinusCircle className="w-5 h-5 text-amber-600" />
+              {t('createAdjustment', language)} - {adjustmentTenant && getNameByLang(adjustmentTenant, language)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>{t('adjustmentAmount', language)}</Label>
+              <Input type="number" value={adjustmentForm.amount} onChange={e => setAdjustmentForm({ ...adjustmentForm, amount: Number(e.target.value) })} />
+            </div>
+            <div>
+              <Label>{t('adjustmentType', language)}</Label>
+              <Select value={adjustmentForm.adjustmentType} onValueChange={v => setAdjustmentForm({ ...adjustmentForm, adjustmentType: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="maintenance_delay">{t('maintenance_delay', language)}</SelectItem>
+                  <SelectItem value="flood_damage">{t('flood_damage', language)}</SelectItem>
+                  <SelectItem value="utility_failure">{t('utility_failure', language)}</SelectItem>
+                  <SelectItem value="goodwill">{t('goodwill', language)}</SelectItem>
+                  <SelectItem value="contract_amendment">{t('contract_amendment', language)}</SelectItem>
+                  <SelectItem value="owner_discount">{t('owner_discount', language)}</SelectItem>
+                  <SelectItem value="other">{t('other', language)}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{t('adjustmentReason', language)}</Label>
+              <Input value={adjustmentForm.reason} onChange={e => setAdjustmentForm({ ...adjustmentForm, reason: e.target.value })} placeholder={language === 'ar' ? 'أدخل السبب...' : language === 'bn' ? 'কারণ লিখুন...' : language === 'ur' ? 'وجہ درج کریں...' : 'Enter reason...'} />
+            </div>
+            <div>
+              <Label>{t('notes', language)}</Label>
+              <Input value={adjustmentForm.notes} onChange={e => setAdjustmentForm({ ...adjustmentForm, notes: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>{t('effectiveMonth', language)}</Label>
+                <Select value={String(adjustmentForm.effectiveMonth)} onValueChange={v => setAdjustmentForm({ ...adjustmentForm, effectiveMonth: Number(v) })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                      <SelectItem key={m} value={String(m)}>{getMonthName(m, language)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>{t('effectiveYear', language)}</Label>
+                <Select value={String(adjustmentForm.effectiveYear)} onValueChange={v => setAdjustmentForm({ ...adjustmentForm, effectiveYear: Number(v) })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2024">2024</SelectItem>
+                    <SelectItem value="2025">2025</SelectItem>
+                    <SelectItem value="2026">2026</SelectItem>
+                    <SelectItem value="2027">2027</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>{t('durationMonths', language)}</Label>
+              <Input type="number" min={1} max={12} value={adjustmentForm.durationMonths} onChange={e => setAdjustmentForm({ ...adjustmentForm, durationMonths: Number(e.target.value) || 1 })} />
+            </div>
+          </div>
+          {adjustmentError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-red-700">{adjustmentError}</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdjustmentDialogOpen(false)}>{t('cancel', language)}</Button>
+            <Button onClick={handleCreateAdjustment} disabled={adjustmentForm.amount <= 0 || !adjustmentForm.reason || adjustmentLoading} className="bg-amber-600 hover:bg-amber-700 text-white">
+              {adjustmentLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MinusCircle className="w-4 h-4 mr-2" />}
+              {t('createAdjustment', language)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Adjustment Dialog */}
+      <Dialog open={cancelAdjustmentDialogOpen} onOpenChange={setCancelAdjustmentDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <MinusCircle className="w-5 h-5" />
+              {t('cancelAdjustment', language)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm text-amber-800 font-medium">
+                    {language === 'ar' ? 'هل أنت متأكد من إلغاء هذا التعديل؟' : language === 'bn' ? 'আপনি কি এই সমন্বয়টি বাতিল করতে চান?' : language === 'ur' ? 'کیا آپ یہ ایڈجسٹمنٹ منسوخ کرنا چاہتے ہیں؟' : 'Are you sure you want to cancel this adjustment?'}
+                  </p>
+                  {cancelAdjustmentTarget && canSeeRevenue && (
+                    <p className="text-sm text-amber-600 mt-1">
+                      {formatAED(cancelAdjustmentTarget.amount)} — {t(cancelAdjustmentTarget.adjustmentType as any, language) || cancelAdjustmentTarget.adjustmentType}
+                    </p>
+                  )}
+                  <p className="text-xs text-amber-500 mt-1">
+                    {language === 'ar' ? 'سيتم تحديث حالة الدفع تلقائياً' : language === 'bn' ? 'পেমেন্ট স্ট্যাটাস স্বয়ংক্রিয়ভাবে আপডেট হবে' : language === 'ur' ? 'ادائیگی کی حیثیت خودکار طور پر اپ ڈیٹ ہوگی' : 'Payment status will be automatically recalculated.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <Label>{t('cancellationReason', language)}</Label>
+              <Input
+                value={cancelAdjustmentReason}
+                onChange={e => setCancelAdjustmentReason(e.target.value)}
+                placeholder={language === 'ar' ? 'أدخل سبب الإلغاء...' : language === 'bn' ? 'বাতিলের কারণ লিখুন...' : language === 'ur' ? 'منسوخ کرنے کی وجہ درج کریں...' : 'Enter cancellation reason...'}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          {adjustmentError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-red-700">{adjustmentError}</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCancelAdjustmentDialogOpen(false); setAdjustmentError('') }}>{t('cancel', language)}</Button>
+            <Button onClick={handleCancelAdjustment} disabled={adjustmentLoading} variant="destructive">
+              {adjustmentLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <X className="w-4 h-4 mr-2" />}
+              {t('cancelAdjustment', language)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-

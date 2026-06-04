@@ -115,3 +115,38 @@ Stage Summary:
 - User creation bug fixed: passwords now comply with policy, errors displayed properly
 - API hardened: role validation on create/update user endpoints
 - Deployment: commit 98d73e0 live on al-reef-al-junoobi.vercel.app
+---
+Task ID: 1-7
+Agent: Main Agent
+Task: Mandatory Verification Protocol - Payment Edit/Delete Feature
+
+Work Log:
+- Stage 1 (Code Verification): Discovered TWO codebase copies exist:
+  - /home/z/my-project/src/ — OLD version (632-line rent-collection.tsx, no [id] API route)
+  - /home/z/my-project/al-reef-dashboard/src/ — NEW version (889-line rent-collection.tsx, with [id] API route)
+  - Commit 036cfa8 contains full payment edit/delete feature in al-reef-dashboard/
+- Stage 2 (Deployment Verification): Found that commit 036cfa8 IS on GitHub main branch.
+  - Git deployment dpl_AtQj6BUKYSS (19:01:50 UTC) contained the new code
+  - CLI deployment dpl_54VoYx3cWka (19:02:11 UTC) OVERWROTE it with OLD code from root directory
+  - Root cause: CLI deployment was run from /home/z/my-project/ (diverged, 2 commits behind origin/main)
+- Stage 3 (UI Verification): Confirmed live site at al-reef-al-junoobi.vercel.app did NOT show payment edit/delete
+  - After fix (git reset --hard origin/main + push empty commit to trigger redeploy), new deployment dpl_7MwHuenBr57G is now production
+  - JS bundle 85a8a48d0d663ff0.js contains all payment edit/delete code
+- Stage 4 (Functional Verification): Browser agent tested live site:
+  - Mark Paid: ✅ Creates payment successfully
+  - Edit Payment: ✅ Opens dialog, saves changes, auto-recalculates
+  - Delete Payment: ✅ Opens confirmation, requires reason, deletes successfully
+  - Tenant status transitions: Unpaid → PAID → PARTIAL → Unpaid (correct)
+- Stage 5 (E2E Verification): Full Create→Edit→VerifyDashboard→Delete→VerifyDashboard cycle:
+  - Create: 1600 AED payment → Dashboard shows 1,600 collected ✅
+  - Edit: 1600→1000 AED → Dashboard shows 1,000 collected ✅
+  - Delete: Remove payment → Dashboard shows 0 collected ✅
+  - All math checks pass: 669,498 − payment = displayed uncollected
+  - Audit logs created via createAuditLog() for both UPDATE and DELETE actions
+
+Stage Summary:
+- Root Cause: CLI deployment from diverged root directory overwrote GitHub-triggered deployment with correct code
+- Fix: Reset root to origin/main, pushed empty commit to trigger Vercel auto-deploy from GitHub
+- Current production deployment: dpl_7MwHuenBr57GbgwCLq9SGeKQPVr9 (git source, READY)
+- All 5 verification stages PASSED
+- Known gaps: Audit log UI not in sidebar navigation, minor ARIA accessibility warnings on dialogs

@@ -137,17 +137,17 @@ export default function Dashboard() {
       )}
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 stagger-children">
         <Card className="property-card-hover border-l-4 border-l-emerald">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Banknote className="w-5 h-5 text-emerald" />
               <Badge variant="secondary" className="text-xs">
-                {t('monthly', lang)}
+                {t('cashCollected', lang)}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              {t('collectedRevenue', lang)}
+              {t('cashCollected', lang)}
             </p>
             {canSeeFinancials ? (
               <>
@@ -171,6 +171,28 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+
+        {canSeeFinancials && s.totalAdjustments > 0 && (
+          <Card className="property-card-hover border-l-4 border-l-amber-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <Banknote className="w-5 h-5 text-amber-500" />
+                <Badge variant="secondary" className="text-xs">
+                  {t('adjustments', lang)}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t('adjustmentsTotal', lang)}
+              </p>
+              <p className="text-xl font-bold text-amber-600 mt-1">
+                -{formatAED(s.totalAdjustments)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t('totalEffectiveCollection', lang)}: {formatAED(s.collectedRevenue - s.totalAdjustments)}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className={cn2('property-card-hover', s.overdueCount > 0 && 'border-l-4 border-l-red-500')}>
           <CardContent className="p-4">

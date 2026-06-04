@@ -190,7 +190,9 @@ export default function Reports() {
       pdf.setTextColor(0, 0, 0)
 
       const metrics = [
-        [t('revenue', lang), formatAED(data.totalRevenue)],
+        [t('cashCollected', lang), formatAED(data.cashCollected)],
+        [t('adjustmentsTotal', lang), `-${formatAED(data.adjustmentTotal)}`],
+        [t('netRevenue', lang), formatAED(data.netRevenue)],
         [t('expenses', lang), formatAED(data.totalExpenses)],
         [t('profitOrLoss', lang), formatAED(data.profitLoss)],
         [t('collectionRate', lang), `${data.collectionRate}%`],
@@ -266,6 +268,8 @@ export default function Reports() {
         [t('rentalIncome', lang), formatAED(data.rentalIncome), ''],
         [t('otherIncome', lang), formatAED(data.otherIncome), ''],
         [t('grossRevenue', lang), formatAED(data.grossRevenue), 'bold'],
+        [t('adjustmentsTotal', lang), `-${formatAED(data.adjustmentTotal)}`, 'red'],
+        [t('netRevenue', lang), formatAED(data.netRevenue), data.netRevenue >= 0 ? 'green' : 'red'],
         [t('vacancyLoss', lang), `-${formatAED(data.vacancyLoss)}`, 'red'],
         [t('badDebt', lang), `-${formatAED(data.badDebt)}`, 'red'],
         [t('grossProfit', lang), formatAED(data.grossProfit), data.grossProfit >= 0 ? 'green' : 'red'],
@@ -348,6 +352,8 @@ export default function Reports() {
         ['Rental Income', reportData.rentalIncome],
         ['Other Income', reportData.otherIncome],
         ['Gross Revenue', reportData.grossRevenue],
+        ['Rent Adjustments', `-${reportData.adjustmentTotal}`],
+        ['Net Revenue', reportData.netRevenue],
         ['Vacancy Loss', `-${reportData.vacancyLoss}`],
         ['Bad Debt / Unpaid', `-${reportData.badDebt}`],
         ['Gross Profit', reportData.grossProfit],
@@ -774,9 +780,20 @@ export default function Reports() {
                 <div className="flex items-center justify-between p-3 rounded-lg bg-emerald/5">
                   <div className="flex items-center gap-2">
                     <ArrowUpRight className="w-4 h-4 text-emerald" />
-                    <span className="text-sm">{t('rentalIncome', lang)}</span>
+                    <span className="text-sm">{t('cashCollected', lang)}</span>
                   </div>
-                  <span className="font-semibold text-emerald">{formatAED(data.rentalIncome)}</span>
+                  <span className="font-semibold text-emerald">{formatAED(data.cashCollected)}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50">
+                  <div className="flex items-center gap-2">
+                    <ArrowDownRight className="w-4 h-4 text-amber-500" />
+                    <span className="text-sm">{t('adjustmentsTotal', lang)}</span>
+                  </div>
+                  <span className="font-semibold text-amber-600">-{formatAED(data.adjustmentTotal)}</span>
+                </div>
+                <div className="border-t pt-2 flex items-center justify-between p-3 rounded-lg bg-emerald/10">
+                  <span className="text-sm font-semibold">{t('netRevenue', lang)}</span>
+                  <span className="font-bold text-emerald">{formatAED(data.netRevenue)}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-2">
@@ -821,9 +838,14 @@ export default function Reports() {
           <div className="space-y-2">
             {/* Revenue */}
             <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 items-center p-3 rounded-lg bg-emerald/5">
-              <span className="text-sm font-medium">{t('rentalIncome', lang)}</span>
+              <span className="text-sm font-medium">{t('cashCollected', lang)}</span>
               <span className="text-sm text-muted-foreground">{ }</span>
-              <span className="font-semibold text-emerald text-right">{formatAED(data.rentalIncome)}</span>
+              <span className="font-semibold text-emerald text-right">{formatAED(data.cashCollected)}</span>
+            </div>
+            <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 items-center p-3 rounded-lg bg-amber-50">
+              <span className="text-sm">{t('adjustmentsTotal', lang)}</span>
+              <span className="text-sm text-amber-400">-</span>
+              <span className="font-semibold text-amber-600 text-right">{formatAED(data.adjustmentTotal)}</span>
             </div>
             <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 items-center p-3 rounded-lg bg-muted/30">
               <span className="text-sm">{t('otherIncome', lang)}</span>

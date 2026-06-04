@@ -24,6 +24,8 @@ export interface DashboardData {
     partialCount: number
     netProfit: number
     totalExpenses: number
+    totalAdjustments: number
+    netCashCollected: number
   }
   overdueTenants: TenantData[]
   partialTenants: TenantData[]
@@ -96,6 +98,7 @@ export interface TenantData {
   createdAt: string
   property?: PropertyData
   payments?: PaymentData[]
+  adjustments?: RentAdjustmentData[]
 }
 
 export interface PaymentData {
@@ -113,6 +116,26 @@ export interface PaymentData {
   daysLate: number
   createdAt: string
   tenant?: TenantData
+}
+
+export interface RentAdjustmentData {
+  id: string
+  companyId: string
+  tenantId: string
+  propertyId: string
+  amount: number
+  adjustmentType: string
+  reason: string
+  notes: string | null
+  effectiveMonth: number
+  effectiveYear: number
+  durationMonths: number
+  status: string
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+  tenant?: TenantData
+  property?: PropertyData
 }
 
 export interface ExpenseData {
@@ -168,6 +191,10 @@ export interface ReportData {
   grossProfit: number
   costOfOperations: number
   netIncome: number
+  totalAdjustments: number
+  cashCollected: number
+  adjustmentTotal: number
+  netRevenue: number
 }
 
 export interface ReservationData {

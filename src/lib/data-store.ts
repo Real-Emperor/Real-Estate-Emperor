@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { PropertyData, TenantData, PaymentData, ExpenseData, MaintenanceData, ReservationData } from '@/lib/types'
+import type { PropertyData, TenantData, PaymentData, ExpenseData, MaintenanceData, ReservationData, RentAdjustmentData } from '@/lib/types'
 
 // Company info
 export interface CompanyInfo {
@@ -49,6 +49,7 @@ interface DataState {
   expenses: ExpenseData[]
   maintenanceItems: MaintenanceData[]
   reservations: ReservationData[]
+  adjustments: RentAdjustmentData[]
   isSeeded: boolean
   isLoading: boolean
   isInitialized: boolean
@@ -93,6 +94,11 @@ interface DataState {
   updatePayment: (id: string, data: Partial<PaymentData> & { reason?: string }) => Promise<void>
   deletePayment: (id: string, reason?: string) => Promise<void>
 
+  // Adjustments CRUD
+  addAdjustment: (data: Omit<RentAdjustmentData, 'id' | 'companyId' | 'createdAt' | 'updatedAt' | 'tenant' | 'property'>) => Promise<void>
+  updateAdjustment: (id: string, data: Partial<RentAdjustmentData>) => Promise<void>
+  cancelAdjustment: (id: string, reason?: string) => Promise<void>
+
   // Expenses CRUD
   addExpense: (data: Omit<ExpenseData, 'id' | 'companyId' | 'createdAt'>) => Promise<void>
   updateExpense: (id: string, data: Partial<ExpenseData>) => Promise<void>
@@ -127,6 +133,23 @@ const DEFAULT_COMPANY: CompanyInfo = {
   phone: '',
   email: '',
   address: '',
+}
+
+// Helper: check if an adjustment applies to a given month/year
+// For multi-month adjustments (durationMonths > 1), the adjustment applies to every month
+// from effectiveMonth/effectiveYear for durationMonths months
+function isAdjustmentActiveInMonth(adjustment: RentAdjustmentData, month: number, year: number): boolean {
+  if (adjustment.status !== 'approved') return false
+
+  const startDate = new Date(adjustment.effectiveYear, adjustment.effectiveMonth - 1, 1)
+  const checkDate = new Date(year, month - 1, 1)
+  const endDate = new Date(
+    adjustment.effectiveYear + Math.floor((adjustment.effectiveMonth - 1 + adjustment.durationMonths) / 12),
+    ((adjustment.effectiveMonth - 1 + adjustment.durationMonths) % 12),
+    0 // last day of the end month
+  )
+
+  return checkDate >= startDate && checkDate <= endDate
 }
 
 // PHASE 2: Dedup guard for 401 handling — prevent multiple simultaneous signOut calls
@@ -185,6 +208,7 @@ export const useDataStore = create<DataState>()(
     expenses: [],
     maintenanceItems: [],
     reservations: [],
+    adjustments: [],
     isSeeded: false,
     isLoading: false,
     isInitialized: false,
@@ -197,7 +221,7 @@ export const useDataStore = create<DataState>()(
       try {
         // Fetch all data in parallel
         // Staff can now view payments (amounts masked) and users (still blocked via 403 catch)
-        const [companyData, propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, usersData, resetData, reservationsData] = await Promise.all([
+        const [companyData, propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, usersData, resetData, reservationsData, adjustmentsData] = await Promise.all([
           apiCall('/api/company').catch(() => null),
           apiCall('/api/properties?includeArchived=true&limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/tenants?limit=1000').catch(() => ({ data: [] })),
@@ -207,6 +231,7 @@ export const useDataStore = create<DataState>()(
           apiCall('/api/users?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/reset-requests').catch(() => []),
           apiCall('/api/reservations?limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/adjustments?limit=1000').catch(() => ({ data: [] })),
         ])
 
         // Helper to extract data from paginated or plain responses
@@ -227,6 +252,7 @@ export const useDataStore = create<DataState>()(
           users: extractData(usersData),
           resetRequests: extractData(resetData),
           reservations: extractData(reservationsData),
+          adjustments: extractData(adjustmentsData),
           isSeeded: true, // If data was fetched, it's seeded
           isInitialized: true,
           isLoading: false,
@@ -240,13 +266,14 @@ export const useDataStore = create<DataState>()(
     // Refresh all data after mutations — forces re-fetch to ensure consistency
     refreshAllData: async () => {
       try {
-        const [propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, reservationsData] = await Promise.all([
+        const [propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, reservationsData, adjustmentsData] = await Promise.all([
           apiCall('/api/properties?includeArchived=true&limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/tenants?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/payments?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/expenses?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/maintenance?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/reservations?limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/adjustments?limit=1000').catch(() => ({ data: [] })),
         ])
 
         const extractData = (resp: any): any[] => {
@@ -263,6 +290,7 @@ export const useDataStore = create<DataState>()(
           expenses: extractData(expensesData),
           maintenanceItems: extractData(maintenanceData),
           reservations: extractData(reservationsData),
+          adjustments: extractData(adjustmentsData),
         })
       } catch (error) {
         console.error('Failed to refresh data:', error)
@@ -472,6 +500,38 @@ export const useDataStore = create<DataState>()(
       await get().refreshAllData()
     },
 
+    // Adjustments CRUD
+    addAdjustment: async (data) => {
+      const newAdjustment = await apiCall('/api/adjustments', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+      set(s => ({ adjustments: [...s.adjustments, newAdjustment] }))
+      await get().refreshAllData()
+    },
+
+    updateAdjustment: async (id, data) => {
+      const updated = await apiCall(`/api/adjustments/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      })
+      set(s => ({
+        adjustments: s.adjustments.map(a => a.id === id ? { ...a, ...updated } : a),
+      }))
+      await get().refreshAllData()
+    },
+
+    cancelAdjustment: async (id, reason) => {
+      const url = reason
+        ? `/api/adjustments/${id}?reason=${encodeURIComponent(reason)}`
+        : `/api/adjustments/${id}`
+      await apiCall(url, { method: 'DELETE' })
+      set(s => ({
+        adjustments: s.adjustments.map(a => a.id === id ? { ...a, status: 'cancelled' } : a),
+      }))
+      await get().refreshAllData()
+    },
+
     // Expenses CRUD
     addExpense: async (data) => {
       const newExpense = await apiCall('/api/expenses', {
@@ -582,6 +642,7 @@ export const useDataStore = create<DataState>()(
         expenses: [],
         maintenanceItems: [],
         reservations: [],
+        adjustments: [],
         isSeeded: false,
         isLoading: false,
         isInitialized: false, // CRITICAL: Reset so next login triggers fetchAllData
@@ -590,10 +651,11 @@ export const useDataStore = create<DataState>()(
 
     // Getters - computed from local state (same logic as before)
     getTenantsWithRelations: () => {
-      const { tenants, payments, properties } = get()
+      const { tenants, payments, properties, adjustments } = get()
       return tenants.map(tenant => ({
         ...tenant,
         payments: payments.filter(p => p.tenantId === tenant.id),
+        adjustments: adjustments.filter(a => a.tenantId === tenant.id),
         property: properties.find(p => p.id === tenant.propertyId) || undefined,
       }))
     },
@@ -609,7 +671,7 @@ export const useDataStore = create<DataState>()(
     },
 
     getDashboardData: () => {
-      const { company, tenants, payments, properties, expenses, maintenanceItems } = get()
+      const { company, tenants, payments, properties, expenses, maintenanceItems, adjustments } = get()
       const now = new Date()
       const currentMonth = now.getMonth() + 1
       const currentYear = now.getFullYear()
@@ -618,6 +680,13 @@ export const useDataStore = create<DataState>()(
       const expectedRevenue = activeTenants.reduce((sum, t) => sum + t.rentAmount, 0)
       const currentMonthPayments = payments.filter(p => p.month === currentMonth && p.year === currentYear)
       const collectedRevenue = currentMonthPayments.reduce((sum, p) => sum + p.amount, 0)
+
+      // Calculate adjustments for current month (including multi-month adjustments)
+      const currentMonthAdjustments = adjustments.filter(a => {
+        if (a.status !== 'approved') return false
+        return isAdjustmentActiveInMonth(a, currentMonth, currentYear)
+      })
+      const totalAdjustments = currentMonthAdjustments.reduce((sum, a) => sum + a.amount, 0)
 
       const overdueTenants = activeTenants.filter(t => {
         const hasPaid = payments.some(p => p.tenantId === t.id && p.month === currentMonth && p.year === currentYear)
@@ -676,6 +745,8 @@ export const useDataStore = create<DataState>()(
           partialCount: partialTenants.length,
           netProfit: collectedRevenue - totalExpenses,
           totalExpenses,
+          totalAdjustments,
+          netCashCollected: collectedRevenue - totalAdjustments,
         },
         overdueTenants: overdueTenants.map(t => ({
           ...t,
@@ -705,11 +776,19 @@ export const useDataStore = create<DataState>()(
     },
 
     getReportData: (month, year) => {
-      const { tenants, payments, properties, expenses } = get()
+      const { tenants, payments, properties, expenses, adjustments } = get()
       const activeTenants = tenants.filter(t => t.status === 'active')
       const expectedRevenue = activeTenants.reduce((sum, t) => sum + t.rentAmount, 0)
       const monthPayments = payments.filter(p => p.month === month && p.year === year)
       const totalRevenue = monthPayments.reduce((sum, p) => sum + p.amount, 0)
+
+      // Calculate adjustments for this month
+      const monthAdjustments = adjustments.filter(a => {
+        if (a.status !== 'approved') return false
+        return isAdjustmentActiveInMonth(a, month, year)
+      })
+      const totalAdjustments = monthAdjustments.reduce((sum, a) => sum + a.amount, 0)
+
       const monthlyExpenses = expenses.filter(e => {
         const d = new Date(e.date)
         return d.getMonth() + 1 === month && d.getFullYear() === year
@@ -767,6 +846,10 @@ export const useDataStore = create<DataState>()(
         expenseBreakdown, monthlyExpenses, trend,
         rentalIncome, otherIncome, grossRevenue, vacancyLoss, badDebt,
         grossProfit, costOfOperations, netIncome,
+        totalAdjustments,
+        cashCollected: totalRevenue,
+        adjustmentTotal: totalAdjustments,
+        netRevenue: totalRevenue + totalAdjustments,
       }
     },
 
