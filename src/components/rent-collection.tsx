@@ -93,14 +93,9 @@ export default function RentCollection() {
         return
       }
       const data = await res.json()
-      if (data.success) {
-        setInvoiceSearchResults(data.data.results)
-        setInvoiceSearchOpen(true)
-      } else {
-        // API returned an error message
-        setInvoiceSearchResults([])
-        setInvoiceSearchOpen(true)
-      }
+      // API returns { results: [...], total: N } directly via successResponse()
+      setInvoiceSearchResults(data.results || [])
+      setInvoiceSearchOpen(true)
     } catch (e) {
       console.error('Invoice search failed:', e)
       setInvoiceSearchResults([])
