@@ -6,6 +6,8 @@ import {
   forbiddenResponse,
 } from '@/lib/api-utils'
 import PDFDocument from 'pdfkit'
+import path from 'path'
+import fs from 'fs'
 
 // GET /api/receipts/[id]/pdf — Generate and return PDF receipt
 export async function GET(
@@ -35,6 +37,25 @@ export async function GET(
     const doc = new PDFDocument({ size: 'A4', margin: 50 })
     const chunks: Buffer[] = []
 
+    // ── Register embedded fonts for Arabic support ──
+    const fontsDir = path.join(process.cwd(), 'public', 'fonts')
+    const notoSansRegular = path.join(fontsDir, 'NotoSans-Regular.ttf')
+    const notoSansBold = path.join(fontsDir, 'NotoSans-Bold.ttf')
+    const notoSansArabicRegular = path.join(fontsDir, 'NotoSansArabic-Regular.ttf')
+    const notoSansArabicBold = path.join(fontsDir, 'NotoSansArabic-Bold.ttf')
+
+    const hasNotoSans = fs.existsSync(notoSansRegular) && fs.existsSync(notoSansBold)
+    const hasNotoArabic = fs.existsSync(notoSansArabicRegular) && fs.existsSync(notoSansArabicBold)
+
+    if (hasNotoSans) {
+      doc.registerFont('NotoSans', notoSansRegular)
+      doc.registerFont('NotoSans-Bold', notoSansBold)
+    }
+    if (hasNotoArabic) {
+      doc.registerFont('NotoSansArabic', notoSansArabicRegular)
+      doc.registerFont('NotoSansArabic-Bold', notoSansArabicBold)
+    }
+
     doc.on('data', (chunk: Buffer) => chunks.push(chunk))
 
     const pdfPromise = new Promise<Buffer>((resolve) => {
@@ -51,16 +72,16 @@ export async function GET(
     doc.rect(0, 0, doc.page.width, 120).fill(teal)
 
     // Company name
-    doc.fontSize(22).fillColor('#FFFFFF')
+    doc.fontSize(22).fillColor('#FFFFFF').font(hasNotoSans ? 'NotoSans-Bold' : 'Helvetica-Bold')
       .text(receipt.company.name, 50, 35, { width: 400 })
 
     if (receipt.company.nameAr) {
-      doc.fontSize(12).fillColor('rgba(255,255,255,0.8)')
+      doc.fontSize(12).fillColor('rgba(255,255,255,0.8)').font(hasNotoArabic ? 'NotoSansArabic' : 'Helvetica')
         .text(receipt.company.nameAr, 50, 65, { width: 400, features: ['rtla'] })
     }
 
     // Receipt title
-    doc.fontSize(14).fillColor('#FFFFFF')
+    doc.fontSize(14).fillColor('#FFFFFF').font(hasNotoSans ? 'NotoSans-Bold' : 'Helvetica-Bold')
       .text('PAYMENT RECEIPT', 400, 45, { width: 150, align: 'right' })
 
     // Receipt number badge
@@ -93,7 +114,7 @@ export async function GET(
       .text(receipt.tenant.name, 50, 198)
 
     if (receipt.tenant.nameAr) {
-      doc.fontSize(11).fillColor(gray)
+      doc.fontSize(11).fillColor(gray).font(hasNotoArabic ? 'NotoSansArabic' : 'Helvetica')
         .text(receipt.tenant.nameAr, 200, 199, { features: ['rtla'] })
     }
 
