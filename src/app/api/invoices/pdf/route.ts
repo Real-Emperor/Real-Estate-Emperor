@@ -94,7 +94,10 @@ export async function GET(request: Request) {
     // Create PDF document
     // Note: bufferPages removed — it is unnecessary for single-page invoices and can
     // interact badly with auto-page-breaking when footer text wraps near the page bottom.
+    // We set bottom margin to 0 immediately to prevent PDFKit's auto-page-break
+    // from adding unwanted blank pages. All element positions are manually controlled.
     const doc = new PDFDocument({ size: 'A4', margin: 50 })
+    doc.page.margins.bottom = 0  // Prevent auto-page-break for entire document
     const chunks: Buffer[] = []
     doc.on('data', (chunk: Buffer) => chunks.push(chunk))
 
@@ -335,12 +338,8 @@ export async function GET(request: Request) {
     // ═══════════════════════════════════════════════════════════
     // FOOTER
     // ═══════════════════════════════════════════════════════════
-    // Temporarily remove bottom margin so that footer text drawn near the
-    // page bottom does not trigger PDFKit's auto-page-break mechanism
-    // (which was the root cause of the extra blank pages).
-    const savedBottomMargin = doc.page.margins.bottom
-    doc.page.margins.bottom = 0
-
+    // Bottom margin was already set to 0 at document creation to prevent
+    // PDFKit's auto-page-break from adding unwanted blank pages.
     const footerY = doc.page.height - 60
 
     doc.moveTo(50, footerY).lineTo(pageWidth - 50, footerY).strokeColor('#E5E7EB').lineWidth(0.5).stroke()
@@ -354,9 +353,6 @@ export async function GET(request: Request) {
       'Thank you for your payment. For questions, contact alreef.junoobi@gmail.com or +971504225590',
       50, footerY + 20, { width: pageWidth - 100, align: 'center' }
     )
-
-    // Restore bottom margin
-    doc.page.margins.bottom = savedBottomMargin
 
     // ── Finalize PDF ──
     doc.end()
