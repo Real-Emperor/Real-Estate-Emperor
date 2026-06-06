@@ -661,12 +661,16 @@ export const useDataStore = create<DataState>()(
     },
 
     getPropertiesWithTenants: (includeArchived = false) => {
-      const { properties, tenants } = get()
+      const { properties, tenants, payments, adjustments } = get()
       return properties
         .filter(p => includeArchived || !p.archived)
         .map(p => ({
           ...p,
-          tenants: tenants.filter(t => t.propertyId === p.id && t.status === 'active'),
+          tenants: tenants.filter(t => t.propertyId === p.id && t.status === 'active').map(t => ({
+            ...t,
+            payments: payments.filter(p => p.tenantId === t.id),
+            adjustments: adjustments.filter(a => a.tenantId === t.id),
+          })),
         }))
     },
 

@@ -22,7 +22,7 @@ export default function RentCollection() {
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
-  const [filter, setFilter] = useState<'all' | 'paid' | 'unpaid' | 'overdue'>('all')
+  const [filter, setFilter] = useState<'all' | 'paid' | 'partial' | 'unpaid' | 'overdue'>('all')
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [payingTenant, setPayingTenant] = useState<TenantData | null>(null)
   const [payForm, setPayForm] = useState({ amount: 0, method: 'cash', reference: '', notes: '', paymentDate: new Date().toISOString().split('T')[0] })
@@ -172,7 +172,8 @@ export default function RentCollection() {
     const status = getTenantPaymentStatus(t)
     if (filter === 'all') return true
     if (filter === 'paid') return status === 'paid'
-    if (filter === 'unpaid') return status === 'overdue' || status === 'unpaid' || status === 'due-soon' || status === 'partial'
+    if (filter === 'partial') return status === 'partial'
+    if (filter === 'unpaid') return status === 'overdue' || status === 'unpaid' || status === 'due-soon'
     if (filter === 'overdue') return status === 'overdue'
     return true
   })
@@ -539,7 +540,7 @@ export default function RentCollection() {
 
       {/* Filter */}
       <div className="flex gap-2 flex-wrap">
-        {(['all', 'paid', 'unpaid', 'overdue'] as const).map(f => (
+        {(['all', 'paid', 'partial', 'unpaid', 'overdue'] as const).map(f => (
           <Button
             key={f}
             variant={filter === f ? 'default' : 'outline'}
@@ -549,6 +550,7 @@ export default function RentCollection() {
           >
             {f === 'all' && t('all', language)}
             {f === 'paid' && t('paid', language)}
+            {f === 'partial' && t('partiallyPaid', language)}
             {f === 'unpaid' && t('unpaid', language)}
             {f === 'overdue' && t('overdue', language)}
           </Button>

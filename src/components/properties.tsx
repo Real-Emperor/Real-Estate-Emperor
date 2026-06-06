@@ -137,9 +137,20 @@ export default function Properties() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
         {properties.map((p) => {
-          const activeTenants = (p.tenants || []).filter(t => t.status === 'active').length
+          const activeTenantList = (p.tenants || []).filter(t => t.status === 'active')
+          const activeTenants = activeTenantList.length
           const occupancy = p.totalUnits > 0 ? Math.round((activeTenants / p.totalUnits) * 100) : 0
-          const totalRent = (p.tenants || []).filter(t => t.status === 'active').reduce((s, t) => s + t.rentAmount, 0)
+          const totalRent = activeTenantList.reduce((s, t) => s + t.rentAmount, 0)
+
+          // Calculate collected and outstanding for the current month
+          const now = new Date()
+          const currentMonth = now.getMonth() + 1
+          const currentYear = now.getFullYear()
+          const collectedAmount = activeTenantList.reduce((s, tenant) => {
+            const paid = (tenant.payments || []).filter(p => p.month === currentMonth && p.year === currentYear).reduce((sum, p) => sum + p.amount, 0)
+            return s + Math.min(paid, tenant.rentAmount)
+          }, 0)
+          const outstandingAmount = Math.max(0, totalRent - collectedAmount)
 
           return (
             <Card key={p.id} className={cn2('property-card-hover', p.archived && 'opacity-60')}>
@@ -209,10 +220,18 @@ export default function Properties() {
                       <span className="text-xs text-muted-foreground">{t('monthlyRevenue', language)}</span>
                       <span className="font-semibold text-sm text-emerald">{formatAED(totalRent)}</span>
                     </div>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="text-xs text-muted-foreground">{t('collected', language)}</span>
+                      <span className="font-semibold text-sm text-emerald-600">{formatAED(collectedAmount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="text-xs text-muted-foreground">{t('outstanding', language)}</span>
+                      <span className={`font-semibold text-sm ${outstandingAmount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{formatAED(outstandingAmount)}</span>
+                    </div>
                     <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
                       <div
                         className="bg-emerald h-1.5 rounded-full transition-all"
-                        style={{ width: `${occupancy}%` }}
+                        style={{ width: `${totalRent > 0 ? Math.round((collectedAmount / totalRent) * 100) : 0}%` }}
                       />
                     </div>
                   </div>
