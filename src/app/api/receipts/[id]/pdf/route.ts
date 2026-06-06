@@ -34,7 +34,10 @@ export async function GET(
     if (!receipt) return errorResponse('Receipt not found', 404)
 
     // Create PDF document
+    // Set bottom margin to 0 to prevent PDFKit's auto-page-break from adding unwanted blank pages.
+    // All element positions are manually controlled (consistent with invoice PDF pattern).
     const doc = new PDFDocument({ size: 'A4', margin: 50 })
+    doc.page.margins.bottom = 0
     const chunks: Buffer[] = []
 
     // ── Register embedded fonts for Arabic support ──

@@ -5,6 +5,14 @@ import bcrypt from 'bcryptjs'
 // POST /api/setup — Initialize the database with company and admin user
 // This endpoint is only available when no users exist in the database
 export async function POST(request: Request) {
+  // Production guard: block setup in production environment
+  if (process.env.NODE_ENV === 'production') {
+    return Response.json(
+      { error: 'Setup is not available in production. Use the admin panel instead.' },
+      { status: 403 }
+    )
+  }
+
   try {
     // Rate limit: max 3 setup attempts per IP per hour
     const forwarded = request.headers.get('x-forwarded-for')
@@ -140,6 +148,14 @@ export async function POST(request: Request) {
 
 // GET /api/setup — Check if database needs setup
 export async function GET() {
+  // Production guard: block setup status check in production
+  if (process.env.NODE_ENV === 'production') {
+    return Response.json(
+      { error: 'Setup is not available in production.' },
+      { status: 403 }
+    )
+  }
+
   try {
     const userCount = await prisma.user.count()
     const companyCount = await prisma.company.count()

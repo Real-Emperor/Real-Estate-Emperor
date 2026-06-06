@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     })
 
     // Clear any rate limits for this user
-    await prisma.rateLimit.deleteMany({
+    await prisma.rateLimitEntry.deleteMany({
       where: { identifier: user.email },
     }).catch(() => {})
 

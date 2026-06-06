@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server'
 
+// DEBUG ENDPOINT DISABLED — this route exposed sensitive environment data in production.
+// If needed for local debugging, temporarily re-enable with proper auth guards.
 export async function GET() {
-  const cronSecret = process.env.CRON_SECRET
-  return NextResponse.json({
-    hasCronSecret: !!cronSecret,
-    cronSecretLength: cronSecret?.length || 0,
-    cronSecretFirst8: cronSecret?.substring(0, 8) || 'NOT_SET',
-    cronSecretLast8: cronSecret?.slice(-8) || 'NOT_SET',
-    nodeEnv: process.env.NODE_ENV,
-  })
+  return NextResponse.json({ error: 'This endpoint is disabled' }, { status: 404 })
 }

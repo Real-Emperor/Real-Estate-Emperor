@@ -7,7 +7,7 @@ export async function checkApiRateLimit(
   windowMs: number = 15 * 60 * 1000 // 15 minutes
 ): Promise<{ allowed: boolean; remainingAttempts: number; retryAfterMs?: number }> {
   try {
-    const record = await prisma.rateLimit.findUnique({ where: { identifier } })
+    const record = await prisma.rateLimitEntry.findUnique({ where: { identifier } })
 
     if (!record) {
       return { allowed: true, remainingAttempts: maxAttempts }
@@ -15,7 +15,7 @@ export async function checkApiRateLimit(
 
     // If lockout has expired, allow
     if (record.lockedUntil && new Date(record.lockedUntil) < new Date()) {
-      await prisma.rateLimit.delete({ where: { identifier } }).catch(() => {})
+      await prisma.rateLimitEntry.delete({ where: { identifier } }).catch(() => {})
       return { allowed: true, remainingAttempts: maxAttempts }
     }
 
@@ -39,10 +39,10 @@ export async function recordApiRateLimit(
   lockoutMs: number = 15 * 60 * 1000
 ): Promise<void> {
   try {
-    const record = await prisma.rateLimit.findUnique({ where: { identifier } })
+    const record = await prisma.rateLimitEntry.findUnique({ where: { identifier } })
 
     if (!record) {
-      await prisma.rateLimit.create({
+      await prisma.rateLimitEntry.create({
         data: { identifier, count: 1, lockedUntil: null },
       })
     } else {
@@ -51,7 +51,7 @@ export async function recordApiRateLimit(
         ? new Date(Date.now() + lockoutMs)
         : record.lockedUntil
 
-      await prisma.rateLimit.update({
+      await prisma.rateLimitEntry.update({
         where: { identifier },
         data: { count: newCount, lockedUntil },
       })
@@ -63,7 +63,7 @@ export async function recordApiRateLimit(
 
 export async function clearApiRateLimit(identifier: string): Promise<void> {
   try {
-    await prisma.rateLimit.delete({ where: { identifier } }).catch(() => {})
+    await prisma.rateLimitEntry.delete({ where: { identifier } }).catch(() => {})
   } catch (error) {
     console.error('Rate limit clear error:', error)
   }

@@ -7,6 +7,10 @@ import {
   successResponse,
   unauthorizedResponse,
   forbiddenResponse,
+  safeDecimal,
+  safeInt,
+  parsePaginationParams,
+  paginatedResponse,
 } from '@/lib/api-utils'
 
 // GET /api/receipts — List receipts for the company
@@ -20,21 +24,27 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const tenantId = searchParams.get('tenantId')
+    const pagination = parsePaginationParams(searchParams)
 
     const where: any = { companyId: user.companyId }
     if (tenantId) where.tenantId = tenantId
 
-    const receipts = await prisma.receipt.findMany({
-      where,
-      include: {
-        tenant: {
-          select: { id: true, name: true, nameAr: true, unitNumber: true, propertyId: true },
+    const [receipts, total] = await Promise.all([
+      prisma.receipt.findMany({
+        where,
+        include: {
+          tenant: {
+            select: { id: true, name: true, nameAr: true, unitNumber: true, propertyId: true },
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.limit,
+      }),
+      prisma.receipt.count({ where }),
+    ])
 
-    return successResponse(receipts.map(serialize))
+    return successResponse(paginatedResponse(receipts.map(serialize), total, pagination))
   } catch (error) {
     console.error('Error fetching receipts:', error)
     return errorResponse('Failed to fetch receipts', 500)
@@ -56,6 +66,13 @@ export async function POST(request: Request) {
     if (!tenantId || amount === undefined || !date || !month || !year) {
       return errorResponse('tenantId, amount, date, month, and year are required')
     }
+
+    // Use safeDecimal for monetary precision (matches payments pattern)
+    const parsedAmount = safeDecimal(amount)
+    if (parsedAmount <= 0) return errorResponse('amount must be greater than zero')
+    const parsedMonth = safeInt(month, 0)
+    const parsedYear = safeInt(year, 0)
+    if (!parsedMonth || !parsedYear) return errorResponse('Invalid month or year')
 
     // Verify tenant belongs to company
     const tenant = await prisma.tenant.findFirst({
@@ -86,10 +103,10 @@ export async function POST(request: Request) {
         tenantId,
         paymentId: paymentId || null,
         receiptNumber,
-        amount: Number(amount),
+        amount: parsedAmount,
         date: new Date(date),
-        month: Number(month),
-        year: Number(year),
+        month: parsedMonth,
+        year: parsedYear,
         description: description || null,
         createdBy: user.id,
       },
@@ -107,8 +124,8 @@ export async function POST(request: Request) {
         userId: null,
         type: 'payment_receipt',
         title: 'Receipt Generated',
-        message: `Receipt ${receiptNumber} generated for tenant ${tenant.name} - AED ${Number(amount).toLocaleString()}`,
-        data: JSON.stringify({ receiptId: receipt.id, receiptNumber, tenantId: tenant.id, amount: Number(amount) }),
+        message: `Receipt ${receiptNumber} generated for tenant ${tenant.name} - AED ${parsedAmount.toLocaleString()}`,
+        data: JSON.stringify({ receiptId: receipt.id, receiptNumber, tenantId: tenant.id, amount: parsedAmount }),
       },
     })
 
@@ -118,7 +135,7 @@ export async function POST(request: Request) {
       entityId: receipt.id,
       userId: user.id,
       companyId: user.companyId,
-      details: { receiptNumber, tenantId, amount: Number(amount) },
+      details: { receiptNumber, tenantId, amount: parsedAmount },
     })
 
     return successResponse(serialize(receipt), 201)
