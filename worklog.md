@@ -301,3 +301,51 @@ Stage Summary:
 - Unit availability visible in Add Tenant form with capacity indicators
 - All existing modules (Rent Collection, Dashboard, Properties) already filter by active status
 - Production URL: https://al-reef-al-junoobi.vercel.app
+
+---
+Task ID: score-override
+Agent: Main Agent
+Task: Implement Manual Override Functionality for Tenant Scoring System, then Simplify
+
+Work Log:
+- Phase 1 (Initial Implementation): Analyzed existing scoring system (±5 incremental on late payments, stored in tenantScore/latePaymentCount)
+- Added systemScore, manualScoreOverride, manualScoreReason, manualOverrideBy, manualOverrideById, manualOverrideAt fields to Tenant model
+- Created ScoreAuditLog model for full score change audit trail
+- Created POST /api/tenants/[id]/score-override endpoint (owner/admin only, mandatory reason)
+- Created DELETE /api/tenants/[id]/score-override endpoint (reset to system score)
+- Created GET /api/tenants/[id]/score-audit endpoint (all authenticated users)
+- Updated payment routes to always update systemScore, only update tenantScore when no override active
+- Added Score Override dialog with score input, mandatory reason, and preview
+- Added Score Audit Trail dialog with full change history
+- Showed system score alongside displayed score when override active
+- Added purple M badge for manually overridden scores
+- Added i18n translations for all 4 languages (en, ar, bn, ur)
+- Fixed inconsistent score label thresholds in reports.tsx (90/75/60 → 80/60/40)
+- Updated backup, import, seed routes to include systemScore
+- Added systemScore, manualScoreOverride, manualScoreReason to Excel reports
+- Commit 5763732, deployed to al-reef-al-junoobi.vercel.app
+
+- Phase 2 (Simplification): User requested simpler workflow
+- Added tenantScore and latePaymentCount to TenantFormState and emptyForm
+- Added Tenant Score and Late Payment Count fields directly in Edit Tenant dialog (only when editing, only for privileged users)
+- Removed complex Score Override dialog (mandatory reason, multi-step process, preview)
+- Removed override details panel from profile (who/when/reason display)
+- Removed system score comparison from profile
+- Removed purple M badge from tenants table and contracts view
+- Added "Edit Tenant" button in profile for quick score adjustments
+- Kept Score Audit Trail dialog as lightweight background feature
+- Updated handleSave to sync systemScore with tenantScore and clear override fields
+- Updated PUT /api/tenants/[id] to always sync systemScore and clear override when tenantScore edited
+- Backend score-override and score-audit APIs preserved for future use
+- Workflow: Open Profile → Click Edit → Change Score/Late Payments → Save
+- Commit 084bbbc, deployed to al-reef-al-junoobi.vercel.app
+
+Stage Summary:
+- Tenant Score editable directly in standard Edit Tenant dialog
+- Late Payment Count editable directly in standard Edit Tenant dialog
+- No mandatory reason, no multi-step process, no confirmation dialogs
+- Changes reflected immediately across platform
+- Audit trail available as optional background feature
+- Backend APIs preserved (score-override, score-audit)
+- All payment-driven score adjustments continue to work correctly
+- Production URL: https://al-reef-al-junoobi.vercel.app
