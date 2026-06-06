@@ -15,6 +15,10 @@ fi
 # Generate Prisma client
 npx prisma generate
 
+# Run pending migrations (safe - only applies unapplied migrations)
+npx prisma migrate deploy
+echo "✅ Migrations applied"
+
 # Run Next.js build
 npx next build
 
