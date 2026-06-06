@@ -93,6 +93,7 @@ export const translations = {
   moveOutConfirm: { en: 'Mark this tenant as moved out? The unit will become available for new tenants. All historical records will be preserved.', ar: 'تحديد هذا المستأجر كمغادر؟ ستصبح الوحدة متاحة لمستأجرين جدد. سيتم الاحتفاظ بجميع السجلات التاريخية.', bn: 'এই ভাড়াটিয়াকে প্রস্থানকৃত হিসেবে চিহ্নিত করবেন? ইউনিটটি নতুন ভাড়াটিয়াদের জন্য উপলব্ধ হবে। সমস্ত ঐতিহাসিক রেকর্ড সংরক্ষিত থাকবে।', ur: 'کیا اس کرایہ دار کو منتقل شدہ نشان زد کریں؟ یونٹ نئے کرایہ داروں کے لیے دستیاب ہوگا۔ تمام تاریخی ریکارڈز محفوظ رہیں گے۔' },
   noVacantUnits: { en: 'No vacant units available in this property', ar: 'لا توجد وحدات شاغرة في هذا العقار', bn: 'এই সম্পত্তিতে কোনো শূন্য ইউনিট নেই', ur: 'اس ملکیت میں کوئی خالی یونٹ نہیں' },
   propertyFull: { en: 'Property is fully occupied', ar: 'العقار مشغول بالكامل', bn: 'সম্পত্তি সম্পূর্ণ অধিভুক্ত', ur: 'ملکیت مکمل طور پر قبضے میں ہے' },
+  propertyFullWarning: { en: 'Cannot add tenant — this property has no vacant units.', ar: 'لا يمكن إضافة مستأجر — هذا العقار ليس لديه وحدات شاغرة.', bn: 'ভাড়াটে যোগ করা যাবে না — এই সম্পত্তিতে কোনো শূন্য ইউনিট নেই।', ur: 'کرایہ دار شامل نہیں کیا جا سکتا — اس ملکیت میں کوئی خالی یونٹ نہیں ہے۔' },
   availableUnits: { en: 'Available Units', ar: 'الوحدات المتاحة', bn: 'উপলব্ধ ইউনিট', ur: 'دستیاب یونٹیں' },
   occupiedUnits2: { en: 'Occupied', ar: 'مشغول', bn: 'অধিভুক্ত', ur: 'قابض' },
   vacantUnits: { en: 'Vacant', ar: 'شاغر', bn: 'শূন্য', ur: 'خالی' },

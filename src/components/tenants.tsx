@@ -246,6 +246,7 @@ export default function Tenants() {
     ? (selectedProperty.tenants || []).filter(t => t.status === 'active' && t.unitNumber).map(t => t.unitNumber!)
     : []
   const isPropertyFull = selectedProperty ? activeTenantsInProperty >= selectedProperty.totalUnits : false
+  const now = new Date()
   const currentMonth = now.getMonth() + 1
   const currentYear = now.getFullYear()
 
@@ -895,6 +896,12 @@ export default function Tenants() {
                             <span>{t('occupiedUnits2', language)}: {activeCount}/{selProp.totalUnits}</span>
                             <span>{isFull ? t('propertyFull', language) : `${t('vacantUnits', language)}: ${vacant}`}</span>
                           </div>
+                          {isFull && !editing && (
+                            <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-red-200">
+                              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                              <span className="font-medium">{t('propertyFullWarning', language)}</span>
+                            </div>
+                          )}
                         </div>
                       )
                     })()}
