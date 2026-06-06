@@ -92,7 +92,9 @@ export async function GET(request: Request) {
     const hasNotoArabic = fs.existsSync(notoSansArabicRegular) && fs.existsSync(notoSansArabicBold)
 
     // Create PDF document
-    const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true })
+    // Note: bufferPages removed — it is unnecessary for single-page invoices and can
+    // interact badly with auto-page-breaking when footer text wraps near the page bottom.
+    const doc = new PDFDocument({ size: 'A4', margin: 50 })
     const chunks: Buffer[] = []
     doc.on('data', (chunk: Buffer) => chunks.push(chunk))
 
@@ -166,7 +168,7 @@ export async function GET(request: Request) {
     doc.fontSize(7).fillColor(gray).font(latinFont)
     doc.text("Near LuLu Muraba'a, Al Ain City, Abu Dhabi, UAE", 95, y + 34)
     doc.text('Tel: +971504225590 / +971568452161 | Email: alreef.junoobi@gmail.com', 95, y + 44)
-    doc.text('Tax ID: 300000000000003 | Commercial License: CN-6177648', 95, y + 54)
+    doc.text('Tax ID: 105383159800003 | Commercial License: CN-6177648', 95, y + 54)
 
     // Invoice title (right side)
     doc.fontSize(20).fillColor(emerald).font(latinFontBold)
@@ -333,6 +335,12 @@ export async function GET(request: Request) {
     // ═══════════════════════════════════════════════════════════
     // FOOTER
     // ═══════════════════════════════════════════════════════════
+    // Temporarily remove bottom margin so that footer text drawn near the
+    // page bottom does not trigger PDFKit's auto-page-break mechanism
+    // (which was the root cause of the extra blank pages).
+    const savedBottomMargin = doc.page.margins.bottom
+    doc.page.margins.bottom = 0
+
     const footerY = doc.page.height - 60
 
     doc.moveTo(50, footerY).lineTo(pageWidth - 50, footerY).strokeColor('#E5E7EB').lineWidth(0.5).stroke()
@@ -346,6 +354,9 @@ export async function GET(request: Request) {
       'Thank you for your payment. For questions, contact alreef.junoobi@gmail.com or +971504225590',
       50, footerY + 20, { width: pageWidth - 100, align: 'center' }
     )
+
+    // Restore bottom margin
+    doc.page.margins.bottom = savedBottomMargin
 
     // ── Finalize PDF ──
     doc.end()

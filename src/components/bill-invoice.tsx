@@ -142,7 +142,7 @@ export default function BillInvoice({
             <div className="text-xs text-gray-500 mt-2 space-y-0.5">
               <p>Near LuLu Muraba'a, Al Ain City, Abu Dhabi, UAE</p>
               <p>Tel: +971504225590 / +971568452161 | Email: alreef.junoobi@gmail.com</p>
-              <p>{t('taxId', language)}: 300000000000003</p>
+              <p>{t('taxId', language)}: 105383159800003</p>
               <p>{t('commercialLicense', language)}: CN-6177648</p>
             </div>
           </div>
