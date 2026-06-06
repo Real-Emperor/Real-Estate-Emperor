@@ -670,7 +670,7 @@ export default function Tenants() {
                     <Users className="w-4 h-4 text-emerald-600" />
                     {t('personalInfo', language)}
                   </h3>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                     <ProfileField label={t('tenantName', language)} value={getNameByLang(profileTenant, language)} />
                     {profileTenant.emiratesId && (
                       <ProfileField label={t('emiratesId', language)} value={profileTenant.emiratesId} icon={<Shield className="w-3.5 h-3.5" />} />
@@ -692,7 +692,7 @@ export default function Tenants() {
                     <Phone className="w-4 h-4 text-emerald-600" />
                     {t('contactInfo', language)}
                   </h3>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                     <ProfileField label={t('phone', language)} value={profileTenant.phone} icon={<Phone className="w-3.5 h-3.5" />} />
                     {profileTenant.whatsapp && (
                       <ProfileField
@@ -718,7 +718,7 @@ export default function Tenants() {
                     <Building className="w-4 h-4 text-emerald-600" />
                     {t('leaseInfo', language)}
                   </h3>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                     <ProfileField
                       label={t('building', language)}
                       value={profileTenant.property ? getNameByLang(profileTenant.property, language) : '—'}
@@ -754,7 +754,7 @@ export default function Tenants() {
                     <CreditCard className="w-4 h-4 text-emerald-600" />
                     {t('financialInfo', language)}
                   </h3>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                     <ProfileField label={t('monthlyRent', language)} value={formatAED(profileTenant.rentAmount)} />
                     {profileTenant.municipalityFee != null && (
                       <ProfileField label={t('municipalityFee', language)} value={formatAED(profileTenant.municipalityFee)} />
@@ -925,11 +925,12 @@ export default function Tenants() {
                   <Building className="w-4 h-4 text-emerald-600" />
                   {t('leaseInfo', language)}
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Property Name - full width on mobile, left column on desktop */}
+                  <div className="min-w-0">
                     <Label>{t('propertyName', language)} *</Label>
                     <Select value={form.propertyId} onValueChange={v => updateForm('propertyId', v)}>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder={t('selectProperty', language)} />
                       </SelectTrigger>
                       <SelectContent>
@@ -938,7 +939,8 @@ export default function Tenants() {
                           const vacant = p.totalUnits - activeCount
                           return (
                             <SelectItem key={p.id} value={p.id}>
-                              {getNameByLang(p, language)} ({vacant > 0 ? `${t('vacantUnits', language)}: ${vacant}` : t('propertyFull', language)})
+                              <span className="truncate">{getNameByLang(p, language)}</span>
+                              <span className="ml-1 shrink-0 text-muted-foreground">({vacant > 0 ? `${t('vacantUnits', language)}: ${vacant}` : t('propertyFull', language)})</span>
                             </SelectItem>
                           )
                         })}
@@ -953,9 +955,9 @@ export default function Tenants() {
                       const isFull = activeCount >= selProp.totalUnits
                       return (
                         <div className={`mt-2 rounded-md px-3 py-2 text-xs ${isFull ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'}`}>
-                          <div className="flex items-center justify-between">
-                            <span>{t('occupiedUnits2', language)}: {activeCount}/{selProp.totalUnits}</span>
-                            <span>{isFull ? t('propertyFull', language) : `${t('vacantUnits', language)}: ${vacant}`}</span>
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className="shrink-0">{t('occupiedUnits2', language)}: {activeCount}/{selProp.totalUnits}</span>
+                            <span className="shrink-0">{isFull ? t('propertyFull', language) : `${t('vacantUnits', language)}: ${vacant}`}</span>
                           </div>
                           {isFull && !editing && (
                             <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-red-200">
@@ -967,7 +969,8 @@ export default function Tenants() {
                       )
                     })()}
                   </div>
-                  <div>
+                  {/* Unit Number - right column on desktop */}
+                  <div className="min-w-0">
                     <Label>{t('unitNumber', language)}</Label>
                     <Input value={form.unitNumber} onChange={e => updateForm('unitNumber', e.target.value)} placeholder="Apt 201" />
                     {/* Show occupied units for reference */}
@@ -977,16 +980,19 @@ export default function Tenants() {
                       const occupied = (selProp.tenants || []).filter(t => t.status === 'active' && t.unitNumber).map(t => t.unitNumber!)
                       if (occupied.length === 0) return null
                       return (
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          {t('occupiedUnits2', language)}: {occupied.join(', ')}
-                        </p>
+                        <div className="mt-1 flex flex-wrap gap-1 items-center">
+                          <span className="text-[11px] text-muted-foreground">{t('occupiedUnits2', language)}:</span>
+                          {occupied.map(u => (
+                            <Badge key={u} variant="secondary" className="text-[10px] px-1.5 py-0 leading-4">{u}</Badge>
+                          ))}
+                        </div>
                       )
                     })()}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <Label>{t('unitType', language)}</Label>
                     <Select value={form.unitType} onValueChange={v => updateForm('unitType', v)}>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder={t('unitType', language)} />
                       </SelectTrigger>
                       <SelectContent>
@@ -996,11 +1002,11 @@ export default function Tenants() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <Label>{t('floor2', language)}</Label>
                     <Input type="number" value={form.floor} onChange={e => updateForm('floor', e.target.value)} placeholder="3" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <Label>{t('sizeSqft', language)}</Label>
                     <Input type="number" value={form.sizeSqft} onChange={e => updateForm('sizeSqft', e.target.value)} placeholder="850" />
                   </div>
@@ -1062,23 +1068,23 @@ export default function Tenants() {
               <Separator />
 
               {/* Lease Dates */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="min-w-0">
                   <Label>{t('leaseStart', language)}</Label>
                   <Input type="date" value={form.leaseStart} onChange={e => updateForm('leaseStart', e.target.value)} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <Label>{t('leaseEnd', language)}</Label>
                   <Input type="date" value={form.leaseEnd} onChange={e => updateForm('leaseEnd', e.target.value)} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <Label>{t('contractDuration', language)}</Label>
                   <Input type="number" value={form.contractDuration} onChange={e => updateForm('contractDuration', e.target.value)} placeholder="12" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <Label>{t('status', language)}</Label>
                   <Select value={form.status} onValueChange={v => updateForm('status', v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {statusOptions.map(s => (
                         <SelectItem key={s} value={s}>{getStatusLabel(s, language)}</SelectItem>
@@ -1310,12 +1316,12 @@ export default function Tenants() {
 /* ---------- Small helper component for profile fields ---------- */
 function ProfileField({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-0.5 min-w-0">
       <span className="text-xs text-muted-foreground flex items-center gap-1">
         {icon}
         {label}
       </span>
-      <span className="font-medium">{value}</span>
+      <span className="font-medium break-words">{value}</span>
     </div>
   )
 }
