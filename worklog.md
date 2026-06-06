@@ -1,48 +1,78 @@
----
-Task ID: 2
-Agent: Main Agent
-Task: Apply verified, safe production-critical fixes with zero disruption
+# Worklog — Task ID: 2
 
-Work Log:
-- Read and analyzed all files referenced in the confirmed issues list
-- CRITICAL: Fixed prisma.rateLimit → prisma.rateLimitEntry in src/lib/rate-limit.ts (6 occurrences)
-- CRITICAL: Fixed prisma.rateLimit → prisma.rateLimitEntry in src/app/api/auth/reset-password/route.ts (1 occurrence)
-- CRITICAL: Disabled /api/debug-env endpoint (was leaking CRON_SECRET partial values)
-- HIGH: Added production guard to /api/setup POST and GET handlers
-- HIGH: Replaced Number() with safeDecimal/safeInt in receipt creation (src/app/api/receipts/route.ts)
-- MEDIUM: Added pagination to GET /api/receipts using existing parsePaginationParams/paginatedResponse pattern
-- MEDIUM: Added doc.page.margins.bottom = 0 to receipt PDF (consistent with invoice PDF fix)
-- EXCLUDED: sanitizeString — not used anywhere in API routes, would HTML-encode stored data
-- Build: successful (Next.js 16.1.3 Turbopack)
-- Git: commit ce7e3f2, pushed to main
-- Deployed to Vercel: al-reef-al-junoobi.vercel.app (Ready, 1m build time)
-- Smoke tested: /api/health healthy, /api/debug-env returns 401 (blocked), /api/setup returns 401 (blocked)
+## Task: Fix PDF Export and Layout Overflow Issues in Financial Reports
 
-Stage Summary:
-- 6 files modified, 61 insertions, 30 deletions
-- No schema changes, no data changes, no workflow changes, no business logic changes
-- All fixes are surgical and minimal — no overengineering
-- Deployment URL: https://al-reef-al-junoobi.vercel.app
+### Summary
+Fixed 16 bugs across 3 files: `reports.tsx`, `daily-expenses-report.tsx`, and `globals.css`.
 
----
-Task ID: 1
-Agent: Main Agent
-Task: Fix Tenant Section Layout Overlap Issue
+### Changes Made
 
-Work Log:
-- Analyzed screenshot using VLM - identified Property Name text overlapping Unit Number field, occupancy info box overflow, and occupied units text overflow
-- Read tenants.tsx component (1322 lines) - found root causes in Add/Edit dialog and Profile dialog
-- Root cause: SelectTrigger had w-fit instead of w-full, grid children lacked min-w-0, occupancy info used inflexible flex layout, occupied units used comma-separated text
-- Applied fixes to tenants.tsx only (Lease Information section scoped)
-- Changes: responsive grid (grid-cols-1 sm:grid-cols-2), min-w-0 on grid children, w-full on SelectTrigger, flex-wrap on occupancy box, Badge layout for occupied units, break-words on ProfileField, truncate on SelectItem property names
-- ESLint: passed
-- Build: successful
-- No E2E test framework in project
-- Git: branch fix/tenant-lease-layout-overlap, commit 0957fe8, pushed to main
-- Deployed to Vercel: al-reef-al-junoobi.vercel.app
+#### reports.tsx — Monthly Financial Report
 
-Stage Summary:
-- Single file modified: src/components/tenants.tsx
-- 33 insertions, 27 deletions
-- No business logic changes, no API changes, no schema changes
-- Deployment URL: https://al-reef-al-junoobi.vercel.app
+**PDF Export Fixes (Bugs 1-5):**
+
+1. **Bug 1 — P&L hardcoded `plY = 170`**: Changed to track Y position after area chart image placement. If the area chart page has room (less than `pageHeight - 25`), P&L starts there; otherwise adds a new page.
+
+2. **Bug 2 — Pie chart uses unreliable `(pdf as any).lastY`**: Replaced with manual Y tracking. After placing the bar chart, `chartPageY` tracks the end position. Pie chart is placed relative to that tracked position, with a page break if insufficient room.
+
+3. **Bug 3 — Content can extend past footer**: Changed page break checks from `pageHeight - 20` to `pageHeight - 25` to ensure 25mm margin for the footer at `pageHeight - 5`.
+
+4. **Bug 4 — No repeated table headers on new pages**: Added `drawExpenseTableHeader()` function that redraws column headers after page breaks in both the P&L items forEach and expense breakdown forEach loops.
+
+5. **Bug 5 — Metrics box hardcoded to 65mm height**: Calculated dynamically as `18 + metrics.length * 7 + 5` (86mm for 9 items). Moved metrics array definition before the roundedRect call.
+
+**Browser Overflow Fixes (Bugs 11-15):**
+
+- **Bug 11**: Added `max-w-[150px] truncate` to description cells and `max-w-[100px] truncate` to vendor cells in expense table.
+- **Bug 12**: Added `min-w-0` to CardContent divs and `truncate text-ellipsis overflow-hidden` to amount `<p>` elements in KPI cards.
+- **Bug 13**: Added `flex-wrap gap-2` and `min-w-0` to header sections, `truncate` to company name.
+- **Bug 14**: Added `inline-block max-w-[80px] truncate` to Badge components in expense table.
+- **Bug 15**: Added `min-w-0 truncate` to label spans and `shrink-0` to amount spans in revenue breakdown rows.
+
+#### daily-expenses-report.tsx — Daily Expenses Report
+
+**PDF Export Fixes (Bugs 6-10):**
+
+6. **Bug 6 — Income table columns exceed width**: Redistributed columns to fit within `cw` (182mm):
+   - `#`: m+3, `Tenant`: m+8, `Property`: m+37, `Unit`: m+68, `Amount`: m+83, `Time`: m+119, `Method`: m+135, `Status`: m+159
+
+7. **Bug 7 — Expense table columns exceed width**: Redistributed columns with Type column added:
+   - `#`: m+3, `Category`: m+8, `Description`: m+33, `Amount`: m+83, `Vendor`: m+119, `Time`: m+145, `Type`: m+165
+   - Added "Type" column header and `item.recurring ? 'Recurring' : 'One-time'` data.
+
+8. **Bug 8 — Category breakdown columns overflow**: Changed to relative positions based on content width:
+   - `Category`: m+10, `Amount`: m+cw*0.5, `% of Total`: m+cw*0.72, `# Items`: m+cw*0.9
+
+9. **Bug 9 — KPI card formatAED overflow**: Added `drawCardAmount()` helper that auto-scales font size from 12pt down to 7pt using `pdf.getStringUnitWidth()` to ensure amounts fit within card width.
+
+10. **Bug 10 — Footer text too long**: Shortened from `Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C` to `Al Reef Al Madeena`.
+
+**Additional PDF fixes:**
+- Changed `checkPage` helper to use `ph - 25` instead of `ph - 18` for footer room.
+- Added mini header redraw on new pages within `checkPage`.
+
+**Browser Overflow Fixes (Bugs 11-15):**
+
+- **Bug 11**: Added `max-w-[120px] truncate` to tenant/property name cells, `max-w-[150px] truncate` to description, `max-w-[100px] truncate` to vendor.
+- **Bug 12**: Added `min-w-0` to all KPI CardContent divs and `truncate text-ellipsis overflow-hidden` to amount elements.
+- **Bug 13**: Added `flex-wrap gap-2` and `min-w-0` to header sections.
+- **Bug 14**: Added `inline-block max-w-[80px] truncate` to all Badge components in tables (status, category, method, recurring).
+- **Bug 15**: Added `min-w-0 truncate` to label spans and `shrink-0` to amount spans in financial breakdown rows.
+
+#### globals.css — Print Styles (Bug 16)
+
+Added comprehensive print CSS:
+- `@page { size: A4 portrait; margin: 15mm; }` rule
+- `-webkit-print-color-adjust: exact !important` and `print-color-adjust: exact !important`
+- `table { font-size: 10px; }` for better print scaling
+- `td, th { break-inside: avoid; overflow: hidden; text-overflow: ellipsis; }` for cell handling
+- Universal print-color-adjust rule
+
+### Build Verification
+- `bun run lint`: No errors in src/ directory (only pre-existing errors in download/ scripts)
+- `npx next build`: Compiled successfully, all 46 pages generated
+- Git commit pushed to main: `7d3f06a fix: resolve PDF export overflow and layout overlap issues in financial reports`
+
+### Deployment
+- Pushed to GitHub `main` branch — Vercel auto-deploy should trigger
+- Direct `vercel` CLI deployment not possible due to missing auth token in this environment
