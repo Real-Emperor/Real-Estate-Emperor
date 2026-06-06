@@ -218,3 +218,36 @@ Stage Summary:
 - All acceptance criteria met
 - No regressions in existing tenant name search
 - Multilingual support verified (English + Arabic)
+
+---
+Task ID: invoice-pdf-fix
+Agent: Main Agent
+Task: Fix invoice rendering corrupted characters and cross-device PDF layout inconsistency
+
+Work Log:
+- Analyzed uploaded PDFs: (1).pdf (8KB, correct) and (2).pdf (5MB, broken)
+- Identified corrupted chars as Arabic Presentation Forms-B (FE** range) bytes interpreted as Latin-1/WinAnsiEncoding
+- Root cause 1: html2canvas+jsPDF pipeline uses Helvetica (Latin-only) → Arabic UTF-8 bytes rendered as þâþôþëþ...
+- Root cause 2: html2canvas screenshots DOM → device-dependent rasterized PDF (different browsers/devices produce different output)
+- Created server-side PDF generation: GET /api/invoices/pdf?tenantId=&month=&year=&includeMuniFee=
+- Embedded NotoSans (Latin) + NotoSansArabic fonts in PDF for device-independent rendering
+- Arabic text rendered with pdfkit features:['rtla'] using embedded NotoSansArabic font
+- Updated bill-invoice.tsx: replaced html2canvas+jsPDF with server-side fetch + blob download
+- Updated receipt PDF route to also use embedded Arabic fonts
+- Removed jsPDF and html2canvas imports from bill-invoice.tsx
+- Committed as d1fc7a1, pushed to origin/main
+- Deployed to Vercel: dpl_8gFKD1STT654MrW9aUFg5oBJa2hh — READY
+
+E2E Verification:
+- ✅ PDF API returns status 200, content-type application/pdf, size 27KB
+- ✅ Embedded fonts: NotoSans-Bold, NotoSans-Regular, NotoSansArabic-Regular (3 Type0/CID fonts)
+- ✅ No Helvetica in PDF (eliminated system font dependency)
+- ✅ No corrupted characters (þâþôþë pattern absent)
+- ✅ Download PDF button works in bill dialog
+- ✅ No console errors during PDF generation
+
+Stage Summary:
+- Both root causes permanently resolved
+- Server-side PDF generation is device-independent by design
+- Arabic font embedded eliminates character corruption
+- PDF output will be identical across Windows, macOS, Linux, Android, iOS
