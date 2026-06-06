@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Progress } from '@/components/ui/progress'
 import {
   TrendingUp,
   TrendingDown,
@@ -24,6 +26,11 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
+  AlertTriangle,
+  Receipt,
+  RefreshCw,
+  Building2,
 } from 'lucide-react'
 import {
   BarChart,
@@ -813,15 +820,55 @@ export default function DailyExpensesReport() {
   }
 
   const formattedDate = formatDate(selectedDate + 'T00:00:00.000Z')
+  const profitMarginPct = totalIncome > 0 ? ((netProfitLoss / totalIncome) * 100) : 0
+  const collectionRate = incomeItems.length > 0 ? Math.round((incomeItems.filter(i => !i.isLate).length / incomeItems.length) * 100) : 0
+  const outstandingAmount = totalIncome > 0 ? Math.max(0, totalIncome - incomeItems.filter(i => !i.isLate).reduce((s, i) => s + i.amount, 0)) : 0
+  const expenseRatio = totalIncome > 0 ? ((totalExpense / totalIncome) * 100) : 0
+  const generatedTimestamp = new Date().toLocaleDateString('en-AE', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4 no-print">
-        <div>
-          <h1 className="text-2xl font-bold">{t('dailyExpensesReport', lang)}</h1>
-          <p className="text-muted-foreground text-sm mt-1">{formattedDate}</p>
+      {/* Professional Report Header */}
+      <div className="flex items-center justify-between pb-4 border-b-2 border-emerald/20 print:border-emerald/40">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-emerald flex items-center justify-center text-white font-bold text-sm shrink-0">AM</div>
+          <div>
+            <h2 className="font-bold text-foreground text-sm sm:text-base">Al Reef Al Madeena</h2>
+            <p className="text-xs text-muted-foreground hidden sm:block">Real Estate Management & General Maintenance</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="text-center hidden md:block">
+          <h1 className="text-lg font-bold">{t('dailyExpensesReport', lang)}</h1>
+        </div>
+        <div className="text-right">
+          <p className="font-medium text-sm">{formattedDate}</p>
+          <p className="text-xs text-muted-foreground hidden sm:block">{t('generatedOn', lang)}: {generatedTimestamp}</p>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center justify-between flex-wrap gap-4 no-print">
+        <div className="flex items-center justify-center gap-2 sm:gap-4 w-full sm:w-auto">
+          <Button variant="ghost" size="icon" onClick={prevDay}>
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-emerald" />
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
+              className="w-40 sm:w-44"
+            />
+          </div>
+          <Button variant="ghost" size="icon" onClick={nextDay}>
+            <ChevronRight className="w-5 h-5" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={goToToday} className="border-emerald text-emerald">
+            {t('today', lang)}
+          </Button>
+        </div>
+        <div className="flex items-center gap-2 mx-auto sm:mx-0">
           <Button
             onClick={handleExportXLSX}
             disabled={exporting}
@@ -841,76 +888,103 @@ export default function DailyExpensesReport() {
         </div>
       </div>
 
-      {/* Date Selector */}
-      <div className="flex items-center justify-center gap-4 no-print">
-        <Button variant="ghost" size="icon" onClick={prevDay}>
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-emerald" />
-          <Input
-            type="date"
-            value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
-            className="w-44"
-          />
-        </div>
-        <Button variant="ghost" size="icon" onClick={nextDay}>
-          <ChevronRight className="w-5 h-5" />
-        </Button>
-        <Button variant="outline" size="sm" onClick={goToToday} className="border-emerald text-emerald">
-          {t('today', lang)}
-        </Button>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="card-hover border-l-4 border-l-emerald">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <ArrowUpRight className="w-4 h-4 text-emerald" />
-              <p className="text-xs text-muted-foreground">{t('totalIncome', lang)}</p>
+      {/* Executive Summary KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        {/* Total Income */}
+        <Card className="card-hover overflow-hidden print:bg-white print:border">
+          <div className="h-1 bg-emerald" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-8 h-8 rounded-full bg-emerald/10 flex items-center justify-center">
+                <ArrowUpRight className="w-4 h-4 text-emerald" />
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground mb-1">{t('totalIncome', lang)}</p>
             <p className="text-xl font-bold text-emerald">{formatAED(totalIncome)}</p>
             <p className="text-xs text-muted-foreground mt-1">{incomeItems.length} {t('tenantPayment', lang)}(s)</p>
           </CardContent>
         </Card>
-        <Card className="card-hover border-l-4 border-l-terracotta">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <ArrowDownRight className="w-4 h-4 text-terracotta" />
-              <p className="text-xs text-muted-foreground">{t('totalExpense', lang)}</p>
+
+        {/* Total Expenses */}
+        <Card className="card-hover overflow-hidden print:bg-white print:border">
+          <div className="h-1 bg-terracotta" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-8 h-8 rounded-full bg-terracotta/10 flex items-center justify-center">
+                <ArrowDownRight className="w-4 h-4 text-terracotta" />
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground mb-1">{t('totalExpense', lang)}</p>
             <p className="text-xl font-bold text-terracotta">{formatAED(totalExpense)}</p>
             <p className="text-xs text-muted-foreground mt-1">{expenseItems.length} {t('expensesCount', lang)}</p>
           </CardContent>
         </Card>
-        <Card className={`card-hover border-l-4 ${netProfitLoss >= 0 ? 'border-l-emerald' : 'border-l-red-500'}`}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className={`w-4 h-4 ${netProfitLoss >= 0 ? 'text-emerald' : 'text-red-500'}`} />
-              <p className="text-xs text-muted-foreground">{t('netProfitLoss', lang)}</p>
+
+        {/* Net Profit */}
+        <Card className="card-hover overflow-hidden print:bg-white print:border">
+          <div className={`h-1 ${netProfitLoss >= 0 ? 'bg-emerald' : 'bg-red-500'}`} />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className={`w-8 h-8 rounded-full ${netProfitLoss >= 0 ? 'bg-emerald/10' : 'bg-red-100'} flex items-center justify-center`}>
+                <DollarSign className={`w-4 h-4 ${netProfitLoss >= 0 ? 'text-emerald' : 'text-red-500'}`} />
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground mb-1">{t('netProfitLoss', lang)}</p>
             <p className={`text-xl font-bold ${netProfitLoss >= 0 ? 'text-emerald' : 'text-red-600'}`}>
               {formatAED(netProfitLoss)}
             </p>
+            <p className="text-xs text-muted-foreground mt-1">{netProfitLoss >= 0 ? 'PROFIT' : 'LOSS'}</p>
           </CardContent>
         </Card>
-        <Card className="card-hover border-l-4 border-l-deep-teal">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-deep-teal" />
-              <p className="text-xs text-muted-foreground">{t('profitOrLoss', lang)} %</p>
+
+        {/* Collection Rate */}
+        <Card className="card-hover overflow-hidden print:bg-white print:border">
+          <div className="h-1 bg-deep-teal" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-8 h-8 rounded-full bg-deep-teal/10 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-deep-teal" />
+              </div>
             </div>
-            <p className={`text-xl font-bold ${netProfitLoss >= 0 ? 'text-emerald' : 'text-red-600'}`}>
-              {totalIncome > 0 ? ((netProfitLoss / totalIncome) * 100).toFixed(1) : '0.0'}%
-            </p>
+            <p className="text-xs text-muted-foreground mb-1">{t('collectionRate', lang)}</p>
+            <p className="text-xl font-bold text-deep-teal">{collectionRate}%</p>
+            <p className="text-xs text-muted-foreground mt-1">{incomeItems.filter(i => !i.isLate).length} {t('tenantPayment', lang)}(s) {t('onTime', lang)}</p>
+          </CardContent>
+        </Card>
+
+        {/* Number of Payments */}
+        <Card className="card-hover overflow-hidden print:bg-white print:border">
+          <div className="h-1 bg-gold" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center">
+                <CreditCard className="w-4 h-4 text-gold" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mb-1">{t('tenantPayment', lang)}(s)</p>
+            <p className="text-xl font-bold text-foreground">{incomeItems.length + expenseItems.length}</p>
+            <p className="text-xs text-muted-foreground mt-1">{totalIncome > 0 ? `${((totalExpense / totalIncome) * 100).toFixed(0)}% ${t('debits', lang).toLowerCase()}` : '—'}</p>
+          </CardContent>
+        </Card>
+
+        {/* Outstanding Amounts */}
+        <Card className="card-hover overflow-hidden print:bg-white print:border">
+          <div className="h-1 bg-amber-500" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mb-1">{t('outstanding', lang)}</p>
+            <p className="text-xl font-bold text-amber-600">{formatAED(outstandingAmount)}</p>
+            <p className="text-xs text-muted-foreground mt-1">{incomeItems.filter(i => i.isLate).length} {t('late', lang).toLowerCase()}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Income vs Expenses Bar Chart */}
         <Card ref={barChartRef}>
           <CardHeader className="pb-2">
@@ -965,58 +1039,163 @@ export default function DailyExpensesReport() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                {t('noExpensesFound', lang)}
+              <div className="h-64 flex flex-col items-center justify-center text-muted-foreground">
+                <Receipt className="w-12 h-12 mb-3 opacity-20" />
+                <p className="text-sm font-medium">{t('noExpensesFound', lang)}</p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Income Details Table */}
+      {/* Profitability Analysis Section */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
-            <ArrowUpRight className="w-5 h-5 text-emerald" />
-            {t('income', lang)} — {t('rentCollected', lang)}
+            <DollarSign className="w-5 h-5 text-emerald" />
+            {t('profitAndLoss', lang)}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {incomeItems.length > 0 ? (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {incomeItems.map((item, idx) => (
-                <div key={idx} className={`flex items-center justify-between p-2 rounded hover:bg-muted/50 ${item.isLate ? 'border-l-3 border-l-red-400 bg-red-50/30' : ''}`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full ${item.isLate ? 'bg-red-100 text-red-600' : 'bg-emerald/10 text-emerald'} flex items-center justify-center text-xs font-bold`}>
-                      {idx + 1}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{item.tenantName}</p>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{item.propertyName}</span>
-                        <span className="text-xs text-muted-foreground">|</span>
-                        <span className="text-xs text-muted-foreground">{t('unitNumber', lang)}: {item.unitNumber || '-'}</span>
-                        {item.method && (
-                          <>
-                            <span className="text-xs text-muted-foreground">|</span>
-                            <Badge variant="secondary" className="text-xs">{item.method}</Badge>
-                          </>
-                        )}
-                        {item.isLate && (
-                          <Badge variant="destructive" className="text-xs">LATE</Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-emerald">{formatAED(item.amount)}</p>
-                    <p className="text-xs text-muted-foreground">{item.time}</p>
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Financial Breakdown */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('financialSummary', lang)}</h4>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100/50">
+                <div className="flex items-center gap-2">
+                  <ArrowUpRight className="w-4 h-4 text-emerald" />
+                  <span className="text-sm font-medium">{t('totalIncome', lang)}</span>
                 </div>
-              ))}
+                <span className="font-bold text-emerald">{formatAED(totalIncome)}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-orange-50 to-orange-100/50">
+                <div className="flex items-center gap-2">
+                  <ArrowDownRight className="w-4 h-4 text-terracotta" />
+                  <span className="text-sm font-medium">{t('totalExpense', lang)}</span>
+                </div>
+                <span className="font-bold text-terracotta">{formatAED(totalExpense)}</span>
+              </div>
+              <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${netProfitLoss >= 0 ? 'border-emerald bg-gradient-to-r from-emerald-50 to-emerald-100/30' : 'border-red-300 bg-gradient-to-r from-red-50 to-red-100/30'}`}>
+                <div className="flex items-center gap-2">
+                  {netProfitLoss >= 0 ? <ArrowUpRight className="w-5 h-5 text-emerald" /> : <ArrowDownRight className="w-5 h-5 text-red-500" />}
+                  <span className="text-base font-bold">{t('netProfitLoss', lang)}</span>
+                </div>
+                <span className={`text-2xl font-bold ${netProfitLoss >= 0 ? 'text-emerald' : 'text-red-600'}`}>{formatAED(netProfitLoss)}</span>
+              </div>
+            </div>
+
+            {/* Performance Metrics */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Performance Metrics</h4>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-medium">{t('profitOrLoss', lang)} %</span>
+                  <span className={`text-sm font-bold ${netProfitLoss >= 0 ? 'text-emerald' : 'text-red-600'}`}>{profitMarginPct.toFixed(1)}%</span>
+                </div>
+                <Progress value={Math.min(Math.max(Math.abs(profitMarginPct), 0), 100)} className="h-2 [&>div]:bg-emerald" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-medium">{t('collectionRate', lang)}</span>
+                  <span className="text-sm font-bold text-deep-teal">{collectionRate}%</span>
+                </div>
+                <Progress value={collectionRate} className="h-2 [&>div]:bg-deep-teal" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-medium">{t('debits', lang)} / {t('income', lang)}</span>
+                  <span className="text-sm font-bold text-terracotta">{expenseRatio.toFixed(1)}%</span>
+                </div>
+                <Progress value={Math.min(expenseRatio, 100)} className="h-2 [&>div]:bg-terracotta" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Income Details Table */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ArrowUpRight className="w-5 h-5 text-emerald" />
+              {t('income', lang)} — {t('rentCollected', lang)}
+            </CardTitle>
+            {incomeItems.length > 0 && (
+              <Badge className="bg-emerald/10 text-emerald border-emerald/20">{formatAED(totalIncome)}</Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {incomeItems.length > 0 ? (
+            <div className="overflow-x-auto max-h-96 overflow-y-auto custom-scrollbar">
+              <Table className="min-w-[640px]">
+                <TableHeader>
+                  <TableRow className="bg-emerald/5 hover:bg-emerald/10">
+                    <TableHead className="w-10">#</TableHead>
+                    <TableHead>{t('tenantName', lang)}</TableHead>
+                    <TableHead>{t('property', lang)}</TableHead>
+                    <TableHead className="w-20">{t('unitNumber', lang)}</TableHead>
+                    <TableHead className="text-right">{t('amount', lang)}</TableHead>
+                    <TableHead className="w-20">{t('paymentTime', lang)}</TableHead>
+                    <TableHead className="w-28">{t('paymentMethod', lang)}</TableHead>
+                    <TableHead className="w-24">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...incomeItems].sort((a, b) => a.time.localeCompare(b.time)).map((item, idx) => (
+                    <TableRow key={idx} className={`${item.isLate ? 'bg-red-50/50 border-l-3 border-l-red-400' : ''}`}>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{idx + 1}</TableCell>
+                      <TableCell>
+                        <p className="font-medium text-sm">{item.tenantName}</p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm text-muted-foreground">{item.propertyName}</p>
+                      </TableCell>
+                      <TableCell>
+                        {item.unitNumber ? (
+                          <Badge variant="outline" className="text-xs font-mono">{item.unitNumber}</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <p className="font-bold text-emerald">{formatAED(item.amount)}</p>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{item.time}</TableCell>
+                      <TableCell>
+                        {item.method ? (
+                          <Badge variant="secondary" className="text-xs font-normal">{item.method}</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {item.isLate ? (
+                          <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">Late</Badge>
+                        ) : item.notes?.includes('Partial') ? (
+                          <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">Partial</Badge>
+                        ) : (
+                          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs">Paid</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Income Total Row */}
+                  <TableRow className="bg-emerald/10 hover:bg-emerald/15 font-bold">
+                    <TableCell colSpan={4} className="font-bold text-emerald">{t('totalIncome', lang)}</TableCell>
+                    <TableCell className="text-right font-bold text-emerald">{formatAED(totalIncome)}</TableCell>
+                    <TableCell colSpan={3} className="text-xs text-muted-foreground">{incomeItems.length} {t('tenantPayment', lang)}(s)</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">{t('noTransactionsToday', lang)}</div>
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <CreditCard className="w-12 h-12 mb-3 opacity-20" />
+              <p className="text-sm font-medium">{t('noTransactionsToday', lang)}</p>
+              <p className="text-xs mt-1">Income will appear here when payments are recorded</p>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -1024,37 +1203,85 @@ export default function DailyExpensesReport() {
       {/* Expense Details Table */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ArrowDownRight className="w-5 h-5 text-terracotta" />
-            {t('debits', lang)}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ArrowDownRight className="w-5 h-5 text-terracotta" />
+              {t('debits', lang)}
+            </CardTitle>
+            {expenseItems.length > 0 && (
+              <Badge className="bg-terracotta/10 text-terracotta border-terracotta/20">{formatAED(totalExpense)}</Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {expenseItems.length > 0 ? (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {expenseItems.map(item => (
-                <div key={item.id} className="flex items-center justify-between p-2 rounded hover:bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">{getCategoryIcon(item.category)}</span>
-                    <div>
-                      <p className="text-sm font-medium">{item.description}</p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {getExpenseCategoryLabel(item.category, lang)}
-                        </Badge>
-                        {item.vendor && <span className="text-xs text-muted-foreground">{item.vendor}</span>}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-terracotta">{formatAED(item.amount)}</p>
-                    <p className="text-xs text-muted-foreground">{item.time}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto max-h-96 overflow-y-auto custom-scrollbar">
+              <Table className="min-w-[640px]">
+                <TableHeader>
+                  <TableRow className="bg-terracotta/5 hover:bg-terracotta/10">
+                    <TableHead className="w-10">#</TableHead>
+                    <TableHead>{t('expenseCategory', lang)}</TableHead>
+                    <TableHead>{t('description', lang)}</TableHead>
+                    <TableHead className="text-right">{t('amount', lang)}</TableHead>
+                    <TableHead>{t('vendor', lang)}</TableHead>
+                    <TableHead className="w-20">{t('paymentTime', lang)}</TableHead>
+                    <TableHead className="w-20">Type</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...expenseItems].sort((a, b) => a.time.localeCompare(b.time)).map((item, idx) => {
+                    const catColor = CATEGORY_COLORS[item.category]?.fill || '#6b7280'
+                    return (
+                      <TableRow key={item.id} className="border-l-3" style={{ borderLeftColor: catColor }}>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{idx + 1}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: catColor }} />
+                            <Badge variant="secondary" className="text-xs font-normal">{getExpenseCategoryLabel(item.category, lang)}</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-sm font-medium">{item.description}</p>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <p className="font-bold text-terracotta">{formatAED(item.amount)}</p>
+                        </TableCell>
+                        <TableCell>
+                          {item.vendor ? (
+                            <p className="text-sm">{item.vendor}</p>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{item.time}</TableCell>
+                        <TableCell>
+                          {item.recurring ? (
+                            <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs gap-1">
+                              <RefreshCw className="w-3 h-3" />
+                              {t('recurring', lang)}
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-gray-100 text-gray-600 border-gray-200 text-xs">One-time</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                  {/* Expense Total Row */}
+                  <TableRow className="bg-terracotta/10 hover:bg-terracotta/15 font-bold">
+                    <TableCell colSpan={3} className="font-bold text-terracotta">{t('totalExpense', lang)}</TableCell>
+                    <TableCell className="text-right font-bold text-terracotta">{formatAED(totalExpense)}</TableCell>
+                    <TableCell colSpan={3} className="text-xs text-muted-foreground">{expenseItems.length} {t('expensesCount', lang)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">{t('noTransactionsToday', lang)}</div>
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Receipt className="w-12 h-12 mb-3 opacity-20" />
+              <p className="text-sm font-medium">{t('noTransactionsToday', lang)}</p>
+              <p className="text-xs mt-1">Expenses will appear here when they are added</p>
+            </div>
           )}
         </CardContent>
       </Card>

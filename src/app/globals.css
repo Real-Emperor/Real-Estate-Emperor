@@ -250,6 +250,12 @@
   .no-print { display: none !important; }
   .print-only { display: block !important; }
   body { background: white !important; }
+  .card-hover:hover { transform: none !important; box-shadow: none !important; }
+  table { break-inside: auto; }
+  tr { break-inside: avoid; break-after: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  .overflow-x-auto, .overflow-y-auto { overflow: visible !important; max-height: none !important; }
 }
 
 /* Islamic decorative border */
