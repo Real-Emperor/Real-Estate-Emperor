@@ -172,6 +172,7 @@ export const translations = {
   changedBy: { en: 'Changed By', ar: 'تم التغيير بواسطة', bn: 'পরিবর্তন করেছেন', ur: 'تبدیلی کرنے والے' },
   noScoreHistory: { en: 'No score change history', ar: 'لا يوجد سجل تغييرات التقييم', bn: 'কোনো স্কোর পরিবর্তনের ইতিহাস নেই', ur: 'اسکور تبدیلی کی تاریخ نہیں' },
   scoreOverridePermission: { en: 'Only owners and admins can override scores', ar: 'فقط المالكون والمسؤولون يمكنهم تجاوز التقييم', bn: 'শুধুমাত্র মালিক এবং অ্যাডমিনরা স্কোর ওভাররাইড করতে পারেন', ur: 'صرف مالک اور ایڈمن اسکور اووررائڈ کر سکتے ہیں' },
+  latePaymentCountDesc: { en: 'Number of late rent payments recorded', ar: 'عدد مدفوعات الإيجار المتأخرة المسجلة', bn: 'রেকর্ড করা বিলম্বিত ভাড়া পেমেন্টের সংখ্যা', ur: 'ریکارڈ شدہ تاخیری کرایہ ادائیگیوں کی تعداد' },
   cash: { en: 'Cash', ar: 'نقدي', bn: 'নগদ', ur: 'نقد' },
   bankTransfer: { en: 'Bank Transfer', ar: 'تحويل بنكي', bn: 'ব্যাংক ট্রান্সফার', ur: 'بینک ٹرانسفر' },
   cheque: { en: 'Cheque', ar: 'شيك', bn: 'চেক', ur: 'چیک' },

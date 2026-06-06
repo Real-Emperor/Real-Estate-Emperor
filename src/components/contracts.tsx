@@ -207,22 +207,15 @@ export default function Contracts() {
                   )}
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">{t('tenantScore', language)}</span>
-                    <div className="flex items-center gap-1">
-                      <Badge className={cn2(
-                        'text-xs',
-                        tenant.tenantScore >= 80 ? 'bg-emerald-100 text-emerald-800' :
-                        tenant.tenantScore >= 60 ? 'bg-blue-100 text-blue-800' :
-                        tenant.tenantScore >= 40 ? 'bg-amber-100 text-amber-800' :
-                        'bg-red-100 text-red-800'
-                      )}>
-                        {tenant.tenantScore}/100
-                      </Badge>
-                      {tenant.manualScoreOverride !== null && tenant.manualScoreOverride !== undefined && (
-                        <Badge variant="outline" className="text-[9px] border-purple-300 text-purple-600 bg-purple-50 px-1 py-0">
-                          M
-                        </Badge>
-                      )}
-                    </div>
+                    <Badge className={cn2(
+                      'text-xs',
+                      tenant.tenantScore >= 80 ? 'bg-emerald-100 text-emerald-800' :
+                      tenant.tenantScore >= 60 ? 'bg-blue-100 text-blue-800' :
+                      tenant.tenantScore >= 40 ? 'bg-amber-100 text-amber-800' :
+                      'bg-red-100 text-red-800'
+                    )}>
+                      {tenant.tenantScore}/100
+                    </Badge>
                   </div>
                 </div>
 

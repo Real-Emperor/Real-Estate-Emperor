@@ -52,6 +52,8 @@ interface TenantFormState {
   contractDuration: string
   status: string
   notes: string
+  tenantScore: string
+  latePaymentCount: string
 }
 
 const emptyForm: TenantFormState = {
@@ -62,6 +64,7 @@ const emptyForm: TenantFormState = {
   sizeSqft: '', rentAmount: '0', municipalityFee: '',
   securityDeposit: '', paymentMethod: '', leaseStart: '',
   leaseEnd: '', contractDuration: '', status: 'active', notes: '',
+  tenantScore: '100', latePaymentCount: '0',
 }
 
 const unitTypes = ['studio', '1bedroom', '2bedroom', '3bedroom', 'shop', 'office']
@@ -125,14 +128,6 @@ export default function Tenants() {
   const [whatsappTargetTenant, setWhatsappTargetTenant] = useState<TenantData | null>(null)
   const [whatsappRemindAll, setWhatsappRemindAll] = useState(false)
 
-  // Score override dialog
-  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false)
-  const [overrideTenant, setOverrideTenant] = useState<TenantData | null>(null)
-  const [overrideScore, setOverrideScoreValue] = useState('')
-  const [overrideReason, setOverrideReasonValue] = useState('')
-  const [applyingOverride, setApplyingOverride] = useState(false)
-  const [resettingScore, setResettingScore] = useState(false)
-
   // Score audit trail dialog
   const [auditDialogOpen, setAuditDialogOpen] = useState(false)
   const [auditTenantId, setAuditTenantId] = useState<string | null>(null)
@@ -191,6 +186,8 @@ export default function Tenants() {
       contractDuration: tenant.contractDuration != null ? String(tenant.contractDuration) : '',
       status: tenant.status,
       notes: tenant.notes || '',
+      tenantScore: String(tenant.tenantScore),
+      latePaymentCount: String(tenant.latePaymentCount),
     })
     setDialogOpen(true)
   }
@@ -214,6 +211,10 @@ export default function Tenants() {
         floor: form.floor ? Number(form.floor) : null,
         sizeSqft: form.sizeSqft ? Number(form.sizeSqft) : null,
         contractDuration: form.contractDuration ? Number(form.contractDuration) : null,
+        tenantScore: Number(form.tenantScore) || 100,
+        latePaymentCount: Number(form.latePaymentCount) || 0,
+        // Sync systemScore with tenantScore when editing directly
+        systemScore: Number(form.tenantScore) || 100,
       }
       if (editing) {
         await store.updateTenant(editing.id, body)
@@ -236,71 +237,6 @@ export default function Tenants() {
       fetchData()
     } catch (error: any) {
       alert(error.message || 'Failed to move out tenant')
-    }
-  }
-
-  // Score Override: Apply manual override
-  const handleApplyOverride = async () => {
-    if (!overrideTenant) return
-    const newScore = parseInt(overrideScore)
-    if (isNaN(newScore) || newScore < 0 || newScore > 100) {
-      alert(t('scoreMustBeBetween', language))
-      return
-    }
-    if (!overrideReason.trim()) {
-      alert(t('reasonRequired', language))
-      return
-    }
-    setApplyingOverride(true)
-    try {
-      const response = await fetch(`/api/tenants/${overrideTenant.id}/score-override`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ score: newScore, reason: overrideReason.trim() }),
-      })
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to apply score override')
-      }
-      setOverrideDialogOpen(false)
-      setOverrideScoreValue('')
-      setOverrideReasonValue('')
-      setOverrideTenant(null)
-      fetchData()
-      // Refresh profile tenant if it's the same one
-      if (profileTenant && profileTenant.id === overrideTenant.id) {
-        setProfileTenant(prev => prev ? { ...prev, tenantScore: newScore, manualScoreOverride: newScore, manualScoreReason: overrideReason.trim(), manualOverrideBy: authUser?.name || 'System', manualOverrideAt: new Date().toISOString() } : prev)
-      }
-    } catch (error: any) {
-      alert(error.message || 'Failed to apply score override')
-    } finally {
-      setApplyingOverride(false)
-    }
-  }
-
-  // Score Override: Reset to system score
-  const handleResetScore = async (tenantId: string) => {
-    if (!confirm(t('resetToSystemScore', language) + '?')) return
-    setResettingScore(true)
-    try {
-      const response = await fetch(`/api/tenants/${tenantId}/score-override`, {
-        method: 'DELETE',
-      })
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to reset score')
-      }
-      const data = await response.json()
-      fetchData()
-      // Refresh profile tenant
-      if (profileTenant && profileTenant.id === tenantId) {
-        const systemScore = data.data?.systemScore ?? data.data?.tenantScore ?? 100
-        setProfileTenant(prev => prev ? { ...prev, tenantScore: systemScore, systemScore: systemScore, manualScoreOverride: null, manualScoreReason: null, manualOverrideBy: null, manualOverrideAt: null } : prev)
-      }
-    } catch (error: any) {
-      alert(error.message || 'Failed to reset score')
-    } finally {
-      setResettingScore(false)
     }
   }
 
@@ -501,12 +437,6 @@ export default function Tenants() {
                             <Badge className={cn2('text-xs font-bold px-2 py-0.5', getTenantScoreColor(tenant.tenantScore))}>
                               {tenant.tenantScore}
                             </Badge>
-                            {tenant.manualScoreOverride !== null && tenant.manualScoreOverride !== undefined && (
-                              <Badge variant="outline" className="text-[10px] border-purple-300 text-purple-600 px-1 py-0" title={t('manualOverride', language)}>
-                                <Pencil className="w-2.5 h-2.5 mr-0.5" />
-                                M
-                              </Badge>
-                            )}
                             {tenant.latePaymentCount > 0 && (
                               <Badge variant="outline" className="text-xs border-red-300 text-red-600 px-1.5 py-0.5">
                                 <AlertTriangle className="w-3 h-3 mr-0.5" />
@@ -655,12 +585,12 @@ export default function Tenants() {
           {profileTenant && (
             <ScrollArea className="max-h-[70vh] pr-1">
               <div className="space-y-5 pb-4">
-                {/* Score & Late Payments - Prominent with Override Support */}
+                {/* Score & Late Payments */}
                 <div className="space-y-3">
                   <div className="flex gap-3 flex-wrap">
-                    {/* Displayed Score */}
+                    {/* Tenant Score */}
                     <div className={cn2(
-                      'flex items-center gap-2 rounded-lg px-4 py-2 relative',
+                      'flex items-center gap-2 rounded-lg px-4 py-2',
                       profileTenant.tenantScore >= 80 ? 'bg-emerald-50 border border-emerald-200' :
                       profileTenant.tenantScore >= 60 ? 'bg-blue-50 border border-blue-200' :
                       profileTenant.tenantScore >= 40 ? 'bg-amber-50 border border-amber-200' :
@@ -674,47 +604,15 @@ export default function Tenants() {
                         'text-red-600'
                       )} />
                       <div>
-                        <p className="text-xs text-muted-foreground">
-                          {profileTenant.manualScoreOverride !== null && profileTenant.manualScoreOverride !== undefined
-                            ? t('displayedScore', language)
-                            : t('tenantScore', language)}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{t('tenantScore', language)}</p>
                         <div className="flex items-center gap-2">
                           <span className="text-xl font-bold">{profileTenant.tenantScore}</span>
                           <Badge className={cn2('text-xs', getTenantScoreColor(profileTenant.tenantScore))}>
                             {getTenantScoreLabel(profileTenant.tenantScore, language)}
                           </Badge>
-                          {profileTenant.manualScoreOverride !== null && profileTenant.manualScoreOverride !== undefined && (
-                            <Badge variant="outline" className="text-[10px] border-purple-400 text-purple-700 bg-purple-50 px-1.5 py-0">
-                              <Pencil className="w-2.5 h-2.5 mr-0.5" />
-                              {t('manualOverride', language)}
-                            </Badge>
-                          )}
                         </div>
                       </div>
                     </div>
-
-                    {/* System Score (visible when override active) */}
-                    {profileTenant.manualScoreOverride !== null && profileTenant.manualScoreOverride !== undefined && (
-                      <div className={cn2(
-                        'flex items-center gap-2 rounded-lg px-4 py-2',
-                        (profileTenant.systemScore ?? 100) >= 80 ? 'bg-gray-50 border border-gray-200' :
-                        (profileTenant.systemScore ?? 100) >= 60 ? 'bg-gray-50 border border-gray-200' :
-                        (profileTenant.systemScore ?? 100) >= 40 ? 'bg-gray-50 border border-gray-200' :
-                        'bg-gray-50 border border-gray-200'
-                      )}>
-                        <Shield className="w-5 h-5 text-gray-500" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">{t('systemScore', language)}</p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-gray-600">{profileTenant.systemScore ?? '—'}</span>
-                            <Badge className={cn2('text-xs bg-gray-200 text-gray-700')}>
-                              {getTenantScoreLabel(profileTenant.systemScore ?? 100, language)}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {/* Late Payments */}
                     <div className={cn2(
@@ -739,79 +637,18 @@ export default function Tenants() {
                     </div>
                   </div>
 
-                  {/* Override Details & Actions */}
-                  {profileTenant.manualScoreOverride !== null && profileTenant.manualScoreOverride !== undefined && (
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-purple-800">{t('manualOverride', language)}</p>
-                        {isPrivileged && (
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs border-purple-300 text-purple-700 hover:bg-purple-100 h-7"
-                              onClick={() => { setOverrideTenant(profileTenant); setOverrideScoreValue(String(profileTenant.tenantScore)); setOverrideReasonValue(''); setOverrideDialogOpen(true) }}
-                            >
-                              <Pencil className="w-3 h-3 mr-1" />
-                              {t('overrideScore', language)}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs border-gray-300 text-gray-700 hover:bg-gray-100 h-7"
-                              onClick={() => handleResetScore(profileTenant.id)}
-                              disabled={resettingScore}
-                            >
-                              {resettingScore ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Star className="w-3 h-3 mr-1" />}
-                              {t('resetToSystemScore', language)}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">{t('overriddenBy', language)}:</span>{' '}
-                          <span className="font-medium">{profileTenant.manualOverrideBy || '—'}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">{t('overrideDate', language)}:</span>{' '}
-                          <span className="font-medium">{profileTenant.manualOverrideAt ? formatDate(profileTenant.manualOverrideAt) : '—'}</span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-muted-foreground">{t('overrideReason', language)}:</span>{' '}
-                          <span className="font-medium">{profileTenant.manualScoreReason || '—'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Override Actions (when no override is active) */}
-                  {profileTenant.manualScoreOverride === null && isPrivileged && (
+                  {/* Quick Actions */}
+                  {isPrivileged && (
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs border-purple-300 text-purple-700 hover:bg-purple-50 h-7"
-                        onClick={() => { setOverrideTenant(profileTenant); setOverrideScoreValue(String(profileTenant.tenantScore)); setOverrideReasonValue(''); setOverrideDialogOpen(true) }}
+                        className="text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 h-7"
+                        onClick={() => { openEdit(profileTenant); setProfileOpen(false) }}
                       >
                         <Pencil className="w-3 h-3 mr-1" />
-                        {t('overrideScore', language)}
+                        {t('editTenant', language)}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs border-blue-300 text-blue-700 hover:bg-blue-50 h-7"
-                        onClick={() => { handleOpenAudit(profileTenant.id) }}
-                      >
-                        <FileText className="w-3 h-3 mr-1" />
-                        {t('viewAuditTrail', language)}
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* View Audit Trail (when override is active) */}
-                  {profileTenant.manualScoreOverride !== null && profileTenant.manualScoreOverride !== undefined && (
-                    <div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -1261,6 +1098,48 @@ export default function Tenants() {
                   rows={3}
                 />
               </div>
+
+              {/* Score & Late Payments - Only when editing, only for privileged users */}
+              {editing && isPrivileged && (
+                <>
+                  <Separator />
+                  <div>
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Star className="w-4 h-4 text-emerald-600" />
+                      {t('tenantScore', language)} & {t('latePayments', language)}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>{t('tenantScore', language)} (0-100)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={form.tenantScore}
+                          onChange={e => updateForm('tenantScore', e.target.value)}
+                          placeholder="100"
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {form.tenantScore ? getTenantScoreLabel(Number(form.tenantScore), language) : ''}
+                        </p>
+                      </div>
+                      <div>
+                        <Label>{t('latePayments', language)}</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={form.latePaymentCount}
+                          onChange={e => updateForm('latePaymentCount', e.target.value)}
+                          placeholder="0"
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {t('latePaymentCountDesc', language)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </ScrollArea>
 
@@ -1347,98 +1226,6 @@ export default function Tenants() {
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ===================== SCORE OVERRIDE DIALOG ===================== */}
-      <Dialog open={overrideDialogOpen} onOpenChange={setOverrideDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="w-5 h-5 text-purple-600" />
-              {t('overrideScore', language)}
-            </DialogTitle>
-          </DialogHeader>
-
-          {overrideTenant && (
-            <div className="space-y-4">
-              {/* Current Score Info */}
-              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">{t('tenantScore', language)}</span>
-                  <Badge className={cn2('text-xs', getTenantScoreColor(overrideTenant.tenantScore))}>
-                    {overrideTenant.tenantScore} — {getTenantScoreLabel(overrideTenant.tenantScore, language)}
-                  </Badge>
-                </div>
-                {overrideTenant.manualScoreOverride !== null && overrideTenant.manualScoreOverride !== undefined && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">{t('systemScore', language)}</span>
-                    <Badge className="text-xs bg-gray-200 text-gray-700">
-                      {overrideTenant.systemScore ?? '—'} — {getTenantScoreLabel(overrideTenant.systemScore ?? 100, language)}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* New Score Input */}
-              <div>
-                <Label className="text-sm font-medium">{t('newScore', language)} (0-100) *</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={overrideScore}
-                  onChange={e => setOverrideScoreValue(e.target.value)}
-                  placeholder="Enter new score (0-100)"
-                  className="mt-1"
-                />
-              </div>
-
-              {/* Reason Input */}
-              <div>
-                <Label className="text-sm font-medium">{t('overrideReason', language)} *</Label>
-                <Textarea
-                  value={overrideReason}
-                  onChange={e => setOverrideReasonValue(e.target.value)}
-                  placeholder={t('overrideReasonPlaceholder', language)}
-                  className="mt-1"
-                  rows={3}
-                />
-              </div>
-
-              {/* Preview */}
-              {overrideScore && parseInt(overrideScore) >= 0 && parseInt(overrideScore) <= 100 && (
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground mb-1">{t('displayedScore', language)}</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">{overrideScore}</span>
-                    <Badge className={cn2('text-xs', getTenantScoreColor(parseInt(overrideScore)))}>
-                      {getTenantScoreLabel(parseInt(overrideScore), language)}
-                    </Badge>
-                    <Badge variant="outline" className="text-[10px] border-purple-300 text-purple-600 bg-purple-50">
-                      {t('manualOverride', language)}
-                    </Badge>
-                  </div>
-                </div>
-              )}
-
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOverrideDialogOpen(false)} disabled={applyingOverride}>
-                  {t('cancel', language)}
-                </Button>
-                <Button
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                  onClick={handleApplyOverride}
-                  disabled={applyingOverride || !overrideScore || !overrideReason.trim()}
-                >
-                  {applyingOverride ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Pencil className="w-4 h-4 mr-2" />}
-                  {t('overrideScore', language)}
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
 

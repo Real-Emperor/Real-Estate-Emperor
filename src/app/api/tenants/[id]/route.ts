@@ -137,10 +137,18 @@ export async function PUT(
     if (body.tenantScore !== undefined) {
       const score = safeInt(body.tenantScore, 100)
       data.tenantScore = score
-      // Only update systemScore if there's no active override
-      if (existing.manualScoreOverride === null) {
-        data.systemScore = score
-      }
+      // Always sync systemScore when directly editing
+      data.systemScore = score
+      // Clear any existing manual override since we're editing directly
+      data.manualScoreOverride = null
+      data.manualScoreReason = null
+      data.manualOverrideBy = null
+      data.manualOverrideById = null
+      data.manualOverrideAt = null
+    }
+    // Also handle systemScore being sent directly
+    if (body.systemScore !== undefined) {
+      data.systemScore = safeInt(body.systemScore, 100)
     }
     if (body.notes !== undefined) data.notes = body.notes || null
 
