@@ -105,6 +105,7 @@ export default function Tenants() {
   const [properties, setProperties] = useState<PropertyData[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [searchScope, setSearchScope] = useState<'tenant' | 'property'>('tenant')
   const [statusFilter, setStatusFilter] = useState('all')
   const [expandedTenant, setExpandedTenant] = useState<string | null>(null)
 
@@ -242,14 +243,31 @@ export default function Tenants() {
 
   const filtered = tenants.filter(t => {
     const name = getNameByLang(t, language).toLowerCase()
-    const matchesSearch =
-      name.includes(search.toLowerCase()) ||
-      (t.nameAr && t.nameAr.includes(search)) ||
-      (t.nameBn && t.nameBn.includes(search)) ||
-      (t.nameUr && t.nameUr.includes(search)) ||
-      t.unitNumber?.toLowerCase().includes(search.toLowerCase()) ||
-      t.phone.includes(search) ||
-      (t.emiratesId && t.emiratesId.includes(search))
+    const searchLower = search.toLowerCase()
+
+    let matchesSearch: boolean
+    if (searchScope === 'property') {
+      // Search by property/building name
+      const propName = t.property ? getNameByLang(t.property, language).toLowerCase() : ''
+      matchesSearch = !!(
+        propName.includes(searchLower) ||
+        (t.property?.nameAr && t.property.nameAr.includes(search)) ||
+        (t.property?.nameBn && t.property.nameBn.includes(search)) ||
+        (t.property?.nameUr && t.property.nameUr.includes(search))
+      )
+    } else {
+      // Default: search by tenant name (preserves existing behavior)
+      matchesSearch = !!(
+        name.includes(searchLower) ||
+        (t.nameAr && t.nameAr.includes(search)) ||
+        (t.nameBn && t.nameBn.includes(search)) ||
+        (t.nameUr && t.nameUr.includes(search)) ||
+        t.unitNumber?.toLowerCase().includes(searchLower) ||
+        t.phone.includes(search) ||
+        (t.emiratesId && t.emiratesId.includes(search))
+      )
+    }
+
     const matchesStatus = statusFilter === 'all' || t.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -285,10 +303,19 @@ export default function Tenants() {
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={t('searchTenants', language)}
+            placeholder={searchScope === 'property' ? t('searchByProperty', language) : t('searchTenants', language)}
             className="pl-9"
           />
         </div>
+        <Select value={searchScope} onValueChange={(v) => { setSearchScope(v as 'tenant' | 'property'); setSearch('') }}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="tenant">{t('tenantName', language)}</SelectItem>
+            <SelectItem value="property">{t('propertyName', language)}</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[160px]">
             <SelectValue />
