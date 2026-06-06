@@ -180,3 +180,41 @@ Stage Summary:
 - Invoice calculation: Payments + Adjustments >= Rent → PAID (verified)
 - Audit trail: All adjustment actions create AuditLog entries
 - Cash collected vs adjustments shown separately on dashboard
+
+---
+Task ID: tenant-search-filter
+Agent: Main Agent
+Task: Add search scope filter (Tenant Name / Property Name) to Tenant section
+
+Work Log:
+- Investigated existing tenant search: entirely client-side filtering, no API changes needed
+- Added `searchScope` state ('tenant' | 'property') with default 'tenant'
+- Added Select dropdown adjacent to search bar for scope selection
+- When 'Property Name' selected: searches property.name, property.nameAr, property.nameBn, property.nameUr
+- When 'Tenant Name' selected: preserves exact existing search behavior (name, unitNumber, phone, emiratesId)
+- Placeholder text updates dynamically: "Search tenants..." vs "Search by property..."
+- Search text clears on scope switch for clean UX
+- Added `searchByProperty` i18n key (en, ar, bn, ur)
+- Fixed duplicate `netRevenue` i18n key (pre-existing TS error)
+- Fixed TS2322 boolean type error with !!() wrapper on search match expressions
+- Committed as `5e41c3b`, pushed to origin/main
+- Deployed to Vercel: `dpl_7TA71TymwUJRNyDH5hpPmRkZRNBm` — READY
+
+E2E Verification (Browser):
+- ✅ Login to production at al-reef-al-junoobi.vercel.app
+- ✅ Navigate to Tenants page
+- ✅ Search scope dropdown shows "Tenant Name" and "Property Name" options
+- ✅ Default is "Tenant Name" — placeholder "Search tenants..."
+- ✅ Selecting "Property Name" changes placeholder to "Search by property..."
+- ✅ Property search "Zakher" returns 14 tenants in Zakher Building
+- ✅ Tenant search "SUDANI" returns matching tenants
+- ✅ Search text clears on scope switch
+- ✅ No search filter shows all 363 tenants (no regression)
+- ✅ Arabic translations verified: "اسم المستأجر" / "اسم العقار" / "البحث بالعقار..."
+- ✅ Screenshots saved to /home/z/my-project/download/
+
+Stage Summary:
+- Feature complete and deployed to production
+- All acceptance criteria met
+- No regressions in existing tenant name search
+- Multilingual support verified (English + Arabic)
