@@ -224,9 +224,17 @@ export default function DailyExpensesReport() {
 
       // ─── Helper: check page break ───
       const checkPage = (y: number, needed: number): number => {
-        if (y + needed > ph - 18) {
+        if (y + needed > ph - 25) {
           pdf.addPage()
-          return 18
+          // Redraw mini header on new page
+          pdf.setFillColor(13, 124, 61)
+          pdf.rect(0, 0, pw, 14, 'F')
+          pdf.setTextColor(255, 255, 255)
+          pdf.setFontSize(9)
+          pdf.text('Al Reef Al Madeena', m, 9)
+          pdf.setFontSize(8)
+          pdf.text(`${t('dailyExpensesReport', lang)} — ${formatDate(selectedDate + 'T00:00:00.000Z')}`, pw - m, 9, { align: 'right' })
+          return 22
         }
         return y
       }
@@ -266,6 +274,17 @@ export default function DailyExpensesReport() {
       const cardW = (cw - 9) / 4
       const cardH = 32
 
+      // Helper: draw amount with auto font size to fit card width
+      const drawCardAmount = (text: string, x: number, yPos: number, maxW: number) => {
+        let fontSize = 12
+        pdf.setFontSize(fontSize)
+        while (fontSize > 7 && pdf.getStringUnitWidth(text) * fontSize / 2.8 > maxW) {
+          fontSize -= 0.5
+          pdf.setFontSize(fontSize)
+        }
+        pdf.text(text, x, yPos)
+      }
+
       // Card 1: Total Income
       drawRRect(m, y, cardW, cardH, 3, '#E8F5E9')
       pdf.setFillColor('#0D7C3D')
@@ -273,9 +292,8 @@ export default function DailyExpensesReport() {
       pdf.setTextColor(13, 124, 61)
       pdf.setFontSize(8)
       pdf.text(t('totalIncome', lang), m + 4, y + 11)
-      pdf.setFontSize(15)
       pdf.setTextColor(13, 124, 61)
-      pdf.text(formatAED(totalIncome), m + 4, y + 22)
+      drawCardAmount(formatAED(totalIncome), m + 4, y + 22, cardW - 6)
       pdf.setFontSize(7)
       pdf.setTextColor(100, 100, 100)
       pdf.text(`${incomeItems.length} ${t('tenantPayment', lang)}(s)`, m + 4, y + 28)
@@ -288,9 +306,8 @@ export default function DailyExpensesReport() {
       pdf.setTextColor(196, 101, 58)
       pdf.setFontSize(8)
       pdf.text(t('totalExpense', lang), cx2 + 4, y + 11)
-      pdf.setFontSize(15)
       pdf.setTextColor(196, 101, 58)
-      pdf.text(formatAED(totalExpense), cx2 + 4, y + 22)
+      drawCardAmount(formatAED(totalExpense), cx2 + 4, y + 22, cardW - 6)
       pdf.setFontSize(7)
       pdf.setTextColor(100, 100, 100)
       pdf.text(`${expenseItems.length} ${t('expensesCount', lang)}`, cx2 + 4, y + 28)
@@ -303,8 +320,7 @@ export default function DailyExpensesReport() {
       pdf.setTextColor(isProfit ? 13 : 211, isProfit ? 124 : 47, isProfit ? 61 : 47)
       pdf.setFontSize(8)
       pdf.text(t('netProfitLoss', lang), cx3 + 4, y + 11)
-      pdf.setFontSize(15)
-      pdf.text(formatAED(netProfitLoss), cx3 + 4, y + 22)
+      drawCardAmount(formatAED(netProfitLoss), cx3 + 4, y + 22, cardW - 6)
       pdf.setFontSize(7)
       pdf.setTextColor(100, 100, 100)
       pdf.text(isProfit ? 'PROFIT' : 'LOSS', cx3 + 4, y + 28)
@@ -390,15 +406,18 @@ export default function DailyExpensesReport() {
       pdf.text('Expense Category Breakdown', m, y)
       y += 5
 
-      // Table header
+      // Table header - use relative positions based on content width
+      const catAmtX = m + cw * 0.5
+      const catPctX = m + cw * 0.72
+      const catCountX = m + cw * 0.9
       pdf.setFillColor(10, 92, 78)
       pdf.rect(m, y, cw, 7, 'F')
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(8)
-      pdf.text('Category', m + 3, y + 5)
-      pdf.text('Amount (AED)', m + 80, y + 5)
-      pdf.text('% of Total', m + 130, y + 5)
-      pdf.text('# Items', m + 160, y + 5)
+      pdf.text('Category', m + 10, y + 5)
+      pdf.text('Amount (AED)', catAmtX, y + 5)
+      pdf.text('% of Total', catPctX, y + 5)
+      pdf.text('# Items', catCountX, y + 5)
       y += 7
 
       // Sort categories by amount desc
@@ -421,9 +440,9 @@ export default function DailyExpensesReport() {
         pdf.setTextColor(40, 40, 40)
         pdf.setFontSize(8)
         pdf.text(getExpenseCategoryLabel(cat, lang), m + 10, y + 5)
-        pdf.text(formatAED(amt), m + 80, y + 5)
-        pdf.text(`${pct}%`, m + 130, y + 5)
-        pdf.text(String(count), m + 160, y + 5)
+        pdf.text(formatAED(amt), catAmtX, y + 5)
+        pdf.text(`${pct}%`, catPctX, y + 5)
+        pdf.text(String(count), catCountX, y + 5)
         y += 7
       }
 
@@ -434,9 +453,9 @@ export default function DailyExpensesReport() {
       pdf.setFontSize(8)
       pdf.setFont('helvetica', 'bold')
       pdf.text('TOTAL', m + 10, y + 5)
-      pdf.text(formatAED(totalExpense), m + 80, y + 5)
-      pdf.text('100%', m + 130, y + 5)
-      pdf.text(String(expenseItems.length), m + 160, y + 5)
+      pdf.text(formatAED(totalExpense), catAmtX, y + 5)
+      pdf.text('100%', catPctX, y + 5)
+      pdf.text(String(expenseItems.length), catCountX, y + 5)
       pdf.setFont('helvetica', 'normal')
       y += 12
 
@@ -470,19 +489,19 @@ export default function DailyExpensesReport() {
       pdf.text(formatAED(totalIncome), pw - m - incomeBadgeW + 3, y)
       y += 6
 
-      // Income table header
+      // Income table header - redistributed columns to fit within printable width
       pdf.setFillColor(13, 124, 61)
       pdf.rect(m, y, cw, 8, 'F')
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(7.5)
       pdf.text('#', m + 3, y + 5.5)
-      pdf.text(t('tenantName', lang), m + 10, y + 5.5)
-      pdf.text(t('property', lang), m + 52, y + 5.5)
-      pdf.text(t('unitNumber', lang), m + 100, y + 5.5)
-      pdf.text(t('amount', lang), m + 118, y + 5.5)
-      pdf.text(t('paymentTime', lang), m + 147, y + 5.5)
-      pdf.text(t('paymentMethod', lang), m + 162, y + 5.5)
-      pdf.text('Status', m + 180, y + 5.5)
+      pdf.text(t('tenantName', lang), m + 8, y + 5.5)
+      pdf.text(t('property', lang), m + 37, y + 5.5)
+      pdf.text(t('unitNumber', lang), m + 68, y + 5.5)
+      pdf.text(t('amount', lang), m + 83, y + 5.5)
+      pdf.text(t('paymentTime', lang), m + 119, y + 5.5)
+      pdf.text(t('paymentMethod', lang), m + 135, y + 5.5)
+      pdf.text('Status', m + 159, y + 5.5)
       y += 8
 
       // Income rows
@@ -506,15 +525,15 @@ export default function DailyExpensesReport() {
         pdf.setTextColor(item.isLate ? 180 : 40, item.isLate ? 40 : 40, item.isLate ? 40 : 40)
         pdf.setFontSize(7.5)
         pdf.text(String(i + 1), m + 3, y + 5)
-        pdf.text(item.tenantName.substring(0, 20), m + 10, y + 5)
-        pdf.text(item.propertyName.substring(0, 22), m + 52, y + 5)
-        pdf.text(item.unitNumber || '-', m + 100, y + 5)
+        pdf.text(item.tenantName.substring(0, 20), m + 8, y + 5)
+        pdf.text(item.propertyName.substring(0, 22), m + 37, y + 5)
+        pdf.text(item.unitNumber || '-', m + 68, y + 5)
         pdf.setTextColor(13, 124, 61)
-        pdf.text(formatAED(item.amount), m + 118, y + 5)
+        pdf.text(formatAED(item.amount), m + 83, y + 5)
         pdf.setTextColor(item.isLate ? 180 : 40, item.isLate ? 40 : 40, item.isLate ? 40 : 40)
-        pdf.text(item.time, m + 147, y + 5)
-        pdf.text((item.method || '-').substring(0, 14), m + 162, y + 5)
-        pdf.text(item.isLate ? 'LATE' : (item.notes?.includes('Partial') ? 'PARTIAL' : 'On Time'), m + 180, y + 5)
+        pdf.text(item.time, m + 119, y + 5)
+        pdf.text((item.method || '-').substring(0, 14), m + 135, y + 5)
+        pdf.text(item.isLate ? 'LATE' : (item.notes?.includes('Partial') ? 'PARTIAL' : 'On Time'), m + 159, y + 5)
         y += 7
       }
 
@@ -526,7 +545,7 @@ export default function DailyExpensesReport() {
       pdf.setFontSize(8)
       pdf.setFont('helvetica', 'bold')
       pdf.text(`TOTAL INCOME: ${formatAED(totalIncome)}`, m + 10, y + 5)
-      pdf.text(`${incomeItems.length} payments`, m + 147, y + 5)
+      pdf.text(`${incomeItems.length} payments`, m + 119, y + 5)
       pdf.setFont('helvetica', 'normal')
       y += 14
 
@@ -543,17 +562,18 @@ export default function DailyExpensesReport() {
       pdf.text(formatAED(totalExpense), pw - m - 42, y)
       y += 6
 
-      // Expense table header
+      // Expense table header - redistributed columns with Type column
       pdf.setFillColor(196, 101, 58)
       pdf.rect(m, y, cw, 8, 'F')
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(7.5)
       pdf.text('#', m + 3, y + 5.5)
-      pdf.text(t('expenseCategory', lang), m + 10, y + 5.5)
-      pdf.text(t('description', lang), m + 42, y + 5.5)
-      pdf.text(t('amount', lang), m + 118, y + 5.5)
-      pdf.text(t('vendor', lang), m + 147, y + 5.5)
-      pdf.text(t('paymentTime', lang), m + 175, y + 5.5)
+      pdf.text(t('expenseCategory', lang), m + 8, y + 5.5)
+      pdf.text(t('description', lang), m + 33, y + 5.5)
+      pdf.text(t('amount', lang), m + 83, y + 5.5)
+      pdf.text(t('vendor', lang), m + 119, y + 5.5)
+      pdf.text(t('paymentTime', lang), m + 145, y + 5.5)
+      pdf.text('Type', m + 165, y + 5.5)
       y += 8
 
       // Expense rows
@@ -573,13 +593,14 @@ export default function DailyExpensesReport() {
         pdf.setTextColor(40, 40, 40)
         pdf.setFontSize(7.5)
         pdf.text(String(i + 1), m + 3, y + 5)
-        pdf.text(getExpenseCategoryLabel(item.category, lang), m + 10, y + 5)
-        pdf.text(item.description.substring(0, 32), m + 42, y + 5)
+        pdf.text(getExpenseCategoryLabel(item.category, lang), m + 8, y + 5)
+        pdf.text(item.description.substring(0, 32), m + 33, y + 5)
         pdf.setTextColor(196, 101, 58)
-        pdf.text(formatAED(item.amount), m + 118, y + 5)
+        pdf.text(formatAED(item.amount), m + 83, y + 5)
         pdf.setTextColor(40, 40, 40)
-        pdf.text((item.vendor || '-').substring(0, 12), m + 147, y + 5)
-        pdf.text(item.time, m + 175, y + 5)
+        pdf.text((item.vendor || '-').substring(0, 12), m + 119, y + 5)
+        pdf.text(item.time, m + 145, y + 5)
+        pdf.text(item.recurring ? 'Recurring' : 'One-time', m + 165, y + 5)
         y += 7
       }
 
@@ -591,7 +612,7 @@ export default function DailyExpensesReport() {
       pdf.setFontSize(8)
       pdf.setFont('helvetica', 'bold')
       pdf.text(`TOTAL EXPENSES: ${formatAED(totalExpense)}`, m + 10, y + 5)
-      pdf.text(`${expenseItems.length} items`, m + 147, y + 5)
+      pdf.text(`${expenseItems.length} items`, m + 119, y + 5)
       pdf.setFont('helvetica', 'normal')
       y += 14
 
@@ -623,7 +644,7 @@ export default function DailyExpensesReport() {
         drawLine(m, ph - 12, pw - m, ph - 12, '#E5E7EB', 0.3)
         pdf.setFontSize(6.5)
         pdf.setTextColor(150, 150, 150)
-        pdf.text(`Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C | ${t('dailyExpensesReport', lang)} | ${formatDate(selectedDate + 'T00:00:00.000Z')}`, m, ph - 7)
+        pdf.text(`Al Reef Al Madeena | ${t('dailyExpensesReport', lang)} | ${formatDate(selectedDate + 'T00:00:00.000Z')}`, m, ph - 7)
         pdf.text(`Page ${i} of ${totalPages}`, pw - m, ph - 7, { align: 'right' })
         pdf.text('CONFIDENTIAL', pw / 2, ph - 7, { align: 'center' })
       }
@@ -829,18 +850,18 @@ export default function DailyExpensesReport() {
   return (
     <div className="space-y-6">
       {/* Professional Report Header */}
-      <div className="flex items-center justify-between pb-4 border-b-2 border-emerald/20 print:border-emerald/40">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-2 pb-4 border-b-2 border-emerald/20 print:border-emerald/40">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-lg bg-emerald flex items-center justify-center text-white font-bold text-sm shrink-0">AM</div>
-          <div>
-            <h2 className="font-bold text-foreground text-sm sm:text-base">Al Reef Al Madeena</h2>
+          <div className="min-w-0">
+            <h2 className="font-bold text-foreground text-sm sm:text-base truncate">Al Reef Al Madeena</h2>
             <p className="text-xs text-muted-foreground hidden sm:block">Real Estate Management & General Maintenance</p>
           </div>
         </div>
         <div className="text-center hidden md:block">
           <h1 className="text-lg font-bold">{t('dailyExpensesReport', lang)}</h1>
         </div>
-        <div className="text-right">
+        <div className="text-right min-w-0">
           <p className="font-medium text-sm">{formattedDate}</p>
           <p className="text-xs text-muted-foreground hidden sm:block">{t('generatedOn', lang)}: {generatedTimestamp}</p>
         </div>
@@ -893,14 +914,14 @@ export default function DailyExpensesReport() {
         {/* Total Income */}
         <Card className="card-hover overflow-hidden print:bg-white print:border">
           <div className="h-1 bg-emerald" />
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-full bg-emerald/10 flex items-center justify-center">
                 <ArrowUpRight className="w-4 h-4 text-emerald" />
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-1">{t('totalIncome', lang)}</p>
-            <p className="text-xl font-bold text-emerald">{formatAED(totalIncome)}</p>
+            <p className="text-xl font-bold text-emerald truncate text-ellipsis overflow-hidden">{formatAED(totalIncome)}</p>
             <p className="text-xs text-muted-foreground mt-1">{incomeItems.length} {t('tenantPayment', lang)}(s)</p>
           </CardContent>
         </Card>
@@ -908,14 +929,14 @@ export default function DailyExpensesReport() {
         {/* Total Expenses */}
         <Card className="card-hover overflow-hidden print:bg-white print:border">
           <div className="h-1 bg-terracotta" />
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-full bg-terracotta/10 flex items-center justify-center">
                 <ArrowDownRight className="w-4 h-4 text-terracotta" />
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-1">{t('totalExpense', lang)}</p>
-            <p className="text-xl font-bold text-terracotta">{formatAED(totalExpense)}</p>
+            <p className="text-xl font-bold text-terracotta truncate text-ellipsis overflow-hidden">{formatAED(totalExpense)}</p>
             <p className="text-xs text-muted-foreground mt-1">{expenseItems.length} {t('expensesCount', lang)}</p>
           </CardContent>
         </Card>
@@ -923,14 +944,14 @@ export default function DailyExpensesReport() {
         {/* Net Profit */}
         <Card className="card-hover overflow-hidden print:bg-white print:border">
           <div className={`h-1 ${netProfitLoss >= 0 ? 'bg-emerald' : 'bg-red-500'}`} />
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className={`w-8 h-8 rounded-full ${netProfitLoss >= 0 ? 'bg-emerald/10' : 'bg-red-100'} flex items-center justify-center`}>
                 <DollarSign className={`w-4 h-4 ${netProfitLoss >= 0 ? 'text-emerald' : 'text-red-500'}`} />
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-1">{t('netProfitLoss', lang)}</p>
-            <p className={`text-xl font-bold ${netProfitLoss >= 0 ? 'text-emerald' : 'text-red-600'}`}>
+            <p className={`text-xl font-bold truncate text-ellipsis overflow-hidden ${netProfitLoss >= 0 ? 'text-emerald' : 'text-red-600'}`}>
               {formatAED(netProfitLoss)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">{netProfitLoss >= 0 ? 'PROFIT' : 'LOSS'}</p>
@@ -940,7 +961,7 @@ export default function DailyExpensesReport() {
         {/* Collection Rate */}
         <Card className="card-hover overflow-hidden print:bg-white print:border">
           <div className="h-1 bg-deep-teal" />
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-full bg-deep-teal/10 flex items-center justify-center">
                 <TrendingUp className="w-4 h-4 text-deep-teal" />
@@ -955,7 +976,7 @@ export default function DailyExpensesReport() {
         {/* Number of Payments */}
         <Card className="card-hover overflow-hidden print:bg-white print:border">
           <div className="h-1 bg-gold" />
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center">
                 <CreditCard className="w-4 h-4 text-gold" />
@@ -970,14 +991,14 @@ export default function DailyExpensesReport() {
         {/* Outstanding Amounts */}
         <Card className="card-hover overflow-hidden print:bg-white print:border">
           <div className="h-1 bg-amber-500" />
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-1">{t('outstanding', lang)}</p>
-            <p className="text-xl font-bold text-amber-600">{formatAED(outstandingAmount)}</p>
+            <p className="text-xl font-bold text-amber-600 truncate text-ellipsis overflow-hidden">{formatAED(outstandingAmount)}</p>
             <p className="text-xs text-muted-foreground mt-1">{incomeItems.filter(i => i.isLate).length} {t('late', lang).toLowerCase()}</p>
           </CardContent>
         </Card>
@@ -1064,16 +1085,16 @@ export default function DailyExpensesReport() {
               <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100/50">
                 <div className="flex items-center gap-2">
                   <ArrowUpRight className="w-4 h-4 text-emerald" />
-                  <span className="text-sm font-medium">{t('totalIncome', lang)}</span>
+                  <span className="text-sm font-medium min-w-0 truncate">{t('totalIncome', lang)}</span>
                 </div>
-                <span className="font-bold text-emerald">{formatAED(totalIncome)}</span>
+                <span className="font-bold text-emerald shrink-0">{formatAED(totalIncome)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-orange-50 to-orange-100/50">
                 <div className="flex items-center gap-2">
                   <ArrowDownRight className="w-4 h-4 text-terracotta" />
-                  <span className="text-sm font-medium">{t('totalExpense', lang)}</span>
+                  <span className="text-sm font-medium min-w-0 truncate">{t('totalExpense', lang)}</span>
                 </div>
-                <span className="font-bold text-terracotta">{formatAED(totalExpense)}</span>
+                <span className="font-bold text-terracotta shrink-0">{formatAED(totalExpense)}</span>
               </div>
               <div className={`flex items-center justify-between p-4 rounded-lg border-2 ${netProfitLoss >= 0 ? 'border-emerald bg-gradient-to-r from-emerald-50 to-emerald-100/30' : 'border-red-300 bg-gradient-to-r from-red-50 to-red-100/30'}`}>
                 <div className="flex items-center gap-2">
@@ -1147,10 +1168,10 @@ export default function DailyExpensesReport() {
                     <TableRow key={idx} className={`${item.isLate ? 'bg-red-50/50 border-l-3 border-l-red-400' : ''}`}>
                       <TableCell className="font-mono text-xs text-muted-foreground">{idx + 1}</TableCell>
                       <TableCell>
-                        <p className="font-medium text-sm">{item.tenantName}</p>
+                        <p className="font-medium text-sm max-w-[120px] truncate">{item.tenantName}</p>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm text-muted-foreground">{item.propertyName}</p>
+                        <p className="text-sm text-muted-foreground max-w-[120px] truncate">{item.propertyName}</p>
                       </TableCell>
                       <TableCell>
                         {item.unitNumber ? (
@@ -1165,18 +1186,18 @@ export default function DailyExpensesReport() {
                       <TableCell className="text-xs text-muted-foreground">{item.time}</TableCell>
                       <TableCell>
                         {item.method ? (
-                          <Badge variant="secondary" className="text-xs font-normal">{item.method}</Badge>
+                          <Badge variant="secondary" className="text-xs font-normal inline-block max-w-[80px] truncate">{item.method}</Badge>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell>
                         {item.isLate ? (
-                          <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">Late</Badge>
+                          <Badge className="bg-red-100 text-red-700 border-red-200 text-xs inline-block max-w-[80px] truncate">Late</Badge>
                         ) : item.notes?.includes('Partial') ? (
-                          <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">Partial</Badge>
+                          <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs inline-block max-w-[80px] truncate">Partial</Badge>
                         ) : (
-                          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs">Paid</Badge>
+                          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs inline-block max-w-[80px] truncate">Paid</Badge>
                         )}
                       </TableCell>
                     </TableRow>
@@ -1237,18 +1258,18 @@ export default function DailyExpensesReport() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: catColor }} />
-                            <Badge variant="secondary" className="text-xs font-normal">{getExpenseCategoryLabel(item.category, lang)}</Badge>
+                            <Badge variant="secondary" className="text-xs font-normal inline-block max-w-[80px] truncate">{getExpenseCategoryLabel(item.category, lang)}</Badge>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <p className="text-sm font-medium">{item.description}</p>
+                          <p className="text-sm font-medium max-w-[150px] truncate">{item.description}</p>
                         </TableCell>
                         <TableCell className="text-right">
                           <p className="font-bold text-terracotta">{formatAED(item.amount)}</p>
                         </TableCell>
                         <TableCell>
                           {item.vendor ? (
-                            <p className="text-sm">{item.vendor}</p>
+                            <p className="text-sm max-w-[100px] truncate">{item.vendor}</p>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
@@ -1256,12 +1277,12 @@ export default function DailyExpensesReport() {
                         <TableCell className="text-xs text-muted-foreground">{item.time}</TableCell>
                         <TableCell>
                           {item.recurring ? (
-                            <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs gap-1">
+                            <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs gap-1 inline-block max-w-[80px] truncate">
                               <RefreshCw className="w-3 h-3" />
                               {t('recurring', lang)}
                             </Badge>
                           ) : (
-                            <Badge className="bg-gray-100 text-gray-600 border-gray-200 text-xs">One-time</Badge>
+                            <Badge className="bg-gray-100 text-gray-600 border-gray-200 text-xs inline-block max-w-[80px] truncate">One-time</Badge>
                           )}
                         </TableCell>
                       </TableRow>

@@ -188,14 +188,6 @@ export default function Reports() {
 
       // Key metrics box
       let y = 85
-      pdf.setFillColor(245, 245, 245)
-      pdf.roundedRect(margin, y, contentWidth, 65, 3, 3, 'F')
-      pdf.setFontSize(12)
-      pdf.setTextColor(13, 124, 61)
-      pdf.text(t('financialSummary', lang), margin + 5, y + 10)
-      pdf.setFontSize(10)
-      pdf.setTextColor(0, 0, 0)
-
       const metrics = [
         [t('cashCollected', lang), formatAED(data.cashCollected)],
         [t('adjustmentsTotal', lang), `-${formatAED(data.adjustmentTotal)}`],
@@ -207,6 +199,15 @@ export default function Reports() {
         [t('grossRevenue', lang), formatAED(data.grossRevenue)],
         [t('netIncome', lang), formatAED(data.netIncome)],
       ]
+      const metricsBoxHeight = 18 + metrics.length * 7 + 5
+      pdf.setFillColor(245, 245, 245)
+      pdf.roundedRect(margin, y, contentWidth, metricsBoxHeight, 3, 3, 'F')
+      pdf.setFontSize(12)
+      pdf.setTextColor(13, 124, 61)
+      pdf.text(t('financialSummary', lang), margin + 5, y + 10)
+      pdf.setFontSize(10)
+      pdf.setTextColor(0, 0, 0)
+
       metrics.forEach(([label, value], idx) => {
         const rowY = y + 18 + idx * 7
         pdf.text(label, margin + 8, rowY)
@@ -214,12 +215,17 @@ export default function Reports() {
       })
 
       // ── Page 2: Charts ──
+      // Track Y position manually for reliable placement
+      let chartPageY = 20
+      let isOnChartPage = false
+
       // Capture bar chart
       if (barChartRef.current) {
         try {
           const canvas = await html2canvas(barChartRef.current, { scale: 2, backgroundColor: '#ffffff', logging: false })
           const imgData = canvas.toDataURL('image/png')
           pdf.addPage()
+          isOnChartPage = true
           pdf.setFillColor(13, 124, 61)
           pdf.rect(0, 0, pageWidth, 15, 'F')
           pdf.setTextColor(255, 255, 255)
@@ -228,23 +234,38 @@ export default function Reports() {
           pdf.setTextColor(0, 0, 0)
           const imgW = contentWidth
           const imgH = (canvas.height / canvas.width) * imgW
-          pdf.addImage(imgData, 'PNG', margin, 20, imgW, Math.min(imgH, 120))
+          const actualImgH = Math.min(imgH, 120)
+          pdf.addImage(imgData, 'PNG', margin, 20, imgW, actualImgH)
+          chartPageY = 20 + actualImgH + 5
         } catch { /* skip chart if capture fails */ }
       }
 
-      // Capture pie chart
+      // Capture pie chart - place relative to tracked bar chart Y position
       if (pieChartRef.current) {
         try {
           const canvas = await html2canvas(pieChartRef.current, { scale: 2, backgroundColor: '#ffffff', logging: false })
           const imgData = canvas.toDataURL('image/png')
           const imgW = contentWidth * 0.8
           const imgH = (canvas.height / canvas.width) * imgW
-          const currentY = pdf.internal.pageSize.getHeight() - 20 > (pdf as any).lastY ? 140 : 20
-          pdf.addImage(imgData, 'PNG', margin + contentWidth * 0.1, currentY, imgW, Math.min(imgH, 100))
+          const actualPieH = Math.min(imgH, 100)
+          // Check if pie fits on current chart page
+          if (isOnChartPage && chartPageY + actualPieH + 5 < pageHeight - 25) {
+            // Place on same page as bar chart
+            pdf.addImage(imgData, 'PNG', margin + contentWidth * 0.1, chartPageY, imgW, actualPieH)
+            chartPageY += actualPieH + 5
+          } else {
+            // Add new page for pie chart
+            pdf.addPage()
+            isOnChartPage = true
+            chartPageY = 20
+            pdf.addImage(imgData, 'PNG', margin + contentWidth * 0.1, chartPageY, imgW, actualPieH)
+            chartPageY += actualPieH + 5
+          }
         } catch { /* skip chart if capture fails */ }
       }
 
       // ── Page 3: Revenue Analysis Chart ──
+      let areaChartEndY = 20
       if (areaChartRef.current) {
         try {
           const canvas = await html2canvas(areaChartRef.current, { scale: 2, backgroundColor: '#ffffff', logging: false })
@@ -258,12 +279,22 @@ export default function Reports() {
           pdf.setTextColor(0, 0, 0)
           const imgW = contentWidth
           const imgH = (canvas.height / canvas.width) * imgW
-          pdf.addImage(imgData, 'PNG', margin, 20, imgW, Math.min(imgH, 140))
+          const actualAreaH = Math.min(imgH, 140)
+          pdf.addImage(imgData, 'PNG', margin, 20, imgW, actualAreaH)
+          areaChartEndY = 20 + actualAreaH + 5
         } catch { /* skip chart if capture fails */ }
       }
 
       // ── P&L Statement ──
-      let plY = 170
+      // Track Y position after area chart; add new page if not enough room
+      let plY: number
+      if (areaChartEndY + 80 < pageHeight - 25) {
+        // Place P&L on the same page as area chart
+        plY = areaChartEndY
+      } else {
+        pdf.addPage()
+        plY = 20
+      }
       pdf.setFontSize(12)
       pdf.setTextColor(13, 124, 61)
       pdf.text(t('profitAndLoss', lang), margin, plY)
@@ -284,7 +315,17 @@ export default function Reports() {
         [t('netIncome', lang), formatAED(data.netIncome), data.netIncome >= 0 ? 'green' : 'red'],
       ]
       plItems.forEach(([label, value, style]) => {
-        if (plY > pageHeight - 20) { pdf.addPage(); plY = 20 }
+        if (plY > pageHeight - 25) {
+          pdf.addPage()
+          plY = 20
+          // Redraw P&L header on new page
+          pdf.setFontSize(12)
+          pdf.setTextColor(13, 124, 61)
+          pdf.text(t('profitAndLoss', lang) + ' (cont.)', margin, plY)
+          plY += 8
+          pdf.setFontSize(9)
+          pdf.setTextColor(0, 0, 0)
+        }
         if (style === 'bold') pdf.setFont('helvetica', 'bold')
         else pdf.setFont('helvetica', 'normal')
         pdf.text(label, margin, plY)
@@ -299,17 +340,29 @@ export default function Reports() {
       pdf.setTextColor(13, 124, 61)
       pdf.text(t('expenseBreakdown', lang), margin, plY)
       plY += 7
-      pdf.setFontSize(9)
-      pdf.setTextColor(0, 0, 0)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text(t('expenseCategory', lang), margin, plY)
-      pdf.text(t('amount', lang), margin + contentWidth, plY, { align: 'right' })
-      plY += 2
-      pdf.line(margin, plY, margin + contentWidth, plY)
-      plY += 4
-      pdf.setFont('helvetica', 'normal')
+      // Draw expense breakdown table header (function for reuse on page breaks)
+      const drawExpenseTableHeader = (startY: number) => {
+        pdf.setFontSize(9)
+        pdf.setTextColor(0, 0, 0)
+        pdf.setFont('helvetica', 'bold')
+        pdf.text(t('expenseCategory', lang), margin, startY)
+        pdf.text(t('amount', lang), margin + contentWidth, startY, { align: 'right' })
+        pdf.line(margin, startY + 2, margin + contentWidth, startY + 2)
+        pdf.setFont('helvetica', 'normal')
+        return startY + 6
+      }
+      plY = drawExpenseTableHeader(plY)
       Object.entries(data.expenseBreakdown).forEach(([key, value]) => {
-        if (plY > pageHeight - 20) { pdf.addPage(); plY = 20 }
+        if (plY > pageHeight - 25) {
+          pdf.addPage()
+          plY = 20
+          // Redraw expense table header on new page
+          pdf.setFontSize(11)
+          pdf.setTextColor(13, 124, 61)
+          pdf.text(t('expenseBreakdown', lang) + ' (cont.)', margin, plY)
+          plY += 7
+          plY = drawExpenseTableHeader(plY)
+        }
         pdf.text(getExpenseCategoryLabelExport(key), margin, plY)
         pdf.text(formatAED(value), margin + contentWidth, plY, { align: 'right' })
         plY += 5
@@ -594,11 +647,11 @@ export default function Reports() {
   return (
     <div className="space-y-6">
       {/* Professional Report Header */}
-      <div className="flex items-center justify-between pb-4 border-b-2 border-emerald/20 print:border-emerald/40">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-2 pb-4 border-b-2 border-emerald/20 print:border-emerald/40">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-lg bg-emerald flex items-center justify-center text-white font-bold text-sm shrink-0">AM</div>
-          <div>
-            <h2 className="font-bold text-foreground text-sm sm:text-base">Al Reef Al Madeena</h2>
+          <div className="min-w-0">
+            <h2 className="font-bold text-foreground text-sm sm:text-base truncate">Al Reef Al Madeena</h2>
             <p className="text-xs text-muted-foreground hidden sm:block">Real Estate Management & General Maintenance</p>
           </div>
         </div>
@@ -606,7 +659,7 @@ export default function Reports() {
           <h1 className="text-lg font-bold">{t('financialSummary', lang)}</h1>
           <p className="text-xs text-muted-foreground">{getMonthName(selectedMonth, lang)} {selectedYear}</p>
         </div>
-        <div className="text-right">
+        <div className="text-right min-w-0">
           <p className="font-medium text-sm">{getMonthName(selectedMonth, lang)} {selectedYear}</p>
           <p className="text-xs text-muted-foreground hidden sm:block">{t('generatedOn', lang)}: {generatedTimestamp}</p>
         </div>
@@ -662,14 +715,14 @@ export default function Reports() {
         {/* Monthly Revenue */}
         <Card className="card-hover overflow-hidden print:bg-white print:border">
           <div className="h-1 bg-emerald" />
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-full bg-emerald/10 flex items-center justify-center">
                 <TrendingUp className="w-4 h-4 text-emerald" />
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-1">{t('revenue', lang)}</p>
-            <p className="text-xl font-bold text-emerald">{formatAED(data.totalRevenue)}</p>
+            <p className="text-xl font-bold text-emerald truncate text-ellipsis overflow-hidden">{formatAED(data.totalRevenue)}</p>
             <p className="text-xs text-muted-foreground mt-1">{t('ofExpected', lang)} {formatAED(data.expectedRevenue)}</p>
           </CardContent>
         </Card>
@@ -677,14 +730,14 @@ export default function Reports() {
         {/* Monthly Expenses */}
         <Card className="card-hover overflow-hidden print:bg-white print:border">
           <div className="h-1 bg-terracotta" />
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-full bg-terracotta/10 flex items-center justify-center">
                 <TrendingDown className="w-4 h-4 text-terracotta" />
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-1">{t('expenses', lang)}</p>
-            <p className="text-xl font-bold text-terracotta">{formatAED(data.totalExpenses)}</p>
+            <p className="text-xl font-bold text-terracotta truncate text-ellipsis overflow-hidden">{formatAED(data.totalExpenses)}</p>
             <p className="text-xs text-muted-foreground mt-1">{data.grossRevenue > 0 ? `${((data.totalExpenses / data.grossRevenue) * 100).toFixed(0)}% of revenue` : '—'}</p>
           </CardContent>
         </Card>
@@ -692,14 +745,14 @@ export default function Reports() {
         {/* Monthly Profit */}
         <Card className="card-hover overflow-hidden print:bg-white print:border">
           <div className={`h-1 ${data.profitLoss >= 0 ? 'bg-emerald' : 'bg-red-500'}`} />
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className={`w-8 h-8 rounded-full ${data.profitLoss >= 0 ? 'bg-emerald/10' : 'bg-red-100'} flex items-center justify-center`}>
                 <DollarSign className={`w-4 h-4 ${data.profitLoss >= 0 ? 'text-emerald' : 'text-red-500'}`} />
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-1">{t('profitOrLoss', lang)}</p>
-            <p className={`text-xl font-bold ${data.profitLoss >= 0 ? 'text-emerald' : 'text-red-600'}`}>
+            <p className={`text-xl font-bold truncate text-ellipsis overflow-hidden ${data.profitLoss >= 0 ? 'text-emerald' : 'text-red-600'}`}>
               {formatAED(data.profitLoss)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">{data.profitLoss >= 0 ? 'PROFIT' : 'LOSS'}</p>
@@ -709,7 +762,7 @@ export default function Reports() {
         {/* Occupancy Revenue */}
         <Card className="card-hover overflow-hidden print:bg-white print:border">
           <div className="h-1 bg-deep-teal" />
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-full bg-deep-teal/10 flex items-center justify-center">
                 <Home className="w-4 h-4 text-deep-teal" />
@@ -724,14 +777,14 @@ export default function Reports() {
         {/* Outstanding Rent */}
         <Card className="card-hover overflow-hidden print:bg-white print:border">
           <div className="h-1 bg-amber-500" />
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-1">{t('outstanding', lang)}</p>
-            <p className="text-xl font-bold text-amber-600">{formatAED(Math.max(0, data.expectedRevenue - data.totalRevenue))}</p>
+            <p className="text-xl font-bold text-amber-600 truncate text-ellipsis overflow-hidden">{formatAED(Math.max(0, data.expectedRevenue - data.totalRevenue))}</p>
             <p className="text-xs text-muted-foreground mt-1">{data.grossRevenue > 0 ? `${(100 - data.collectionRate).toFixed(0)}% uncollected` : '—'}</p>
           </CardContent>
         </Card>
@@ -739,7 +792,7 @@ export default function Reports() {
         {/* Collection Percentage */}
         <Card className="card-hover overflow-hidden print:bg-white print:border">
           <div className="h-1 bg-gold" />
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center">
                 <CreditCard className="w-4 h-4 text-gold" />
@@ -855,47 +908,47 @@ export default function Reports() {
               <h4 className="text-sm font-semibold mb-3">{t('totalRevenue', lang)}</h4>
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100/50">
-                  <div className="flex items-center gap-2">
-                    <ArrowUpRight className="w-4 h-4 text-emerald" />
-                    <span className="text-sm">{t('cashCollected', lang)}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <ArrowUpRight className="w-4 h-4 text-emerald shrink-0" />
+                    <span className="text-sm min-w-0 truncate">{t('cashCollected', lang)}</span>
                   </div>
-                  <span className="font-semibold text-emerald">{formatAED(data.cashCollected)}</span>
+                  <span className="font-semibold text-emerald shrink-0">{formatAED(data.cashCollected)}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-amber-50 to-amber-100/50">
-                  <div className="flex items-center gap-2">
-                    <ArrowDownRight className="w-4 h-4 text-amber-500" />
-                    <span className="text-sm">{t('adjustmentsTotal', lang)}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <ArrowDownRight className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span className="text-sm min-w-0 truncate">{t('adjustmentsTotal', lang)}</span>
                   </div>
-                  <span className="font-semibold text-amber-600">-{formatAED(data.adjustmentTotal)}</span>
+                  <span className="font-semibold text-amber-600 shrink-0">-{formatAED(data.adjustmentTotal)}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50/80 to-emerald-100/30 border border-emerald/20">
-                  <span className="text-sm font-semibold">{t('netRevenue', lang)}</span>
-                  <span className="font-bold text-emerald">{formatAED(data.netRevenue)}</span>
+                  <span className="text-sm font-semibold min-w-0 truncate">{t('netRevenue', lang)}</span>
+                  <span className="font-bold text-emerald shrink-0">{formatAED(data.netRevenue)}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">{t('otherIncome', lang)}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Plus className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="text-sm min-w-0 truncate">{t('otherIncome', lang)}</span>
                   </div>
-                  <span className="font-semibold">{formatAED(data.otherIncome)}</span>
+                  <span className="font-semibold shrink-0">{formatAED(data.otherIncome)}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100/50 border border-emerald/20">
-                  <span className="text-sm font-semibold">{t('grossRevenue', lang)}</span>
-                  <span className="font-bold text-emerald">{formatAED(data.grossRevenue)}</span>
+                  <span className="text-sm font-semibold min-w-0 truncate">{t('grossRevenue', lang)}</span>
+                  <span className="font-bold text-emerald shrink-0">{formatAED(data.grossRevenue)}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-red-50 to-red-100/50">
-                  <div className="flex items-center gap-2">
-                    <ArrowDownRight className="w-4 h-4 text-red-500" />
-                    <span className="text-sm">{t('vacancyLoss', lang)}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <ArrowDownRight className="w-4 h-4 text-red-500 shrink-0" />
+                    <span className="text-sm min-w-0 truncate">{t('vacancyLoss', lang)}</span>
                   </div>
-                  <span className="font-semibold text-red-500">-{formatAED(data.vacancyLoss)}</span>
+                  <span className="font-semibold text-red-500 shrink-0">-{formatAED(data.vacancyLoss)}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-red-50 to-red-100/50">
-                  <div className="flex items-center gap-2">
-                    <ArrowDownRight className="w-4 h-4 text-red-500" />
-                    <span className="text-sm">{t('badDebt', lang)}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <ArrowDownRight className="w-4 h-4 text-red-500 shrink-0" />
+                    <span className="text-sm min-w-0 truncate">{t('badDebt', lang)}</span>
                   </div>
-                  <span className="font-semibold text-red-500">-{formatAED(data.badDebt)}</span>
+                  <span className="font-semibold text-red-500 shrink-0">-{formatAED(data.badDebt)}</span>
                 </div>
               </div>
             </div>
@@ -917,22 +970,22 @@ export default function Reports() {
             <div className="space-y-2">
               {/* Revenue */}
               <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100/50">
-                <span className="text-sm font-medium">{t('cashCollected', lang)}</span>
-                <span className="font-semibold text-emerald">{formatAED(data.cashCollected)}</span>
+                <span className="text-sm font-medium min-w-0 truncate">{t('cashCollected', lang)}</span>
+                <span className="font-semibold text-emerald shrink-0">{formatAED(data.cashCollected)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-amber-50 to-amber-100/50">
-                <span className="text-sm">{t('adjustmentsTotal', lang)}</span>
-                <span className="font-semibold text-amber-600">-{formatAED(data.adjustmentTotal)}</span>
+                <span className="text-sm min-w-0 truncate">{t('adjustmentsTotal', lang)}</span>
+                <span className="font-semibold text-amber-600 shrink-0">-{formatAED(data.adjustmentTotal)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <span className="text-sm">{t('otherIncome', lang)}</span>
-                <span className="font-semibold">{formatAED(data.otherIncome)}</span>
+                <span className="text-sm min-w-0 truncate">{t('otherIncome', lang)}</span>
+                <span className="font-semibold shrink-0">{formatAED(data.otherIncome)}</span>
               </div>
 
               {/* Gross Revenue */}
               <div className="flex items-center justify-between p-3 rounded-lg border-t-2 border-b border-emerald/30 bg-gradient-to-r from-emerald-50 to-emerald-100/30">
-                <span className="text-sm font-bold">{t('grossRevenue', lang)}</span>
-                <span className="font-bold text-emerald">{formatAED(data.grossRevenue)}</span>
+                <span className="text-sm font-bold min-w-0 truncate">{t('grossRevenue', lang)}</span>
+                <span className="font-bold text-emerald shrink-0">{formatAED(data.grossRevenue)}</span>
               </div>
 
               {/* Deductions */}
@@ -940,23 +993,23 @@ export default function Reports() {
                 {t('costOfOperations', lang)}
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-red-50 to-red-100/50">
-                <span className="text-sm">{t('vacancyLoss', lang)}</span>
-                <span className="font-semibold text-red-500">-{formatAED(data.vacancyLoss)}</span>
+                <span className="text-sm min-w-0 truncate">{t('vacancyLoss', lang)}</span>
+                <span className="font-semibold text-red-500 shrink-0">-{formatAED(data.vacancyLoss)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-red-50 to-red-100/50">
-                <span className="text-sm">{t('badDebt', lang)}</span>
-                <span className="font-semibold text-red-500">-{formatAED(data.badDebt)}</span>
+                <span className="text-sm min-w-0 truncate">{t('badDebt', lang)}</span>
+                <span className="font-semibold text-red-500 shrink-0">-{formatAED(data.badDebt)}</span>
               </div>
 
               {/* Gross Profit */}
               <div className="flex items-center justify-between p-3 rounded-lg border-t-2 border-b border-amber-300 bg-gradient-to-r from-amber-50 to-amber-100/50">
-                <span className="text-sm font-bold">{t('grossProfit', lang)}</span>
-                <span className={`font-bold ${data.grossProfit >= 0 ? 'text-emerald' : 'text-red-600'}`}>{formatAED(data.grossProfit)}</span>
+                <span className="text-sm font-bold min-w-0 truncate">{t('grossProfit', lang)}</span>
+                <span className={`font-bold shrink-0 ${data.grossProfit >= 0 ? 'text-emerald' : 'text-red-600'}`}>{formatAED(data.grossProfit)}</span>
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-red-50 to-red-100/50">
-                <span className="text-sm">{t('operatingExpenses', lang)}</span>
-                <span className="font-semibold text-red-500">-{formatAED(data.costOfOperations)}</span>
+                <span className="text-sm min-w-0 truncate">{t('operatingExpenses', lang)}</span>
+                <span className="font-semibold text-red-500 shrink-0">-{formatAED(data.costOfOperations)}</span>
               </div>
 
               {/* Net Income */}
@@ -1071,30 +1124,30 @@ export default function Reports() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: catColor }} />
-                            <Badge variant="secondary" className="text-xs font-normal">{getExpenseCategoryLabel(e.category, lang)}</Badge>
+                            <Badge variant="secondary" className="text-xs font-normal inline-block max-w-[80px] truncate">{getExpenseCategoryLabel(e.category, lang)}</Badge>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <p className="text-sm font-medium">{e.description}</p>
+                          <p className="text-sm font-medium max-w-[150px] truncate">{e.description}</p>
                         </TableCell>
                         <TableCell className="text-right">
                           <p className="font-bold text-terracotta">{formatAED(e.amount)}</p>
                         </TableCell>
                         <TableCell>
                           {e.vendor ? (
-                            <p className="text-sm">{e.vendor}</p>
+                            <p className="text-sm max-w-[100px] truncate">{e.vendor}</p>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </TableCell>
                         <TableCell>
                           {e.recurring ? (
-                            <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs gap-1">
+                            <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs gap-1 inline-block max-w-[80px] truncate">
                               <RefreshCw className="w-3 h-3" />
                               {t('recurring', lang)}
                             </Badge>
                           ) : (
-                            <Badge className="bg-gray-100 text-gray-600 border-gray-200 text-xs">One-time</Badge>
+                            <Badge className="bg-gray-100 text-gray-600 border-gray-200 text-xs inline-block max-w-[80px] truncate">One-time</Badge>
                           )}
                         </TableCell>
                       </TableRow>

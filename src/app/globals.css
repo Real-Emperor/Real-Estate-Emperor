@@ -247,15 +247,25 @@
 
 /* Print styles for reports */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   .no-print { display: none !important; }
   .print-only { display: block !important; }
   body { background: white !important; }
   .card-hover:hover { transform: none !important; box-shadow: none !important; }
-  table { break-inside: auto; }
+  table { break-inside: auto; font-size: 10px; }
   tr { break-inside: avoid; break-after: auto; }
   thead { display: table-header-group; }
   tfoot { display: table-footer-group; }
+  td, th { break-inside: avoid; overflow: hidden; text-overflow: ellipsis; }
   .overflow-x-auto, .overflow-y-auto { overflow: visible !important; max-height: none !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
 
 /* Islamic decorative border */
