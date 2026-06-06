@@ -451,10 +451,8 @@ export const useDataStore = create<DataState>()(
 
     deleteTenant: async (id) => {
       await apiCall(`/api/tenants/${id}`, { method: 'DELETE' })
-      set(s => ({
-        tenants: s.tenants.filter(t => t.id !== id),
-        payments: s.payments.filter(p => p.tenantId !== id),
-      }))
+      // Move Out: the tenant stays in the system with status 'moved_out'
+      // We refresh all data to reflect the updated status and unit availability
       await get().refreshAllData()
     },
 

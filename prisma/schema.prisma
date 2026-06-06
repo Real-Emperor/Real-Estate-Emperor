@@ -125,7 +125,8 @@ model Tenant {
   contractDuration Int?       // in months
   renewalStatus    String?    // active, expiring_soon, expired, renewed
   newRent          Decimal?  @db.Decimal(10,2)
-  status           String   @default("active") // active, inactive, evicted, notice
+  status           String   @default("active") // active, inactive, evicted, notice, moved_out
+  movedOutAt       DateTime? // recorded when tenant moves out
   latePaymentCount Int      @default(0)
   tenantScore      Int      @default(100)
   notes            String?

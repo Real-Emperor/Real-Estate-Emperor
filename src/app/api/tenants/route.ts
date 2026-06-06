@@ -89,6 +89,18 @@ export async function POST(request: Request) {
       return errorResponse('Property not found or does not belong to your company')
     }
 
+    // Over-allocation prevention: check if property has available units
+    const activeTenantCount = await prisma.tenant.count({
+      where: {
+        propertyId: body.propertyId,
+        status: 'active',
+        deletedAt: null,
+      },
+    })
+    if (activeTenantCount >= property.totalUnits) {
+      return errorResponse('Property is fully occupied. No vacant units available.', 409)
+    }
+
     const tenant = await prisma.tenant.create({
       data: {
         companyId: user.companyId,

@@ -92,6 +92,7 @@ export interface TenantData {
   renewalStatus: string | null
   newRent: number | null
   status: string
+  movedOutAt: string | null
   latePaymentCount: number
   tenantScore: number
   notes: string | null

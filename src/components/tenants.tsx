@@ -23,7 +23,7 @@ import {
   Users, Plus, Pencil, Trash2, Search, MessageCircle,
   ChevronDown, ChevronUp, Loader2, Phone, Mail,
   MapPin, CreditCard, Shield, AlertTriangle, Clock,
-  Building, Ruler, FileText, Star, ExternalLink
+  Building, Ruler, FileText, Star, ExternalLink, LogOut
 } from 'lucide-react'
 
 interface TenantFormState {
@@ -66,7 +66,7 @@ const emptyForm: TenantFormState = {
 
 const unitTypes = ['studio', '1bedroom', '2bedroom', '3bedroom', 'shop', 'office']
 const paymentMethods = ['cash', 'bank_transfer', 'cheque']
-const statusOptions = ['active', 'inactive', 'evicted', 'notice']
+const statusOptions = ['active', 'inactive', 'evicted', 'notice', 'moved_out']
 
 function getUnitTypeLabel(type: string, lang: Language): string {
   switch (type) {
@@ -95,6 +95,7 @@ function getStatusLabel(status: string, lang: Language): string {
     case 'inactive': return t('inactive2', lang)
     case 'evicted': return t('evicted', lang)
     case 'notice': return t('notice', lang)
+    case 'moved_out': return t('movedOut', lang)
     default: return status
   }
 }
@@ -214,13 +215,13 @@ export default function Tenants() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('deleteTenant', language))) return
+  const handleMoveOut = async (id: string) => {
+    if (!confirm(t('moveOutConfirm', language))) return
     try {
-      await useDataStore.getState().deleteTenant(id)
+      await useDataStore.getState().deleteTenant(id) // DELETE endpoint now performs Move Out
       fetchData()
     } catch (error: any) {
-      alert(error.message || 'Failed to delete tenant')
+      alert(error.message || 'Failed to move out tenant')
     }
   }
 
@@ -235,7 +236,16 @@ export default function Tenants() {
     })
   }
 
-  const now = new Date()
+  // Compute available units for the selected property in the add form
+  const selectedProperty = properties.find(p => p.id === form.propertyId)
+  const activeTenantsInProperty = selectedProperty
+    ? (selectedProperty.tenants || []).filter(t => t.status === 'active').length
+    : 0
+  const vacantCount = selectedProperty ? selectedProperty.totalUnits - activeTenantsInProperty : 0
+  const occupiedUnitNumbers = selectedProperty
+    ? (selectedProperty.tenants || []).filter(t => t.status === 'active' && t.unitNumber).map(t => t.unitNumber!)
+    : []
+  const isPropertyFull = selectedProperty ? activeTenantsInProperty >= selectedProperty.totalUnits : false
   const currentMonth = now.getMonth() + 1
   const currentYear = now.getFullYear()
 
@@ -326,6 +336,7 @@ export default function Tenants() {
             <SelectItem value="inactive">{t('inactive2', language)}</SelectItem>
             <SelectItem value="evicted">{t('evicted', language)}</SelectItem>
             <SelectItem value="notice">{t('notice', language)}</SelectItem>
+            <SelectItem value="moved_out">{t('movedOut', language)}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -441,10 +452,11 @@ export default function Tenants() {
                             </button>
                             {isPrivileged && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleDelete(tenant.id) }}
-                                className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500"
+                                onClick={(e) => { e.stopPropagation(); handleMoveOut(tenant.id) }}
+                                className="p-1.5 rounded hover:bg-amber-50 text-muted-foreground hover:text-amber-600"
+                                title={t('moveOutTenant', language)}
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <LogOut className="w-3.5 h-3.5" />
                               </button>
                             )}
                             <button
@@ -859,15 +871,49 @@ export default function Tenants() {
                         <SelectValue placeholder={t('selectProperty', language)} />
                       </SelectTrigger>
                       <SelectContent>
-                        {properties.filter(p => !p.archived).map(p => (
-                          <SelectItem key={p.id} value={p.id}>{getNameByLang(p, language)}</SelectItem>
-                        ))}
+                        {properties.filter(p => !p.archived).map(p => {
+                          const activeCount = (p.tenants || []).filter(t => t.status === 'active').length
+                          const vacant = p.totalUnits - activeCount
+                          return (
+                            <SelectItem key={p.id} value={p.id}>
+                              {getNameByLang(p, language)} ({vacant > 0 ? `${t('vacantUnits', language)}: ${vacant}` : t('propertyFull', language)})
+                            </SelectItem>
+                          )
+                        })}
                       </SelectContent>
                     </Select>
+                    {/* Property capacity info */}
+                    {form.propertyId && (() => {
+                      const selProp = properties.find(p => p.id === form.propertyId)
+                      if (!selProp) return null
+                      const activeCount = (selProp.tenants || []).filter(t => t.status === 'active').length
+                      const vacant = selProp.totalUnits - activeCount
+                      const isFull = activeCount >= selProp.totalUnits
+                      return (
+                        <div className={`mt-2 rounded-md px-3 py-2 text-xs ${isFull ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'}`}>
+                          <div className="flex items-center justify-between">
+                            <span>{t('occupiedUnits2', language)}: {activeCount}/{selProp.totalUnits}</span>
+                            <span>{isFull ? t('propertyFull', language) : `${t('vacantUnits', language)}: ${vacant}`}</span>
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                   <div>
                     <Label>{t('unitNumber', language)}</Label>
                     <Input value={form.unitNumber} onChange={e => updateForm('unitNumber', e.target.value)} placeholder="Apt 201" />
+                    {/* Show occupied units for reference */}
+                    {form.propertyId && (() => {
+                      const selProp = properties.find(p => p.id === form.propertyId)
+                      if (!selProp) return null
+                      const occupied = (selProp.tenants || []).filter(t => t.status === 'active' && t.unitNumber).map(t => t.unitNumber!)
+                      if (occupied.length === 0) return null
+                      return (
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {t('occupiedUnits2', language)}: {occupied.join(', ')}
+                        </p>
+                      )
+                    })()}
                   </div>
                   <div>
                     <Label>{t('unitType', language)}</Label>
@@ -992,7 +1038,7 @@ export default function Tenants() {
             <Button
               onClick={handleSave}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              disabled={!form.name || !form.phone || !form.propertyId || saving}
+              disabled={!form.name || !form.phone || !form.propertyId || saving || (!editing && (() => { const sp = properties.find(p => p.id === form.propertyId); return sp ? (sp.tenants || []).filter(t => t.status === 'active').length >= sp.totalUnits : false })())}
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {t('save', language)}

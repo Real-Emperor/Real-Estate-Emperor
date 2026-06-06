@@ -187,8 +187,10 @@ export async function PUT(
   }
 }
 
-// DELETE /api/tenants/[id] - Soft delete a tenant (owner/admin only)
-// PHASE 2: Also hard-delete related payments within a transaction
+// DELETE /api/tenants/[id] - Move Out tenant (owner/admin only)
+// Sets tenant status to 'moved_out' and records the move-out date.
+// All historical records (payments, receipts, adjustments) are preserved.
+// The unit becomes available for new tenant assignment.
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -197,9 +199,9 @@ export async function DELETE(
     const user = await getAuthUser()
     if (!user) return unauthorizedResponse()
 
-    // Only owner or admin can delete tenants
+    // Only owner or admin can move out tenants
     if (!isFinancialUser(user.role)) {
-      return forbiddenResponse('Only owners and admins can delete tenants')
+      return forbiddenResponse('Only owners and admins can move out tenants')
     }
 
     const { id } = await params
@@ -217,41 +219,28 @@ export async function DELETE(
       return errorResponse('Tenant not found', 404)
     }
 
-    // PHASE 2/3: Cascade delete within a transaction
-    // PHASE 3: Also handle receipts (cascade delete)
-    await prisma.$transaction(async (tx) => {
-      // 1. Hard-delete all receipts for this tenant
-      await tx.receipt.deleteMany({
-        where: { tenantId: id },
-      })
-
-      // 2. Hard-delete all payments for this tenant
-      await tx.payment.deleteMany({
-        where: { tenantId: id },
-      })
-
-      // 3. Soft delete the tenant
-      await tx.tenant.update({
-        where: { id },
-        data: {
-          deletedAt: new Date(),
-          status: 'inactive',
-        },
-      })
+    // Move Out: set status to moved_out and record date
+    // All historical data (payments, receipts, adjustments) is preserved
+    await prisma.tenant.update({
+      where: { id },
+      data: {
+        status: 'moved_out',
+        movedOutAt: new Date(),
+      },
     })
 
     await createAuditLog({
-      action: 'DELETE',
+      action: 'UPDATE',
       entity: 'Tenant',
       entityId: id,
       userId: user.id,
       companyId: user.companyId,
-      details: { name: existing.name, softDelete: true, cascadedPayments: true },
+      details: { name: existing.name, action: 'moved_out', previousStatus: existing.status },
     })
 
-    return successResponse({ deleted: true, id })
+    return successResponse({ movedOut: true, id })
   } catch (error) {
-    console.error('Failed to delete tenant:', error)
-    return errorResponse('Failed to delete tenant', 500)
+    console.error('Failed to move out tenant:', error)
+    return errorResponse('Failed to move out tenant', 500)
   }
 }
