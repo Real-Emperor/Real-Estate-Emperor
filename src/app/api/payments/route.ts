@@ -147,16 +147,20 @@ export async function POST(request: Request) {
         },
       })
 
-      // If late payment, update tenant's latePaymentCount and tenantScore
+      // If late payment, update tenant's latePaymentCount, systemScore, and tenantScore
       if (parsedIsLate) {
         const newLatePaymentCount = tenant.latePaymentCount + 1
-        const newTenantScore = Math.max(0, tenant.tenantScore - 5)
+        const newSystemScore = Math.max(0, (tenant.systemScore ?? tenant.tenantScore) - 5)
+        // Only update tenantScore if there's no active manual override
+        const hasOverride = tenant.manualScoreOverride !== null && tenant.manualScoreOverride !== undefined
+        const newTenantScore = hasOverride ? tenant.tenantScore : newSystemScore
 
         await tx.tenant.update({
           where: { id: tenantId },
           data: {
             latePaymentCount: newLatePaymentCount,
             tenantScore: newTenantScore,
+            systemScore: newSystemScore,
           },
         })
       }

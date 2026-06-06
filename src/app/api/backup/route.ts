@@ -233,6 +233,7 @@ export async function POST(request: Request) {
             status: tenant.status || 'active',
             latePaymentCount: tenant.latePaymentCount || 0,
             tenantScore: tenant.tenantScore || 100,
+            systemScore: tenant.systemScore || tenant.tenantScore || 100,
             notes: tenant.notes,
           },
         })

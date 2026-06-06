@@ -132,6 +132,7 @@ export async function POST(request: Request) {
         status: body.status || 'active',
         latePaymentCount: body.latePaymentCount ? safeInt(body.latePaymentCount) : 0,
         tenantScore: body.tenantScore ? safeInt(body.tenantScore, 100) : 100,
+        systemScore: body.tenantScore ? safeInt(body.tenantScore, 100) : 100,
         notes: body.notes || null,
       },
       include: {

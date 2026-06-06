@@ -470,7 +470,9 @@ export const useDataStore = create<DataState>()(
           tenants: s.tenants.map(t => t.id === data.tenantId ? {
             ...t,
             latePaymentCount: t.latePaymentCount + 1,
-            tenantScore: Math.max(0, t.tenantScore - 5),
+            // Only update tenantScore if no manual override is active
+            tenantScore: (t.manualScoreOverride !== null && t.manualScoreOverride !== undefined) ? t.tenantScore : Math.max(0, t.tenantScore - 5),
+            systemScore: Math.max(0, (t.systemScore ?? t.tenantScore) - 5),
           } : t),
         }))
       }

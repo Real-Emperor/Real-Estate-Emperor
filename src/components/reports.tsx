@@ -50,9 +50,9 @@ import { toast } from 'sonner'
 const PIE_COLORS = ['#0D7C3D', '#C5A028', '#0A5C4E', '#C4653A', '#8b5cf6', '#ef4444', '#06b6d4']
 
 function getTenantScoreLabel(score: number): string {
-  if (score >= 90) return 'Excellent'
-  if (score >= 75) return 'Good'
-  if (score >= 60) return 'Warning'
+  if (score >= 80) return 'Excellent'
+  if (score >= 60) return 'Good'
+  if (score >= 40) return 'Warning'
   return 'Poor'
 }
 
@@ -419,7 +419,7 @@ export default function Reports() {
         'Floor', 'Size (sqft)', 'Nationality', 'Phone', 'WhatsApp',
         'Emirates ID', 'Employer', 'Monthly Rent (AED)', 'Municipality Fee (AED)',
         'Security Deposit (AED)', 'Payment Method', 'Lease Start', 'Lease End',
-        'Contract Duration (months)', 'Status', 'Tenant Score', 'Late Payments',
+        'Contract Duration (months)', 'Status', 'Tenant Score', 'System Score', 'Score Override', 'Override Reason', 'Late Payments',
       ]
       const tenantsRows = tenants.map(tn => {
         const prop = properties.find(p => p.id === tn.propertyId)
@@ -445,11 +445,14 @@ export default function Reports() {
           tn.contractDuration || '',
           tn.status,
           tn.tenantScore,
+          tn.systemScore ?? tn.tenantScore,
+          tn.manualScoreOverride ?? '',
+          tn.manualScoreReason ?? '',
           tn.latePaymentCount,
         ]
       })
       const wsTenants = XLSX.utils.aoa_to_sheet([tenantsHeader, ...tenantsRows])
-      wsTenants['!cols'] = [{ wch: 22 }, { wch: 28 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 8 }, { wch: 10 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 22 }, { wch: 20 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 14 }]
+      wsTenants['!cols'] = [{ wch: 22 }, { wch: 28 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 8 }, { wch: 10 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 22 }, { wch: 20 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 30 }]
       XLSX.utils.book_append_sheet(wb, wsTenants, 'Tenants')
 
       // ── Sheet 4: Payments ──

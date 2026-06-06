@@ -42,6 +42,8 @@ export async function PUT(
             id: true,
             latePaymentCount: true,
             tenantScore: true,
+            systemScore: true,
+            manualScoreOverride: true,
           },
         },
       },
@@ -102,22 +104,31 @@ export async function PUT(
       // If isLate status changed, adjust tenant score
       if (isLate !== undefined && isLate !== existing.isLate && existing.tenant) {
         const tenant = existing.tenant
+        const currentSystemScore = tenant.systemScore ?? tenant.tenantScore
+        const hasOverride = tenant.manualScoreOverride !== null && tenant.manualScoreOverride !== undefined
+
         if (isLate) {
           // Changed from not-late to late: increase count, decrease score
+          const newSystemScore = Math.max(0, currentSystemScore - 5)
+          const newTenantScore = hasOverride ? tenant.tenantScore : newSystemScore
           await tx.tenant.update({
             where: { id: tenant.id },
             data: {
               latePaymentCount: tenant.latePaymentCount + 1,
-              tenantScore: Math.max(0, tenant.tenantScore - 5),
+              tenantScore: newTenantScore,
+              systemScore: newSystemScore,
             },
           })
         } else {
           // Changed from late to not-late: decrease count, increase score
+          const newSystemScore = Math.min(100, currentSystemScore + 5)
+          const newTenantScore = hasOverride ? tenant.tenantScore : newSystemScore
           await tx.tenant.update({
             where: { id: tenant.id },
             data: {
               latePaymentCount: Math.max(0, tenant.latePaymentCount - 1),
-              tenantScore: Math.min(100, tenant.tenantScore + 5),
+              tenantScore: newTenantScore,
+              systemScore: newSystemScore,
             },
           })
         }
@@ -190,6 +201,8 @@ export async function DELETE(
             name: true,
             latePaymentCount: true,
             tenantScore: true,
+            systemScore: true,
+            manualScoreOverride: true,
           },
         },
       },
@@ -212,11 +225,16 @@ export async function DELETE(
       // If the deleted payment was late, restore tenant score
       if (existing.isLate && existing.tenant) {
         const tenant = existing.tenant
+        const currentSystemScore = tenant.systemScore ?? tenant.tenantScore
+        const hasOverride = tenant.manualScoreOverride !== null && tenant.manualScoreOverride !== undefined
+        const newSystemScore = Math.min(100, currentSystemScore + 5)
+        const newTenantScore = hasOverride ? tenant.tenantScore : newSystemScore
         await tx.tenant.update({
           where: { id: tenant.id },
           data: {
             latePaymentCount: Math.max(0, tenant.latePaymentCount - 1),
-            tenantScore: Math.min(100, tenant.tenantScore + 5),
+            tenantScore: newTenantScore,
+            systemScore: newSystemScore,
           },
         })
       }

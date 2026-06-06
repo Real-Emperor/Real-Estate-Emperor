@@ -190,6 +190,7 @@ export async function POST() {
           status: td.status,
           latePaymentCount: td.latePaymentCount,
           tenantScore: td.tenantScore,
+          systemScore: td.tenantScore,
         },
       })
       tenants.push(tenant)

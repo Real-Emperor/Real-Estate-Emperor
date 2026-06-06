@@ -353,6 +353,7 @@ export async function POST(request: Request) {
                 status: tenantData.status || 'active',
                 latePaymentCount: tenantData.latePaymentCount ? safeInt(tenantData.latePaymentCount, 0) : 0,
                 tenantScore: tenantData.tenantScore ? safeInt(tenantData.tenantScore, 100) : 100,
+                systemScore: tenantData.tenantScore ? safeInt(tenantData.tenantScore, 100) : 100,
                 notes: tenantData.notes?.trim() || null,
               },
             })

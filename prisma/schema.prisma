@@ -127,15 +127,22 @@ model Tenant {
   newRent          Decimal?  @db.Decimal(10,2)
   status           String   @default("active") // active, inactive, evicted, notice, moved_out
   movedOutAt       DateTime? // recorded when tenant moves out
-  latePaymentCount Int      @default(0)
-  tenantScore      Int      @default(100)
-  notes            String?
-  deletedAt        DateTime? // soft delete
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  payments         Payment[]
-  receipts         Receipt[]
-  adjustments      RentAdjustment[]
+  latePaymentCount    Int      @default(0)
+  tenantScore         Int      @default(100)
+  systemScore         Int      @default(100)
+  manualScoreOverride Int?
+  manualScoreReason   String?
+  manualOverrideBy    String?
+  manualOverrideById  String?
+  manualOverrideAt    DateTime?
+  notes               String?
+  deletedAt           DateTime? // soft delete
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  payments            Payment[]
+  receipts            Receipt[]
+  adjustments         RentAdjustment[]
+  scoreAuditLogs      ScoreAuditLog[]
 
   @@index([companyId])
   @@index([propertyId])
@@ -397,4 +404,24 @@ model Notification {
   @@index([read])
   @@index([createdAt])
   @@map("notifications")
+}
+
+model ScoreAuditLog {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  previousScore Int
+  newScore      Int
+  changeType    String   // SYSTEM_CALCULATED, MANUAL_OVERRIDE, RESET_TO_SYSTEM
+  changedBy     String   // User name who made the change
+  changedById   String?  // User ID who made the change
+  reason        String?  // Mandatory for MANUAL_OVERRIDE
+  companyId     String
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([changeType])
+  @@index([createdAt])
+  @@index([companyId])
+  @@map("score_audit_logs")
 }

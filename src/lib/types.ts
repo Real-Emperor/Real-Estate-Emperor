@@ -95,11 +95,31 @@ export interface TenantData {
   movedOutAt: string | null
   latePaymentCount: number
   tenantScore: number
+  systemScore: number
+  manualScoreOverride: number | null
+  manualScoreReason: string | null
+  manualOverrideBy: string | null
+  manualOverrideById: string | null
+  manualOverrideAt: string | null
   notes: string | null
   createdAt: string
   property?: PropertyData
   payments?: PaymentData[]
   adjustments?: RentAdjustmentData[]
+  scoreAuditLogs?: ScoreAuditLogData[]
+}
+
+export interface ScoreAuditLogData {
+  id: string
+  tenantId: string
+  previousScore: number
+  newScore: number
+  changeType: string // SYSTEM_CALCULATED, MANUAL_OVERRIDE, RESET_TO_SYSTEM
+  changedBy: string
+  changedById: string | null
+  reason: string | null
+  companyId: string
+  createdAt: string
 }
 
 export interface PaymentData {

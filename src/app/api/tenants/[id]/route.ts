@@ -134,7 +134,14 @@ export async function PUT(
     if (body.newRent !== undefined) data.newRent = body.newRent ? safeDecimal(body.newRent) : null
     if (body.status !== undefined) data.status = body.status
     if (body.latePaymentCount !== undefined) data.latePaymentCount = safeInt(body.latePaymentCount)
-    if (body.tenantScore !== undefined) data.tenantScore = safeInt(body.tenantScore, 100)
+    if (body.tenantScore !== undefined) {
+      const score = safeInt(body.tenantScore, 100)
+      data.tenantScore = score
+      // Only update systemScore if there's no active override
+      if (existing.manualScoreOverride === null) {
+        data.systemScore = score
+      }
+    }
     if (body.notes !== undefined) data.notes = body.notes || null
 
     // PHASE 2: Use OCC-protected update

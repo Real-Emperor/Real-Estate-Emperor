@@ -161,6 +161,8 @@ export async function GET() {
         status: true,
         latePaymentCount: true,
         tenantScore: true,
+        systemScore: true,
+        manualScoreOverride: true,
         property: {
           select: { id: true, name: true },
         },
