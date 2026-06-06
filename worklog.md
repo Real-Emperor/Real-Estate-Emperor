@@ -251,3 +251,24 @@ Stage Summary:
 - Server-side PDF generation is device-independent by design
 - Arabic font embedded eliminates character corruption
 - PDF output will be identical across Windows, macOS, Linux, Android, iOS
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix invoice PDF blank pages and incorrect Tax Registration Number
+
+Work Log:
+- Investigated PDF generation code in src/app/api/invoices/pdf/route.ts
+- Identified root cause of blank pages: PDFKit's auto-page-break mechanism was triggered when footer text wrapped near the page bottom (past page.height - margins.bottom threshold of ~792pt), causing automatic blank page insertion
+- Identified Tax Registration Number hardcoded as 300000000000003 in two files
+- Fix 1 (Blank Pages): Removed bufferPages:true (unnecessary for single-page invoices) and set doc.page.margins.bottom = 0 immediately after document creation to prevent PDFKit auto-page-break from triggering anywhere in the document
+- Fix 2 (Tax ID): Changed 300000000000003 → 105383159800003 in both src/components/bill-invoice.tsx (line 145) and src/app/api/invoices/pdf/route.ts (line 171)
+- Committed as 570894c and bae7e14, pushed to origin/main
+- Deployed to Vercel al-reef-al-junoobi production (5 production deployments confirmed)
+- E2E test verified: TRN shows 105383159800003 in both preview and PDF, PDF generates as single page with no blank pages
+
+Stage Summary:
+- Both issues fully resolved with root-cause fixes
+- No layout, design, or business logic changes made
+- Production URL: https://al-reef-al-junoobi.vercel.app
+- Commits: 570894c (initial fix), bae7e14 (improved blank page prevention)
