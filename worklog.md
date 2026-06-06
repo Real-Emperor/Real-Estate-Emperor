@@ -272,3 +272,32 @@ Stage Summary:
 - No layout, design, or business logic changes made
 - Production URL: https://al-reef-al-junoobi.vercel.app
 - Commits: 570894c (initial fix), bae7e14 (improved blank page prevention)
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Design and Implement Tenant Lifecycle & Occupancy Management Workflow
+
+Work Log:
+- Analyzed existing architecture: Prisma schema, types, API routes, data store, UI components
+- Identified critical issue: DELETE endpoint hard-deleted payments and receipts (data loss)
+- Designed tenant lifecycle workflow with 'moved_out' status
+- Added 'moved_out' status and movedOutAt DateTime field to Prisma schema
+- Replaced destructive DELETE with safe Move Out (sets status='moved_out', preserves all data)
+- Added over-allocation prevention in POST /api/tenants (checks active count < totalUnits)
+- Updated data store to refresh all data after move out instead of removing records
+- Added LogOut icon replacing Trash2 in tenant actions
+- Added unit availability display in Add Tenant form (vacant count, capacity bar, occupied units list)
+- Save button disabled when property is fully occupied (new tenants only)
+- Added 'moved_out' to status filter in Tenants module
+- Added blue badge color for moved_out status
+- Added i18n keys: movedOut, moveOutTenant, moveOutConfirm, noVacantUnits, propertyFull, availableUnits, occupiedUnits2, vacantUnits
+- Committed as ad59e10, pushed to origin/main
+- Deployed to Vercel al-reef-al-junoobi production
+
+Stage Summary:
+- Move Out workflow replaces destructive delete, preserving all historical data
+- Over-allocation prevention at API level (409 response) and UI level (disabled save)
+- Unit availability visible in Add Tenant form with capacity indicators
+- All existing modules (Rent Collection, Dashboard, Properties) already filter by active status
+- Production URL: https://al-reef-al-junoobi.vercel.app
