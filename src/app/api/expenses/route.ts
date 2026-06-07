@@ -14,7 +14,14 @@ import {
   paginatedResponse,
 } from '@/lib/api-utils'
 
-// GET /api/expenses — list expenses with pagination (non-deleted) for the company
+// GET /api/expenses — list expenses with pagination and date filtering (non-deleted) for the company
+// Query params:
+//   - category: filter by category
+//   - date: filter by exact date (YYYY-MM-DD) — returns expenses on that day
+//   - month: filter by month (1-12) — must also provide year
+//   - year: filter by year (e.g., 2026) — used with month
+//   - startDate / endDate: date range filter (YYYY-MM-DD)
+// All date filters are server-side for scalability.
 export async function GET(request: Request) {
   try {
     const user = await getAuthUser()
@@ -26,6 +33,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const pagination = parsePaginationParams(searchParams)
     const category = searchParams.get('category')?.trim() || undefined
+    const dateParam = searchParams.get('date')?.trim() || undefined      // YYYY-MM-DD
+    const monthParam = searchParams.get('month')?.trim() || undefined     // 1-12
+    const yearParam = searchParams.get('year')?.trim() || undefined       // e.g. 2026
+    const startDateParam = searchParams.get('startDate')?.trim() || undefined // YYYY-MM-DD
+    const endDateParam = searchParams.get('endDate')?.trim() || undefined     // YYYY-MM-DD
 
     const where: any = {
       companyId: user.companyId,
@@ -33,6 +45,28 @@ export async function GET(request: Request) {
     }
 
     if (category) where.category = category
+
+    // Date-based filtering (server-side, uses indexed `date` field)
+    if (dateParam) {
+      // Single day filter: YYYY-MM-DD
+      const dayStart = new Date(dateParam + 'T00:00:00.000Z')
+      const dayEnd = new Date(dateParam + 'T23:59:59.999Z')
+      where.date = { gte: dayStart, lte: dayEnd }
+    } else if (monthParam && yearParam) {
+      // Month filter: returns all expenses in that month
+      const m = parseInt(monthParam)
+      const y = parseInt(yearParam)
+      if (m >= 1 && m <= 12 && y > 2000) {
+        const monthStart = new Date(y, m - 1, 1)
+        const monthEnd = new Date(y, m, 0, 23, 59, 59, 999)
+        where.date = { gte: monthStart, lte: monthEnd }
+      }
+    } else if (startDateParam && endDateParam) {
+      // Date range filter
+      const rangeStart = new Date(startDateParam + 'T00:00:00.000Z')
+      const rangeEnd = new Date(endDateParam + 'T23:59:59.999Z')
+      where.date = { gte: rangeStart, lte: rangeEnd }
+    }
 
     const [expenses, total] = await Promise.all([
       prisma.expense.findMany({

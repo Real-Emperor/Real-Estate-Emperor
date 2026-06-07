@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import type { ExpenseData, PropertyData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
-import { formatAED, formatDate, getCategoryIcon } from '@/lib/utils'
-import { t, getExpenseCategoryLabel, getNameByLang, type Language } from '@/lib/i18n'
+import { formatAED, formatDate, getCategoryIcon, cn2 } from '@/lib/utils'
+import { t, getExpenseCategoryLabel, getMonthName, getNameByLang, type Language } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,9 +15,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Receipt, Plus, Pencil, Trash2, TrendingDown, Loader2, ShieldAlert } from 'lucide-react'
+import { Receipt, Plus, Pencil, Trash2, TrendingDown, Loader2, ShieldAlert, ChevronLeft, ChevronRight, Calendar, CalendarDays } from 'lucide-react'
 
 const EXPENSE_CATEGORIES = ['maintenance', 'utility', 'insurance', 'manpower', 'municipality', 'leasing', 'security', 'other'] as const
+
+type ViewMode = 'daily' | 'monthly'
 
 export default function Expenses() {
   const { language, authUser } = useAppStore()
@@ -34,23 +36,105 @@ export default function Expenses() {
     vendor: '', invoiceNumber: '', recurring: false, building: '',
   })
 
+  // ─── Date Navigation State ───
+  const now = new Date()
+  const [viewMode, setViewMode] = useState<ViewMode>('daily')
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Default to today in UAE timezone
+    const today = new Date()
+    return today.toISOString().split('T')[0]
+  })
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear())
+  const [totalCount, setTotalCount] = useState(0)
+
   // Access control: Owner/Admin have full access; Staff can view and create
   const canAccess = !!authUser
   const canModify = authUser && isOwnerOrAdmin(authUser.role)
 
-  const fetchExpenses = useCallback(() => {
+  // ─── Server-side data fetching with date filters ───
+  const fetchExpenses = useCallback(async () => {
+    setLoading(true)
     try {
       const store = useDataStore.getState()
-      setExpenses(store.expenses)
       setProperties(store.getPropertiesWithTenants())
+
+      // Build query params for server-side date filtering
+      const params = new URLSearchParams()
+      params.set('limit', '1000')
+
+      if (viewMode === 'daily') {
+        params.set('date', selectedDate)
+      } else {
+        params.set('month', String(selectedMonth))
+        params.set('year', String(selectedYear))
+      }
+
+      if (categoryFilter !== 'all') {
+        params.set('category', categoryFilter)
+      }
+
+      const res = await fetch(`/api/expenses?${params.toString()}`)
+      if (res.ok) {
+        const data = await res.json()
+        const expenseList = data.data || data || []
+        setExpenses(Array.isArray(expenseList) ? expenseList : [])
+        setTotalCount(data.pagination?.total || expenseList.length || 0)
+      } else {
+        // Fallback to local store if API fails
+        setExpenses(store.expenses)
+      }
     } catch (e) {
       console.error(e)
+      // Fallback to local store
+      try {
+        const store = useDataStore.getState()
+        setExpenses(store.expenses)
+      } catch {}
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [viewMode, selectedDate, selectedMonth, selectedYear, categoryFilter])
 
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
+
+  // ─── Navigation handlers ───
+  const goToPreviousDay = () => {
+    const d = new Date(selectedDate)
+    d.setDate(d.getDate() - 1)
+    setSelectedDate(d.toISOString().split('T')[0])
+  }
+
+  const goToNextDay = () => {
+    const d = new Date(selectedDate)
+    d.setDate(d.getDate() + 1)
+    setSelectedDate(d.toISOString().split('T')[0])
+  }
+
+  const goToToday = () => {
+    const today = new Date()
+    setSelectedDate(today.toISOString().split('T')[0])
+    setSelectedMonth(today.getMonth() + 1)
+    setSelectedYear(today.getFullYear())
+  }
+
+  const goToPreviousMonth = () => {
+    if (selectedMonth === 1) {
+      setSelectedMonth(12)
+      setSelectedYear(y => y - 1)
+    } else {
+      setSelectedMonth(m => m - 1)
+    }
+  }
+
+  const goToNextMonth = () => {
+    if (selectedMonth === 12) {
+      setSelectedMonth(1)
+      setSelectedYear(y => y + 1)
+    } else {
+      setSelectedMonth(m => m + 1)
+    }
+  }
 
   const openNew = () => {
     setEditing(null)
@@ -108,21 +192,27 @@ export default function Expenses() {
     }
   }
 
-  const filtered = expenses.filter(e => categoryFilter === 'all' || e.category === categoryFilter)
+  // ─── Computed values ───
+  const filtered = categoryFilter === 'all'
+    ? expenses
+    : expenses.filter(e => e.category === categoryFilter)
 
-  const now = new Date()
-  const currentMonth = now.getMonth() + 1
-  const currentYear = now.getFullYear()
-  const monthlyTotal = expenses
-    .filter(e => { const d = new Date(e.date); return d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear })
-    .reduce((s, e) => s + e.amount, 0)
+  const totalAmount = filtered.reduce((s, e) => s + e.amount, 0)
 
   const categoryTotals: Record<string, number> = {}
-  for (const e of expenses.filter(e => { const d = new Date(e.date); return d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear })) {
+  for (const e of filtered) {
     categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount
   }
 
-  if (loading) {
+  // Check if selected date is today
+  const isToday = selectedDate === new Date().toISOString().split('T')[0]
+
+  // Format the current context label
+  const contextLabel = viewMode === 'daily'
+    ? (isToday ? t('today', lang) : formatDate(selectedDate))
+    : `${getMonthName(selectedMonth, lang)} ${selectedYear}`
+
+  if (loading && expenses.length === 0) {
     return <div className="flex items-center justify-center h-96"><Loader2 className="w-8 h-8 animate-spin text-emerald" /></div>
   }
 
@@ -141,11 +231,12 @@ export default function Expenses() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold">{t('expenses', lang)}</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {expenses.length} {t('expensesCount', lang)}
+            {totalCount} {t('expensesCount', lang)}
           </p>
         </div>
         <Button onClick={openNew} className="bg-emerald hover:bg-emerald/90 text-white">
@@ -154,27 +245,123 @@ export default function Expenses() {
         </Button>
       </div>
 
-      {/* Monthly Summary */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="card-hover border-l-4 border-l-terracotta">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">{t('thisMonthTotal', lang)}</p>
-            <p className="text-2xl font-bold text-terracotta mt-1">{formatAED(monthlyTotal)}</p>
-          </CardContent>
-        </Card>
-        {Object.entries(categoryTotals).map(([cat, total]) => (
-          <Card key={cat} className="card-hover">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">
-                {getCategoryIcon(cat)} {getExpenseCategoryLabel(cat, lang)}
-              </p>
-              <p className="text-xl font-bold mt-1">{formatAED(total)}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* ─── Date Navigation & View Toggle ─── */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === 'daily' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('daily')}
+                className={viewMode === 'daily' ? 'bg-emerald hover:bg-emerald/90 text-white' : ''}
+              >
+                <Calendar className="w-4 h-4 mr-1.5" />
+                {t('dailyView', lang)}
+              </Button>
+              <Button
+                variant={viewMode === 'monthly' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('monthly')}
+                className={viewMode === 'monthly' ? 'bg-emerald hover:bg-emerald/90 text-white' : ''}
+              >
+                <CalendarDays className="w-4 h-4 mr-1.5" />
+                {t('monthlyView', lang)}
+              </Button>
+            </div>
 
-      {/* Filter */}
+            {/* Date Navigation */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                {viewMode === 'daily' ? (
+                  <>
+                    <Button variant="ghost" size="icon" onClick={goToPreviousDay} title={t('previousDay', lang)}>
+                      <ChevronLeft className="w-5 h-5" />
+                    </Button>
+                    <div className="flex items-center gap-2 min-w-[200px] justify-center">
+                      <span className="text-lg font-bold">
+                        {contextLabel}
+                      </span>
+                      {!isToday && (
+                        <Button variant="outline" size="sm" onClick={goToToday} className="text-xs h-7 px-2 border-emerald text-emerald hover:bg-emerald/10">
+                          {t('today', lang)}
+                        </Button>
+                      )}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={goToNextDay} title={t('nextDay', lang)} disabled={isToday}>
+                      <ChevronRight className="w-5 h-5" />
+                    </Button>
+                    <Input
+                      type="date"
+                      value={selectedDate}
+                      onChange={e => setSelectedDate(e.target.value)}
+                      className="w-[150px] text-sm"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" size="icon" onClick={goToPreviousMonth}>
+                      <ChevronLeft className="w-5 h-5" />
+                    </Button>
+                    <div className="flex items-center gap-2 min-w-[200px] justify-center">
+                      <span className="text-lg font-bold">
+                        {getMonthName(selectedMonth, lang)} {selectedYear}
+                      </span>
+                      {!(selectedMonth === now.getMonth() + 1 && selectedYear === now.getFullYear()) && (
+                        <Button variant="outline" size="sm" onClick={goToToday} className="text-xs h-7 px-2 border-emerald text-emerald hover:bg-emerald/10">
+                          {t('today', lang)}
+                        </Button>
+                      )}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={goToNextMonth} disabled={selectedMonth >= now.getMonth() + 1 && selectedYear >= now.getFullYear()}>
+                      <ChevronRight className="w-5 h-5" />
+                    </Button>
+                    <Select value={String(selectedYear)} onValueChange={v => setSelectedYear(Number(v))}>
+                      <SelectTrigger className="w-[110px] text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[2024, 2025, 2026, 2027].map(y => (
+                          <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+              </div>
+
+              {/* Summary amount for current context */}
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">
+                  {viewMode === 'daily' ? t('dayTotal', lang) : t('monthTotal', lang)}
+                </p>
+                <p className="text-2xl font-bold text-terracotta">{formatAED(totalAmount)}</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ─── Category Breakdown Cards ─── */}
+      {Object.keys(categoryTotals).length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {Object.entries(categoryTotals)
+            .sort(([, a], [, b]) => b - a)
+            .map(([cat, total]) => (
+              <Card key={cat} className="card-hover">
+                <CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground">
+                    {getCategoryIcon(cat)} {getExpenseCategoryLabel(cat, lang)}
+                  </p>
+                  <p className="text-lg font-bold mt-1">{formatAED(total)}</p>
+                </CardContent>
+              </Card>
+            ))}
+        </div>
+      )}
+
+      {/* ─── Category Filter ─── */}
       <div className="flex gap-2 flex-wrap">
         <Button
           variant={categoryFilter === 'all' ? 'default' : 'outline'}
@@ -197,7 +384,7 @@ export default function Expenses() {
         ))}
       </div>
 
-      {/* Table */}
+      {/* ─── Expense Table ─── */}
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -207,7 +394,7 @@ export default function Expenses() {
                   <TableHead>{t('category', lang)}</TableHead>
                   <TableHead>{t('description', lang)}</TableHead>
                   <TableHead>{t('amount', lang)}</TableHead>
-                  <TableHead>{t('date', lang)}</TableHead>
+                  {viewMode === 'monthly' && <TableHead>{t('date', lang)}</TableHead>}
                   <TableHead>{t('vendor', lang)}</TableHead>
                   <TableHead>{t('invoiceNumber', lang)}</TableHead>
                   <TableHead>{t('recurring', lang)}</TableHead>
@@ -224,7 +411,9 @@ export default function Expenses() {
                     </TableCell>
                     <TableCell className="text-sm">{expense.description}</TableCell>
                     <TableCell className="font-semibold text-sm text-terracotta">{formatAED(expense.amount)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{formatDate(expense.date)}</TableCell>
+                    {viewMode === 'monthly' && (
+                      <TableCell className="text-sm text-muted-foreground">{formatDate(expense.date)}</TableCell>
+                    )}
                     <TableCell className="text-sm">{expense.vendor || '—'}</TableCell>
                     <TableCell className="text-sm">{expense.invoiceNumber || '—'}</TableCell>
                     <TableCell className="text-sm">
@@ -255,13 +444,13 @@ export default function Expenses() {
           </div>
           {filtered.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              {t('noExpensesFound', lang)}
+              {viewMode === 'daily' ? t('noExpensesDay', lang) : t('noExpensesMonth2', lang)}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Add/Edit Dialog */}
+      {/* ─── Add/Edit Dialog ─── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
