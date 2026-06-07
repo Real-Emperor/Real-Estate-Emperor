@@ -121,6 +121,7 @@ export async function GET(request: Request) {
               access: 'private',
               contentType: 'application/json',
               token: process.env.BLOB_READ_WRITE_TOKEN,
+              allowOverwrite: true,
             })
             storageUrl = blobResult.url
           } catch (blobErr: any) {
