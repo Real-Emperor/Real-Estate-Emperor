@@ -157,3 +157,29 @@ Stage Summary:
 - Moved-out tenants remain excluded from operational workflows (correct behavior)
 - Visual indicators: amber "Notice Period" badges added in rent collection cards, contract tracker, and payment status board
 - Production deployment verified: al-reef-al-junoobi.vercel.app returns HTTP 200
+
+---
+Task ID: expenses-restructure
+Agent: Main Agent
+Task: Restructure Expenses module with date-based navigation and server-side filtering
+
+Work Log:
+- Explored current expenses module: schema (12 fields, date indexed), API route, UI component (341 lines)
+- Added server-side date filtering to GET /api/expenses: date, month, year, startDate, endDate params
+- Completely redesigned expenses.tsx component with Daily/Monthly view toggle
+- Default view is now Today's expenses (daily mode with today's date)
+- Added daily navigation (prev/next day, date picker, Today jump button)
+- Added monthly navigation (prev/next month, year selector, Today jump button)
+- Added context label showing current filter state
+- Added Day Total / Month Total prominent display
+- Added category breakdown cards sorted by amount
+- Date column hidden in daily view, shown in monthly view
+- Added 8 new i18n keys with ar/bn/ur translations
+- No schema changes, backward compatible API, no data loss
+- Built successfully, committed as d9d2893, pushed to GitHub, deployed to Vercel
+
+Stage Summary:
+- 3 files changed, 273 insertions, 42 deletions
+- API: GET /api/expenses now supports ?date=YYYY-MM-DD, ?month=6&year=2026, ?startDate=&endDate=
+- UI: Defaults to Today View, full daily/monthly navigation, clear filter context
+- Production live at al-reef-al-junoobi.vercel.app
