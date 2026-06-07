@@ -105,7 +105,7 @@ export default function DataImport() {
         setProgress(prev => Math.min(prev + 10, 90))
       }, 300)
 
-      const res = await fetch('/api/import/upload', {
+      const res = await fetch('/api/import', {
         method: 'POST',
         body: formData,
       })

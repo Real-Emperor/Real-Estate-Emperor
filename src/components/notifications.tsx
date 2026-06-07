@@ -11,6 +11,7 @@ import {
   BellRing,
   Check,
   CheckCheck,
+  CheckCircle2,
   CreditCard,
   AlertTriangle,
   FileText,
@@ -111,6 +112,12 @@ export default function Notifications() {
         return <FileText className="w-4 h-4 text-amber-600" />
       case 'maintenance_update':
         return <Wrench className="w-4 h-4 text-blue-500" />
+      case 'backup_success':
+        return <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+      case 'backup_failed':
+        return <AlertTriangle className="w-4 h-4 text-red-500" />
+      case 'daily_report':
+        return <FileText className="w-4 h-4 text-blue-500" />
       case 'system':
       default:
         return <Info className="w-4 h-4 text-muted-foreground" />
@@ -123,6 +130,9 @@ export default function Notifications() {
       case 'overdue_notice': return 'bg-red-50 border-red-200'
       case 'lease_renewal': return 'bg-amber-50 border-amber-200'
       case 'maintenance_update': return 'bg-blue-50 border-blue-200'
+      case 'backup_success': return 'bg-emerald-50 border-emerald-200'
+      case 'backup_failed': return 'bg-red-50 border-red-200'
+      case 'daily_report': return 'bg-blue-50 border-blue-200'
       default: return 'bg-gray-50 border-gray-200'
     }
   }

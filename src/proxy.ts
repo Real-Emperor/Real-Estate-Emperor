@@ -29,7 +29,7 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
         "style-src 'self' 'unsafe-inline'", // Tailwind CSS requires unsafe-inline
         "img-src 'self' data: blob:",
         "font-src 'self' data:",
-        "connect-src 'self'", // API calls only to same origin
+        "connect-src 'self' blob.vercel-storage.com", // API calls only to same origin
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",
@@ -64,6 +64,11 @@ export default auth((req) => {
 
   // Allow cron job endpoints (they have their own CRON_SECRET auth)
   if (pathname.startsWith('/api/cron/')) {
+    return addSecurityHeaders(NextResponse.next())
+  }
+
+  // Allow auto-backup endpoint (has its own CRON_SECRET auth for cron)
+  if (pathname === '/api/backup/auto') {
     return addSecurityHeaders(NextResponse.next())
   }
 

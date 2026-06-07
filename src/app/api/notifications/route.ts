@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       return errorResponse('type, title, and message are required')
     }
 
-    const validTypes = ['payment_receipt', 'overdue_notice', 'lease_renewal', 'maintenance_update', 'system']
+    const validTypes = ['payment_receipt', 'overdue_notice', 'lease_renewal', 'maintenance_update', 'system', 'daily_report', 'backup_success', 'backup_failed']
     if (!validTypes.includes(type)) {
       return errorResponse(`Invalid notification type. Must be one of: ${validTypes.join(', ')}`)
     }
