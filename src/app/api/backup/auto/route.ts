@@ -9,16 +9,6 @@ import {
   successResponse,
 } from '@/lib/api-utils'
 
-// Conditionally import @vercel/blob
-let put: any = null
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const blobModule = require('@vercel/blob')
-  put = blobModule.put
-} catch {
-  // @vercel/blob not available — graceful fallback
-}
-
 // GET /api/backup/auto — Trigger automated backup (called by Vercel Cron or manually)
 export async function GET(request: Request) {
   try {
@@ -122,13 +112,15 @@ export async function GET(request: Request) {
 
         // Attempt to persist backup to Vercel Blob
         let storageUrl: string | null = null
-        if (put && process.env.BLOB_READ_WRITE_TOKEN) {
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
           try {
+            const { put } = await import('@vercel/blob')
             const date = new Date().toISOString().split('T')[0]
             const blobKey = `backups/${companyId}/${date}.json`
             const blobResult = await put(blobKey, backupJson, {
-              access: 'public',
+              access: 'private',
               contentType: 'application/json',
+              token: process.env.BLOB_READ_WRITE_TOKEN,
             })
             storageUrl = blobResult.url
           } catch (blobErr: any) {
@@ -151,9 +143,37 @@ export async function GET(request: Request) {
           },
         })
 
-        // Clean up old auto-backups (keep last 90 days instead of 30)
+        // Clean up old auto-backups (keep last 90 days)
         const ninetyDaysAgo = new Date()
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+
+        // Delete old blobs from Vercel Blob storage before removing DB records
+        const oldRecords = await prisma.backupRecord.findMany({
+          where: {
+            companyId,
+            type: 'auto',
+            createdAt: { lt: ninetyDaysAgo },
+            storageUrl: { not: null },
+          },
+        })
+
+        if (oldRecords.length > 0 && process.env.BLOB_READ_WRITE_TOKEN) {
+          try {
+            const { del } = await import('@vercel/blob')
+            for (const record of oldRecords) {
+              if (record.storageUrl) {
+                try {
+                  await del(record.storageUrl, { token: process.env.BLOB_READ_WRITE_TOKEN })
+                } catch (delErr: any) {
+                  console.warn(`Failed to delete old blob ${record.storageUrl}:`, delErr.message)
+                }
+              }
+            }
+          } catch (importErr) {
+            console.warn('Failed to import @vercel/blob for cleanup:', importErr)
+          }
+        }
+
         await prisma.backupRecord.deleteMany({
           where: {
             companyId,
