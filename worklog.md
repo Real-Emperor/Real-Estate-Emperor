@@ -76,3 +76,32 @@ Added comprehensive print CSS:
 ### Deployment
 - Pushed to GitHub `main` branch — Vercel auto-deploy should trigger
 - Direct `vercel` CLI deployment not possible due to missing auth token in this environment
+---
+Task ID: 1
+Agent: Main Agent
+Task: Implement 4 feature changes: Rent search, PDF optimization, payment method totals, expenses PDF improvements
+
+Work Log:
+- Read and analyzed rent-collection.tsx, daily-expenses-report.tsx, reports.tsx, expenses.tsx, i18n.ts, types.ts, Prisma schema
+- Added tenant name search state and filter logic to rent-collection.tsx
+- Added search bar UI next to filter buttons with real-time filtering and clear button
+- Updated DailyExpenseItem interface to include building (property) field
+- Updated computeDailyData to populate building field from expense data
+- Daily Report PDF: Removed Time and Status columns from income/credit table
+- Daily Report PDF: Widened Tenant Name column from 29mm to 50mm (substring 20→35 chars)
+- Daily Report PDF: Removed Time column from expense table
+- Daily Report PDF: Added Property column to expense table (using building field)
+- Daily Report PDF: Added Payment Method Summary box (Cash, Bank Transfer, Cheque totals)
+- Monthly Report PDF: Added new Credit/Income table with tenant-level payment details (no Time/Status)
+- Monthly Report PDF: Added Payment Method Summary box (Cash, Bank Transfer, Cheque totals)
+- Added i18n translations: searchTenant, totalCashPayments, totalBankTransferPayments, totalChequePayments, paymentMethodSummary
+- Added getNameByLang import to reports.tsx
+- Committed as 0efa9a8 and pushed to GitHub
+- Deployed to Vercel al-reef-al-junoobi successfully
+- E2E test: ALL 4 tests PASS
+
+Stage Summary:
+- Commit: 0efa9a8
+- Deployment: https://al-reef-al-junoobi.vercel.app
+- All 4 features verified working in production
+- No unrelated changes made
