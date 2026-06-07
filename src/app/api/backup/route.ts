@@ -263,6 +263,7 @@ export async function POST(request: Request) {
                 notes: payment.notes,
                 isLate: payment.isLate || false,
                 daysLate: payment.daysLate || 0,
+                allocationType: payment.allocationType || 'CURRENT_RENT',
               },
             })
             summary.payments++

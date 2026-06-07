@@ -255,6 +255,45 @@ export default function BillInvoice({
           </div>
         </div>
 
+        {/* Rental Accounting Summary */}
+        {((tenant.openingBalance || 0) > 0 || (tenant.creditBalance || 0) > 0 || tenant.legalCase) && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <h3 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
+              <span className="w-5 h-5 rounded bg-amber-200 flex items-center justify-center text-amber-700 text-xs font-bold">!</span>
+              {t('financialSummary', language)}
+            </h3>
+            <div className="space-y-1.5 text-sm">
+              {(tenant.openingBalance || 0) > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-amber-700">{t('openingBalance', language)}</span>
+                  <span className="font-medium text-amber-800">{formatAED(tenant.openingBalance || 0)}</span>
+                </div>
+              )}
+              {(tenant.creditBalance || 0) > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-emerald-700">{t('creditBalance', language)}</span>
+                  <span className="font-medium text-emerald-700">-{formatAED(tenant.creditBalance || 0)}</span>
+                </div>
+              )}
+              {tenant.legalCase && (
+                <div className="flex justify-between items-center">
+                  <span className="text-red-700">{t('legalCase', language)}</span>
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-100 border border-red-200 rounded px-2 py-0.5">
+                    {t('yes', language)}
+                    {tenant.legalCaseNumber && ` — ${tenant.legalCaseNumber}`}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-amber-300 pt-1.5 mt-1.5">
+                <span className="font-semibold text-amber-900">{t('totalOutstanding', language)}</span>
+                <span className="font-bold text-red-700">
+                  {formatAED(Math.max(0, (tenant.openingBalance || 0) + Math.max(0, remaining) - (tenant.creditBalance || 0)))}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="border-t border-gray-200 pt-4 text-center text-xs text-gray-400">
           <p>Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C | Near LuLu Muraba'a, Al Ain City, Abu Dhabi, UAE</p>

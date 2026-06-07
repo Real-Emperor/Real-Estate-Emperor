@@ -54,6 +54,11 @@ interface TenantFormState {
   notes: string
   tenantScore: string
   latePaymentCount: string
+  openingBalance: string
+  creditBalance: string
+  legalCase: string
+  legalCaseNumber: string
+  legalCaseNotes: string
 }
 
 const emptyForm: TenantFormState = {
@@ -65,6 +70,7 @@ const emptyForm: TenantFormState = {
   securityDeposit: '', paymentMethod: '', leaseStart: '',
   leaseEnd: '', contractDuration: '', status: 'active', notes: '',
   tenantScore: '100', latePaymentCount: '0',
+  openingBalance: '0', creditBalance: '0', legalCase: 'false', legalCaseNumber: '', legalCaseNotes: '',
 }
 
 const unitTypes = ['studio', '1bedroom', '2bedroom', '3bedroom', 'shop', 'office']
@@ -188,6 +194,11 @@ export default function Tenants() {
       notes: tenant.notes || '',
       tenantScore: String(tenant.tenantScore),
       latePaymentCount: String(tenant.latePaymentCount),
+      openingBalance: String(tenant.openingBalance || 0),
+      creditBalance: String(tenant.creditBalance || 0),
+      legalCase: String(tenant.legalCase || false),
+      legalCaseNumber: tenant.legalCaseNumber || '',
+      legalCaseNotes: tenant.legalCaseNotes || '',
     })
     setDialogOpen(true)
   }
@@ -215,6 +226,11 @@ export default function Tenants() {
         latePaymentCount: Number(form.latePaymentCount) || 0,
         // Sync systemScore with tenantScore when editing directly
         systemScore: Number(form.tenantScore) || 100,
+        openingBalance: Number(form.openingBalance) || 0,
+        creditBalance: Number(form.creditBalance) || 0,
+        legalCase: form.legalCase === 'true',
+        legalCaseNumber: form.legalCaseNumber || null,
+        legalCaseNotes: form.legalCaseNotes || null,
       }
       if (editing) {
         await store.updateTenant(editing.id, body)
@@ -765,8 +781,48 @@ export default function Tenants() {
                     {profileTenant.paymentMethod && (
                       <ProfileField label={t('paymentMethod', language)} value={getPaymentMethodLabel(profileTenant.paymentMethod, language)} />
                     )}
+                    {isPrivileged && (
+                      <ProfileField label={t('openingBalance', language)} value={formatAED(profileTenant.openingBalance || 0)} />
+                    )}
+                    {isPrivileged && (
+                      <ProfileField label={t('creditBalance', language)} value={formatAED(profileTenant.creditBalance || 0)} />
+                    )}
                   </div>
                 </div>
+
+                {/* Legal Information */}
+                {isPrivileged && (profileTenant.legalCase || profileTenant.legalCaseNumber || profileTenant.legalCaseNotes) && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-emerald-600" />
+                        {t('legalInfo', language)}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                        <ProfileField
+                          label={t('legalCase', language)}
+                          value={profileTenant.legalCase ? t('yes', language) : t('no', language)}
+                          icon={profileTenant.legalCase ? <AlertTriangle className="w-3.5 h-3.5 text-red-500" /> : undefined}
+                        />
+                        {profileTenant.legalCaseNumber && (
+                          <ProfileField label={t('legalCaseNumber', language)} value={profileTenant.legalCaseNumber} />
+                        )}
+                        {profileTenant.legalCaseNotes && (
+                          <div className="col-span-2">
+                            <ProfileField label={t('legalCaseNotes', language)} value={profileTenant.legalCaseNotes} />
+                          </div>
+                        )}
+                      </div>
+                      {profileTenant.legalCase && (
+                        <Badge className="mt-2 text-xs bg-red-100 text-red-700 border border-red-200 hover:bg-red-100">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          {t('legalCase', language)}
+                        </Badge>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 {/* Notes */}
                 {profileTenant.notes && (
@@ -1064,6 +1120,70 @@ export default function Tenants() {
                   </div>
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Legal Information - Admin Only */}
+              {isPrivileged && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-emerald-600" />
+                    {t('legalInfo', language)}
+                    <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 px-1.5 py-0">
+                      {t('adminOnly', language)}
+                    </Badge>
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>{t('legalCase', language)}</Label>
+                      <Select value={form.legalCase} onValueChange={v => updateForm('legalCase', v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="false">{t('no', language)}</SelectItem>
+                          <SelectItem value="true">{t('yes', language)}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {form.legalCase === 'true' && (
+                      <div>
+                        <Label>{t('legalCaseNumber', language)}</Label>
+                        <Input
+                          value={form.legalCaseNumber}
+                          onChange={e => updateForm('legalCaseNumber', e.target.value)}
+                          placeholder="Case #"
+                        />
+                      </div>
+                    )}
+                    {form.legalCase === 'true' && (
+                      <div className="col-span-2">
+                        <Label>{t('legalCaseNotes', language)}</Label>
+                        <Textarea
+                          value={form.legalCaseNotes}
+                          onChange={e => updateForm('legalCaseNotes', e.target.value)}
+                          placeholder={t('legalCaseNotes', language)}
+                          rows={2}
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <Label>{t('openingBalance', language)}</Label>
+                      <Input
+                        type="number"
+                        value={form.openingBalance}
+                        onChange={e => updateForm('openingBalance', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>{t('creditBalance', language)}</Label>
+                      <Input
+                        type="number"
+                        value={form.creditBalance}
+                        onChange={e => updateForm('creditBalance', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <Separator />
 

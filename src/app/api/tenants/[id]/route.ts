@@ -151,6 +151,27 @@ export async function PUT(
       data.systemScore = safeInt(body.systemScore, 100)
     }
     if (body.notes !== undefined) data.notes = body.notes || null
+    // Phase 1 Rental Accounting: Opening Balance, Credit Balance, Legal Case (admin only)
+    if (body.openingBalance !== undefined) {
+      if (!isOwnerOrAdmin(user.role)) return forbiddenResponse('Only administrators can modify opening balance')
+      data.openingBalance = safeDecimal(body.openingBalance)
+    }
+    if (body.creditBalance !== undefined) {
+      if (!isOwnerOrAdmin(user.role)) return forbiddenResponse('Only administrators can modify credit balance')
+      data.creditBalance = safeDecimal(body.creditBalance)
+    }
+    if (body.legalCase !== undefined) {
+      if (!isOwnerOrAdmin(user.role)) return forbiddenResponse('Only administrators can modify legal case status')
+      data.legalCase = body.legalCase === true
+    }
+    if (body.legalCaseNumber !== undefined) {
+      if (!isOwnerOrAdmin(user.role)) return forbiddenResponse('Only administrators can modify legal case information')
+      data.legalCaseNumber = body.legalCaseNumber || null
+    }
+    if (body.legalCaseNotes !== undefined) {
+      if (!isOwnerOrAdmin(user.role)) return forbiddenResponse('Only administrators can modify legal case information')
+      data.legalCaseNotes = body.legalCaseNotes || null
+    }
 
     // PHASE 2: Use OCC-protected update
     const updated = await occUpdate(

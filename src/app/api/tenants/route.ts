@@ -134,6 +134,12 @@ export async function POST(request: Request) {
         tenantScore: body.tenantScore ? safeInt(body.tenantScore, 100) : 100,
         systemScore: body.tenantScore ? safeInt(body.tenantScore, 100) : 100,
         notes: body.notes || null,
+        // Phase 1 Rental Accounting: Opening Balance, Credit Balance, Legal Case
+        openingBalance: body.openingBalance ? safeDecimal(body.openingBalance) : 0,
+        creditBalance: body.creditBalance ? safeDecimal(body.creditBalance) : 0,
+        legalCase: body.legalCase === true,
+        legalCaseNumber: body.legalCaseNumber || null,
+        legalCaseNotes: body.legalCaseNotes || null,
       },
       include: {
         property: true,

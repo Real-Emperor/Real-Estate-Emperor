@@ -26,6 +26,7 @@ export default function RentCollection() {
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [payingTenant, setPayingTenant] = useState<TenantData | null>(null)
   const [payForm, setPayForm] = useState({ amount: 0, method: 'cash', reference: '', notes: '', paymentDate: new Date().toISOString().split('T')[0] })
+  const [payAllocationType, setPayAllocationType] = useState<string>('CURRENT_RENT')
 
   // Bill invoice dialog
   const [billDialogOpen, setBillDialogOpen] = useState(false)
@@ -147,7 +148,8 @@ export default function RentCollection() {
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
     const tenantAdjustments = getTenantAdjustments(tenant)
     const totalAdjustments = tenantAdjustments.reduce((sum, a) => sum + a.amount, 0)
-    const totalCredits = totalPaid + totalAdjustments
+    const creditApplied = Math.min(tenant.creditBalance || 0, Math.max(0, tenant.rentAmount - totalPaid - totalAdjustments))
+    const totalCredits = totalPaid + totalAdjustments + creditApplied
     if (totalCredits >= tenant.rentAmount) return 'paid'
     if (totalCredits > 0) return 'partial'
 
@@ -196,7 +198,8 @@ export default function RentCollection() {
     expectedRevenue: activeTenants.reduce((s, t) => s + t.rentAmount, 0),
     collectedRevenue: activeTenants.reduce((s, t) => {
       const paid = (t.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear).reduce((sum, p) => sum + p.amount, 0)
-      return s + paid
+      const creditApplied = Math.min(t.creditBalance || 0, Math.max(0, t.rentAmount - paid))
+      return s + paid + creditApplied
     }, 0),
     adjustmentsTotal: activeTenants.reduce((s, t) => {
       const adj = getTenantAdjustments(t).reduce((sum, a) => sum + a.amount, 0)
@@ -209,6 +212,7 @@ export default function RentCollection() {
     const paid = (tenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear).reduce((sum, p) => sum + p.amount, 0)
     const adjustments = getTenantAdjustments(tenant).reduce((sum, a) => sum + a.amount, 0)
     setPayForm({ amount: Math.max(0, tenant.rentAmount - paid - adjustments), method: 'cash', reference: '', notes: '', paymentDate: new Date().toISOString().split('T')[0] })
+    setPayAllocationType('CURRENT_RENT')
     setPayDialogOpen(true)
   }
 
@@ -396,6 +400,7 @@ export default function RentCollection() {
         notes: payForm.notes || null,
         isLate,
         daysLate,
+        allocationType: payAllocationType,
       })
       setPayDialogOpen(false)
       fetchData()
@@ -588,7 +593,8 @@ export default function RentCollection() {
           const paid = (tenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear).reduce((sum, p) => sum + p.amount, 0)
           const tenantAdjustments = getTenantAdjustments(tenant)
           const totalAdjustments = tenantAdjustments.reduce((sum, a) => sum + a.amount, 0)
-          const remaining = tenant.rentAmount - paid - totalAdjustments
+          const creditApplied = Math.min(tenant.creditBalance || 0, Math.max(0, tenant.rentAmount - paid - totalAdjustments))
+          const remaining = tenant.rentAmount - paid - totalAdjustments - creditApplied
           const tenantPayments = (tenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear)
           const isExpanded = expandedTenant === tenant.id
 
@@ -611,6 +617,18 @@ export default function RentCollection() {
                     {status === 'unpaid' && t('unpaid', language)}
                     {status === 'due-soon' && t('dueSoon', language)}
                   </Badge>
+                  {/* Legal case badge */}
+                  {tenant.legalCase && (
+                    <Badge className="text-[10px] bg-red-100 text-red-700 border border-red-200 hover:bg-red-100 px-1.5 py-0">
+                      LEGAL
+                    </Badge>
+                  )}
+                  {/* Opening balance badge */}
+                  {(tenant.openingBalance || 0) > 0 && (
+                    <Badge className="text-[10px] bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100 px-1.5 py-0">
+                      {t('outstanding', language)}: {formatAED(tenant.openingBalance)}
+                    </Badge>
+                  )}
                 </div>
 
                 {canSeeRevenue && (
@@ -629,7 +647,7 @@ export default function RentCollection() {
                 )}
 
                 {/* Invoice breakdown */}
-                {canSeeRevenue && (paid > 0 || totalAdjustments > 0) && (
+                {canSeeRevenue && (paid > 0 || totalAdjustments > 0 || creditApplied > 0) && (
                   <div className="mt-2 bg-muted/30 rounded-lg p-2 text-xs space-y-1">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('paymentsReceived', language)}</span>
@@ -639,6 +657,12 @@ export default function RentCollection() {
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">{t('approvedAdjustments', language)}</span>
                         <span className="font-medium text-amber-600">-{formatAED(totalAdjustments)}</span>
+                      </div>
+                    )}
+                    {creditApplied > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('creditApplied', language)}</span>
+                        <span className="font-medium text-blue-600">-{formatAED(creditApplied)}</span>
                       </div>
                     )}
                     <div className="flex justify-between border-t pt-1">
@@ -760,6 +784,12 @@ export default function RentCollection() {
                                     {language === 'ar' ? 'متأخر' : language === 'bn' ? 'বিলম্বিত' : language === 'ur' ? 'دیر' : 'Late'}
                                   </Badge>
                                 )}
+                                {payment.allocationType && payment.allocationType !== 'CURRENT_RENT' && (
+                                  <Badge variant="outline" className="text-[10px] px-1 py-0 border-blue-300 text-blue-600">
+                                    {payment.allocationType === 'HISTORICAL_DEBT' && t('historicalDebt', language)}
+                                    {payment.allocationType === 'ADVANCE_PAYMENT' && t('advancePayment', language)}
+                                  </Badge>
+                                )}
                               </div>
                               {payment.reference && (
                                 <p className="text-muted-foreground mt-0.5 truncate">
@@ -828,6 +858,17 @@ export default function RentCollection() {
                   <SelectItem value="cash">{t('cash', language)}</SelectItem>
                   <SelectItem value="transfer">{t('bankTransfer', language)}</SelectItem>
                   <SelectItem value="cheque">{t('cheque', language)}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{t('allocationType', language)}</Label>
+              <Select value={payAllocationType} onValueChange={setPayAllocationType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CURRENT_RENT">{t('currentRent', language)}</SelectItem>
+                  <SelectItem value="HISTORICAL_DEBT">{t('historicalDebt', language)}</SelectItem>
+                  <SelectItem value="ADVANCE_PAYMENT">{t('advancePayment', language)}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1054,6 +1095,16 @@ export default function RentCollection() {
               <Label>{t('notes', language)}</Label>
               <Input value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
             </div>
+            {selectedPayment?.allocationType && (
+              <div className="flex items-center gap-2">
+                <Label>{t('allocationType', language)}</Label>
+                <Badge variant="outline" className="text-xs px-2 py-0.5 border-emerald-300 text-emerald-700">
+                  {selectedPayment.allocationType === 'CURRENT_RENT' && t('currentRent', language)}
+                  {selectedPayment.allocationType === 'HISTORICAL_DEBT' && t('historicalDebt', language)}
+                  {selectedPayment.allocationType === 'ADVANCE_PAYMENT' && t('advancePayment', language)}
+                </Badge>
+              </div>
+            )}
           </div>
           {paymentError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">

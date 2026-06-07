@@ -96,7 +96,7 @@ export const translations = {
   propertyFullWarning: { en: 'Cannot add tenant — this property has no vacant units.', ar: 'لا يمكن إضافة مستأجر — هذا العقار ليس لديه وحدات شاغرة.', bn: 'ভাড়াটে যোগ করা যাবে না — এই সম্পত্তিতে কোনো শূন্য ইউনিট নেই।', ur: 'کرایہ دار شامل نہیں کیا جا سکتا — اس ملکیت میں کوئی خالی یونٹ نہیں ہے۔' },
   availableUnits: { en: 'Available Units', ar: 'الوحدات المتاحة', bn: 'উপলব্ধ ইউনিট', ur: 'دستیاب یونٹیں' },
   occupiedUnits2: { en: 'Occupied', ar: 'مشغول', bn: 'অধিভুক্ত', ur: 'قابض' },
-  vacantUnits: { en: 'Vacant', ar: 'شاغر', bn: 'শূন্য', ur: 'خالی' },
+  vacant: { en: 'Vacant', ar: 'شاغر', bn: 'শূন্য', ur: 'خالی' },
   propertiesManaged: { en: 'properties managed', ar: 'عقارات مُدارة', bn: 'টি পরিচালিত সম্পত্তি', ur: 'ممبریت کی گئی املاک' },
   deleteProperty: { en: 'Delete this property?', ar: 'حذف هذا العقار؟', bn: 'এই সম্পত্তি মুছে ফেলবেন?', ur: 'کیا یہ ملکیت حذف کریں؟' },
   archiveProperty: { en: 'Archive Property', ar: 'أرشفة العقار', bn: 'সম্পত্তি সংরক্ষণাগার', ur: 'ملکیت محفوظ کریں' },
@@ -495,6 +495,21 @@ export const translations = {
   reservationReceipt: { en: 'Reservation Deposit Receipt', ar: 'إيصال وديعة الحجز', bn: 'রিজার্ভেশন জমা রশিদ', ur: 'ریزرویشن جمع رسید' },
   convertConfirm: { en: 'Convert this reservation to an active tenancy?', ar: 'تحويل هذا الحجز إلى إيجار نشط؟', bn: 'এই রিজার্ভেশনটি সক্রিয় ভাড়ায় রূপান্তর করবেন?', ur: 'کیا یہ ریزرویشن فعال کرایہ داری میں تبدیل کریں؟' },
   depositAppliedToLabel: { en: 'Apply Deposit To', ar: 'تطبيق الوديعة على', bn: 'জমা প্রয়োগ করুন', ur: 'جمع لاگو کریں' },
+
+  // Phase 1 Rental Accounting
+  openingBalance: { en: 'Opening Balance (AED)', ar: 'الرصيد الافتتاحي (درهم)', bn: 'প্রারম্ভিক ব্যালেন্স (দিরহাম)', ur: 'ابتدائی بیلنس (درہم)' },
+  creditBalance: { en: 'Credit Balance (AED)', ar: 'الرصيد الدائن (درهم)', bn: 'ক্রেডিট ব্যালেন্স (দিরহাম)', ur: 'کریڈٹ بیلنس (درہم)' },
+  legalCase: { en: 'Legal Case', ar: 'قضية قانونية', bn: 'আইনি মামলা', ur: 'قانونی کیس' },
+  legalCaseNumber: { en: 'Case Number', ar: 'رقم القضية', bn: 'মামলার নম্বর', ur: 'کیس نمبر' },
+  legalCaseNotes: { en: 'Case Notes', ar: 'ملاحظات القضية', bn: 'মামলার নোট', ur: 'کیس نوٹ' },
+  legalInfo: { en: 'Legal Information', ar: 'المعلومات القانونية', bn: 'আইনি তথ্য', ur: 'قانونی معلومات' },
+  allocationType: { en: 'Payment Allocation', ar: 'تخصيص الدفع', bn: 'পেমেন্ট বণ্টন', ur: 'ادائیگی کی تقسیم' },
+  currentRent: { en: 'Current Rent', ar: 'الإيجار الحالي', bn: 'বর্তমান ভাড়া', ur: 'موجودہ کرایہ' },
+  historicalDebt: { en: 'Historical Debt', ar: 'الديون التاريخية', bn: 'ঐতিহাসিক ঋণ', ur: 'تاریخی قرضہ' },
+  advancePayment: { en: 'Advance Payment', ar: 'دفعة مقدمة', bn: 'অগ্রিম পেমেন্ট', ur: 'پیشگی ادائیگی' },
+  totalOutstanding: { en: 'Total Outstanding', ar: 'إجمالي المستحق', bn: 'মোট বকেয়', ur: 'کل واجب الادا' },
+  creditApplied: { en: 'Credit Applied', ar: 'ائتمان مطبق', bn: 'ক্রেডিট প্রয়োগ', ur: 'کریڈٹ لاگو' },
+  adminOnly: { en: 'Admin Only', ar: 'المسؤول فقط', bn: 'শুধুমাত্র অ্যাডমিন', ur: 'صرف ایڈمن' },
 } as const
 
 export type TranslationKey = keyof typeof translations

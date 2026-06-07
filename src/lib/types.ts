@@ -102,6 +102,12 @@ export interface TenantData {
   manualOverrideById: string | null
   manualOverrideAt: string | null
   notes: string | null
+  // Phase 1 Rental Accounting
+  openingBalance: number
+  creditBalance: number
+  legalCase: boolean
+  legalCaseNumber: string | null
+  legalCaseNotes: string | null
   createdAt: string
   property?: PropertyData
   payments?: PaymentData[]
@@ -135,6 +141,8 @@ export interface PaymentData {
   notes: string | null
   isLate: boolean
   daysLate: number
+  // Phase 1 Rental Accounting: Payment Allocation Type
+  allocationType: string | null
   createdAt: string
   tenant?: TenantData
 }

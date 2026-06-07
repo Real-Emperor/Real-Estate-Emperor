@@ -91,6 +91,7 @@ export async function POST(request: Request) {
       notes,
       isLate,
       daysLate,
+      allocationType,
     } = body
 
     // Validate required fields
@@ -118,6 +119,12 @@ export async function POST(request: Request) {
     const parsedIsLate = isLate === true
     const parsedDaysLate = parsedIsLate ? safeNumber(daysLate, 0) : 0
 
+    // Validate allocationType
+    const validAllocationTypes = ['CURRENT_RENT', 'HISTORICAL_DEBT', 'ADVANCE_PAYMENT']
+    const parsedAllocationType = allocationType && validAllocationTypes.includes(allocationType)
+      ? allocationType
+      : 'CURRENT_RENT'
+
     // PHASE 1 FIX: Wrap multi-step operation in transaction
     const payment = await prisma.$transaction(async (tx) => {
       const created = await tx.payment.create({
@@ -134,6 +141,7 @@ export async function POST(request: Request) {
           notes: notes || null,
           isLate: parsedIsLate,
           daysLate: parsedDaysLate,
+          allocationType: parsedAllocationType,
         },
         include: {
           tenant: {
@@ -165,6 +173,39 @@ export async function POST(request: Request) {
         })
       }
 
+      // Phase 1 Rental Accounting: Handle allocation type business logic
+      if (parsedAllocationType === 'ADVANCE_PAYMENT') {
+        // Calculate current period paid amount
+        const currentPeriodPayments = await tx.payment.findMany({
+          where: {
+            tenantId,
+            month: parsedMonth,
+            year: parsedYear,
+            allocationType: 'CURRENT_RENT',
+          },
+        })
+        const currentPaid = currentPeriodPayments.reduce((sum, p) => sum + Number(p.amount), 0)
+        const rentAmount = Number(tenant.rentAmount)
+        const excessForCredit = Math.max(0, currentPaid + parsedAmount - rentAmount)
+
+        if (excessForCredit > 0) {
+          // Add excess to creditBalance
+          const currentCredit = Number(tenant.creditBalance) || 0
+          await tx.tenant.update({
+            where: { id: tenantId },
+            data: { creditBalance: currentCredit + excessForCredit },
+          })
+        }
+      } else if (parsedAllocationType === 'HISTORICAL_DEBT') {
+        // Reduce openingBalance by payment amount (down to 0 minimum)
+        const currentOpening = Number(tenant.openingBalance) || 0
+        const newOpening = Math.max(0, currentOpening - parsedAmount)
+        await tx.tenant.update({
+          where: { id: tenantId },
+          data: { openingBalance: newOpening },
+        })
+      }
+
       return created
     })
 
@@ -182,6 +223,7 @@ export async function POST(request: Request) {
         year: parsedYear,
         isLate: parsedIsLate,
         daysLate: parsedDaysLate,
+        allocationType: parsedAllocationType,
       },
     })
 

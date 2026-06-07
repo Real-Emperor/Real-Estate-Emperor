@@ -79,6 +79,10 @@ export async function PUT(
     if (notes !== undefined) data.notes = notes || null
     if (isLate !== undefined) data.isLate = isLate === true
     if (daysLate !== undefined) data.daysLate = safeNumber(daysLate, 0)
+    if (body.allocationType !== undefined) {
+      const validAllocationTypes = ['CURRENT_RENT', 'HISTORICAL_DEBT', 'ADVANCE_PAYMENT']
+      data.allocationType = validAllocationTypes.includes(body.allocationType) ? body.allocationType : 'CURRENT_RENT'
+    }
 
     if (Object.keys(data).length === 0) {
       return errorResponse('No valid fields provided for update')
