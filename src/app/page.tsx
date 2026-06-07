@@ -18,6 +18,7 @@ import Reports from '@/components/reports'
 import Contracts from '@/components/contracts'
 import Reservations from '@/components/reservations'
 import UserManagement from '@/components/user-management'
+import SystemManagement from '@/components/system-management'
 import { Loader2 } from 'lucide-react'
 
 function AppContent() {
@@ -121,6 +122,7 @@ function AppContent() {
       case 'reports': return isFinancialUser ? <Reports /> : <AccessDenied />
       case 'contracts': return <Contracts />
       case 'settings': return isSystemAdmin ? <UserManagement /> : <AccessDenied type="admin" />
+      case 'system': return isSystemAdmin ? <SystemManagement /> : <AccessDenied type="admin" />
       default: return <Dashboard />
     }
     })()

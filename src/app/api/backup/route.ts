@@ -1,4 +1,5 @@
 import prisma from '@/lib/db'
+import crypto from 'crypto'
 import {
   getAuthUser,
   createAuditLog,
@@ -85,6 +86,26 @@ export async function GET() {
       },
     }
 
+    const backupJson = JSON.stringify(backup, null, 2)
+    const backupSize = Buffer.byteLength(backupJson, 'utf-8')
+    const recordCount = properties.length + tenants.length + expenses.length + maintenance.length + users.length
+
+    // Compute SHA-256 data hash for integrity verification
+    const dataHash = crypto.createHash('sha256').update(backupJson).digest('hex')
+
+    // Create BackupRecord for manual backup
+    await prisma.backupRecord.create({
+      data: {
+        companyId,
+        type: 'manual',
+        size: backupSize,
+        recordCount,
+        status: 'completed',
+        dataHash,
+        triggeredBy: user.id,
+      },
+    })
+
     // Log the backup
     await createAuditLog({
       action: 'BACKUP',
@@ -98,14 +119,16 @@ export async function GET() {
         expenses: expenses.length,
         maintenance: maintenance.length,
         users: users.length,
+        dataHash,
       },
     })
 
-    // Return as downloadable JSON
-    return new Response(JSON.stringify(backup, null, 2), {
+    // Return as downloadable JSON with X-Backup-Hash header
+    return new Response(backupJson, {
       headers: {
         'Content-Type': 'application/json',
         'Content-Disposition': `attachment; filename="al-reef-backup-${new Date().toISOString().split('T')[0]}.json"`,
+        'X-Backup-Hash': dataHash,
       },
     })
   } catch (error) {
@@ -154,6 +177,10 @@ export async function POST(request: Request) {
       payments: 0,
       expenses: 0,
       maintenance: 0,
+      deletedProperties: 0,
+      deletedTenants: 0,
+      deletedExpenses: 0,
+      deletedMaintenance: 0,
     }
 
     // Upsert properties
@@ -324,6 +351,184 @@ export async function POST(request: Request) {
           },
         })
         summary.maintenance++
+      }
+    }
+
+    // Restore soft-deleted properties
+    if (body.deleted?.properties) {
+      for (const prop of body.deleted.properties) {
+        await prisma.property.upsert({
+          where: { id: prop.id },
+          update: {
+            name: prop.name,
+            nameAr: prop.nameAr,
+            nameBn: prop.nameBn,
+            nameUr: prop.nameUr,
+            type: prop.type,
+            address: prop.address,
+            totalUnits: prop.totalUnits,
+            floors: prop.floors,
+            archived: prop.archived,
+            deletedAt: prop.deletedAt ? new Date(prop.deletedAt) : null,
+          },
+          create: {
+            id: prop.id,
+            companyId,
+            name: prop.name,
+            nameAr: prop.nameAr,
+            nameBn: prop.nameBn,
+            nameUr: prop.nameUr,
+            type: prop.type,
+            address: prop.address,
+            totalUnits: prop.totalUnits,
+            floors: prop.floors,
+            archived: prop.archived,
+            deletedAt: prop.deletedAt ? new Date(prop.deletedAt) : null,
+          },
+        })
+        summary.deletedProperties++
+      }
+    }
+
+    // Restore soft-deleted tenants
+    if (body.deleted?.tenants) {
+      for (const tenant of body.deleted.tenants) {
+        await prisma.tenant.upsert({
+          where: { id: tenant.id },
+          update: {
+            name: tenant.name,
+            phone: tenant.phone,
+            rentAmount: tenant.rentAmount,
+            status: tenant.status,
+            unitNumber: tenant.unitNumber,
+            deletedAt: tenant.deletedAt ? new Date(tenant.deletedAt) : null,
+          },
+          create: {
+            id: tenant.id,
+            companyId,
+            propertyId: tenant.propertyId,
+            name: tenant.name,
+            nameAr: tenant.nameAr,
+            nameBn: tenant.nameBn,
+            nameUr: tenant.nameUr,
+            phone: tenant.phone,
+            whatsapp: tenant.whatsapp,
+            email: tenant.email,
+            emiratesId: tenant.emiratesId,
+            nationality: tenant.nationality,
+            employer: tenant.employer,
+            emergencyContact: tenant.emergencyContact,
+            unitNumber: tenant.unitNumber,
+            unitType: tenant.unitType,
+            floor: tenant.floor,
+            sizeSqft: tenant.sizeSqft,
+            rentAmount: tenant.rentAmount,
+            municipalityFee: tenant.municipalityFee,
+            securityDeposit: tenant.securityDeposit,
+            paymentMethod: tenant.paymentMethod,
+            leaseStart: tenant.leaseStart ? new Date(tenant.leaseStart) : null,
+            leaseEnd: tenant.leaseEnd ? new Date(tenant.leaseEnd) : null,
+            contractDuration: tenant.contractDuration,
+            renewalStatus: tenant.renewalStatus,
+            newRent: tenant.newRent,
+            status: tenant.status || 'active',
+            latePaymentCount: tenant.latePaymentCount || 0,
+            tenantScore: tenant.tenantScore || 100,
+            systemScore: tenant.systemScore || tenant.tenantScore || 100,
+            notes: tenant.notes,
+            deletedAt: tenant.deletedAt ? new Date(tenant.deletedAt) : null,
+          },
+        })
+        summary.deletedTenants++
+
+        // Restore payments for soft-deleted tenants
+        if (tenant.payments) {
+          for (const payment of tenant.payments) {
+            await prisma.payment.upsert({
+              where: { id: payment.id },
+              update: {
+                amount: payment.amount,
+                date: new Date(payment.date),
+                month: payment.month,
+                year: payment.year,
+              },
+              create: {
+                id: payment.id,
+                tenantId: tenant.id,
+                amount: payment.amount,
+                date: new Date(payment.date),
+                month: payment.month,
+                year: payment.year,
+                method: payment.method,
+                reference: payment.reference,
+                receiptNumber: payment.receiptNumber,
+                notes: payment.notes,
+                isLate: payment.isLate || false,
+                daysLate: payment.daysLate || 0,
+                allocationType: payment.allocationType || 'CURRENT_RENT',
+              },
+            })
+          }
+        }
+      }
+    }
+
+    // Restore soft-deleted expenses
+    if (body.deleted?.expenses) {
+      for (const expense of body.deleted.expenses) {
+        await prisma.expense.upsert({
+          where: { id: expense.id },
+          update: {
+            category: expense.category,
+            description: expense.description,
+            amount: expense.amount,
+            deletedAt: expense.deletedAt ? new Date(expense.deletedAt) : null,
+          },
+          create: {
+            id: expense.id,
+            companyId,
+            category: expense.category,
+            description: expense.description,
+            amount: expense.amount,
+            date: new Date(expense.date),
+            vendor: expense.vendor,
+            invoiceNumber: expense.invoiceNumber,
+            recurring: expense.recurring || false,
+            building: expense.building,
+            deletedAt: expense.deletedAt ? new Date(expense.deletedAt) : null,
+          },
+        })
+        summary.deletedExpenses++
+      }
+    }
+
+    // Restore soft-deleted maintenance
+    if (body.deleted?.maintenance) {
+      for (const maint of body.deleted.maintenance) {
+        await prisma.maintenance.upsert({
+          where: { id: maint.id },
+          update: {
+            title: maint.title,
+            status: maint.status,
+            deletedAt: maint.deletedAt ? new Date(maint.deletedAt) : null,
+          },
+          create: {
+            id: maint.id,
+            companyId,
+            propertyId: maint.propertyId,
+            title: maint.title,
+            description: maint.description,
+            category: maint.category,
+            vendor: maint.vendor,
+            priority: maint.priority || 'medium',
+            status: maint.status || 'pending',
+            estimatedCost: maint.estimatedCost,
+            actualCost: maint.actualCost,
+            completedAt: maint.completedAt ? new Date(maint.completedAt) : null,
+            deletedAt: maint.deletedAt ? new Date(maint.deletedAt) : null,
+          },
+        })
+        summary.deletedMaintenance++
       }
     }
 

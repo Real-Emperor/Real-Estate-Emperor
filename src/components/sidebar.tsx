@@ -41,6 +41,7 @@ const navItems: { page: PageType; icon: React.ElementType; key: string; financia
   { page: 'reports', icon: BarChart3, key: 'reports', financialOnly: true },
   { page: 'contracts', icon: FileText, key: 'contracts' },
   { page: 'settings', icon: Settings, key: 'settings', adminOnly: true },
+  { page: 'system', icon: ShieldCheck, key: 'systemManagement', adminOnly: true },
 ]
 
 export default function Sidebar() {

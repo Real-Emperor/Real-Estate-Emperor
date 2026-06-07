@@ -1,4 +1,5 @@
 import prisma from '@/lib/db'
+import crypto from 'crypto'
 import {
   getAuthUser,
   createAuditLog,
@@ -8,12 +9,24 @@ import {
   successResponse,
 } from '@/lib/api-utils'
 
+// Conditionally import @vercel/blob
+let put: any = null
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const blobModule = require('@vercel/blob')
+  put = blobModule.put
+} catch {
+  // @vercel/blob not available — graceful fallback
+}
+
 // GET /api/backup/auto — Trigger automated backup (called by Vercel Cron or manually)
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
     const cronSecret = url.searchParams.get('cron_secret')
     const isCron = request.headers.get('x-vercel-cron') === 'true'
+
+    let triggeredBy = 'system'
 
     // Validate cron secret for automated calls
     if (isCron) {
@@ -27,6 +40,7 @@ export async function GET(request: Request) {
       if (user.role !== 'owner' && user.role !== 'admin') {
         return forbiddenResponse('Only owners and admins can create backups')
       }
+      triggeredBy = user.id
     }
 
     // Get all companies (for cron job, back up all; for manual, only the user's company)
@@ -49,6 +63,8 @@ export async function GET(request: Request) {
       recordCount?: number
       status: string
       error?: string
+      storageUrl?: string | null
+      dataHash?: string
     }> = []
 
     for (const companyId of companyIds) {
@@ -101,6 +117,26 @@ export async function GET(request: Request) {
         const backupSize = Buffer.byteLength(backupJson, 'utf-8')
         const recordCount = properties.length + tenants.length + expenses.length + maintenance.length + users.length
 
+        // Compute SHA-256 data hash for integrity verification
+        const dataHash = crypto.createHash('sha256').update(backupJson).digest('hex')
+
+        // Attempt to persist backup to Vercel Blob
+        let storageUrl: string | null = null
+        if (put && process.env.BLOB_READ_WRITE_TOKEN) {
+          try {
+            const date = new Date().toISOString().split('T')[0]
+            const blobKey = `backups/${companyId}/${date}.json`
+            const blobResult = await put(blobKey, backupJson, {
+              access: 'public',
+              contentType: 'application/json',
+            })
+            storageUrl = blobResult.url
+          } catch (blobErr: any) {
+            console.warn(`Failed to upload backup to Vercel Blob for company ${companyId}:`, blobErr.message)
+            // Graceful fallback — continue without storageUrl
+          }
+        }
+
         // Create backup record
         await prisma.backupRecord.create({
           data: {
@@ -109,17 +145,20 @@ export async function GET(request: Request) {
             size: backupSize,
             recordCount,
             status: 'completed',
+            storageUrl,
+            dataHash,
+            triggeredBy,
           },
         })
 
-        // Clean up old backups (keep last 30 days)
-        const thirtyDaysAgo = new Date()
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+        // Clean up old auto-backups (keep last 90 days instead of 30)
+        const ninetyDaysAgo = new Date()
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
         await prisma.backupRecord.deleteMany({
           where: {
             companyId,
             type: 'auto',
-            createdAt: { lt: thirtyDaysAgo },
+            createdAt: { lt: ninetyDaysAgo },
           },
         })
 
@@ -128,12 +167,14 @@ export async function GET(request: Request) {
           action: 'AUTO_BACKUP',
           entity: 'Company',
           entityId: companyId,
-          userId: isCron ? 'system' : (await getAuthUser())?.id || 'system',
+          userId: triggeredBy,
           companyId,
           details: {
             type: isCron ? 'auto' : 'manual',
             size: backupSize,
             recordCount,
+            dataHash,
+            storageUrl,
             properties: properties.length,
             tenants: tenants.length,
             expenses: expenses.length,
@@ -147,6 +188,8 @@ export async function GET(request: Request) {
           size: backupSize,
           recordCount,
           status: 'completed',
+          storageUrl,
+          dataHash,
         })
       } catch (err: any) {
         // Record failed backup
@@ -158,6 +201,7 @@ export async function GET(request: Request) {
             recordCount: 0,
             status: 'failed',
             error: err.message || 'Unknown error',
+            triggeredBy,
           },
         }).catch(() => {})
 

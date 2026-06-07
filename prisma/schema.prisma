@@ -363,15 +363,19 @@ model BackupRecord {
   id          String   @id @default(cuid())
   companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
-  type        String
-  size        Int
+  type        String       // "auto" | "manual"
+  size        Int          // bytes
   recordCount Int
-  status      String
+  status      String       // "completed" | "failed"
   error       String?
+  storageUrl  String?      // URL to stored backup (Vercel Blob / S3)
+  dataHash    String?      // SHA-256 hash of backup JSON for integrity verification
+  triggeredBy String?      // userId who triggered (or "system" for cron)
   createdAt   DateTime @default(now())
 
   @@index([companyId])
   @@index([createdAt])
+  @@index([status])
   @@map("backup_records")
 }
 
