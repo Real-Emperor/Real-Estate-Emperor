@@ -340,6 +340,11 @@ export const translations = {
   // Additional keys for Maintenance, Expenses, Reports
   invoiceNumber: { en: 'Invoice Number', ar: 'رقم الفاتورة', bn: 'চালান নম্বর', ur: 'انوائس نمبر' },
   searchInvoice: { en: 'Search Invoice #', ar: 'بحث رقم الفاتورة', bn: 'চালান নম্বর খুঁজুন', ur: 'انوائس نمبر تلاش کریں' },
+  searchTenant: { en: 'Search Tenant Name', ar: 'بحث اسم المستأجر', bn: 'ভাড়াটিয়ার নাম খুঁজুন', ur: 'کرایہ دار کا نام تلاش کریں' },
+  totalCashPayments: { en: 'Total Cash Payments', ar: 'إجمالي المدفوعات النقدية', bn: 'মোট নগদ পেমেন্ট', ur: 'کل نقد ادائیگیاں' },
+  totalBankTransferPayments: { en: 'Total Bank Transfer', ar: 'إجمالي التحويل البنكي', bn: 'মোট ব্যাংক ট্রান্সফার', ur: 'کل بینک ٹرانسفر' },
+  totalChequePayments: { en: 'Total Cheque Payments', ar: 'إجمالي مدفوعات الشيكات', bn: 'মোট চেক পেমেন্ট', ur: 'کل چیک ادائیگیاں' },
+  paymentMethodSummary: { en: 'Payment Method Summary', ar: 'ملخص طرق الدفع', bn: 'পেমেন্ট পদ্ধতির সারাংশ', ur: 'ادائیگی کے طریقے کا خلاصہ' },
   noInvoiceFound: { en: 'No invoice found', ar: 'لم يتم العثور على فاتورة', bn: 'কোনো চালান পাওয়া যায়নি', ur: 'کوئی انوائس نہیں ملا' },
   tryDifferentSearch: { en: 'Try a different invoice number (e.g. INV-202606-101)', ar: 'جرّب رقم فاتورة مختلف (مثال: INV-202606-101)', bn: 'ভিন্ন চালান নম্বর চেষ্টা করুন (যেমন: INV-202606-101)', ur: 'مختلف انوائس نمبر آزمائیں (مثلاً: INV-202606-101)' },
   printReport: { en: 'Print Report', ar: 'طباعة التقرير', bn: 'প্রতিবেদন মুদ্রণ', ur: 'رپورٹ پرنٹ کریں' },

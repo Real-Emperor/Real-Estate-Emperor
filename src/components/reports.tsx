@@ -5,7 +5,7 @@ import type { ReportData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { formatAED, formatDate, getCategoryIcon } from '@/lib/utils'
-import { t, getMonthName, getExpenseCategoryLabel, type Language } from '@/lib/i18n'
+import { t, getMonthName, getExpenseCategoryLabel, getNameByLang, type Language } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -213,6 +213,164 @@ export default function Reports() {
         pdf.text(label, margin + 8, rowY)
         pdf.text(value, margin + contentWidth - 8, rowY, { align: 'right' })
       })
+
+      // ── Credit Table: Income by Tenant ──
+      // Get monthly payments for the credit table
+      const { payments: allPayments, tenants: allTenants, properties: allProperties } = store
+      const monthPayments = allPayments.filter(p => p.month === selectedMonth && p.year === selectedYear)
+
+      // Build income items for the month
+      const monthlyIncomeItems = monthPayments.map(p => {
+        const tenant = allTenants.find(t => t.id === p.tenantId)
+        const property = tenant ? allProperties.find(pr => pr.id === tenant.propertyId) : null
+        return {
+          tenantName: tenant ? getNameByLang(tenant, lang) : 'Unknown',
+          propertyName: property ? getNameByLang(property, lang) : '',
+          unitNumber: tenant?.unitNumber || null,
+          amount: p.amount,
+          method: p.method,
+          isLate: p.isLate || false,
+        }
+      }).sort((a, b) => a.tenantName.localeCompare(b.tenantName))
+
+      pdf.addPage()
+      let creditY = 18
+      // Mini header
+      pdf.setFillColor(13, 124, 61)
+      pdf.rect(0, 0, pageWidth, 14, 'F')
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(9)
+      pdf.text('Al Reef Al Madeena', margin, 9)
+      pdf.setFontSize(8)
+      pdf.text(`${t('financialSummary', lang)} — ${monthName} ${selectedYear}`, pageWidth - margin, 9, { align: 'right' })
+      creditY = 22
+
+      // Credit table title
+      pdf.setTextColor(13, 124, 61)
+      pdf.setFontSize(12)
+      pdf.text(`${t('income', lang)} — ${t('rentCollected', lang)}`, margin, creditY)
+
+      // Income total badge
+      pdf.setFillColor('#E8F5E9')
+      const mBadgeW = 45
+      pdf.roundedRect(pageWidth - margin - mBadgeW, creditY - 5, mBadgeW, 8, 2, 2, 'F')
+      pdf.setTextColor(13, 124, 61)
+      pdf.setFontSize(9)
+      pdf.text(formatAED(data.cashCollected), pageWidth - margin - mBadgeW + 3, creditY)
+      creditY += 6
+
+      // Credit table header - No Time or Status columns
+      pdf.setFillColor(13, 124, 61)
+      pdf.rect(margin, creditY, contentWidth, 8, 'F')
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(7.5)
+      pdf.text('#', margin + 3, creditY + 5.5)
+      pdf.text(t('tenantName', lang), margin + 8, creditY + 5.5)
+      pdf.text(t('property', lang), margin + 58, creditY + 5.5)
+      pdf.text(t('unitNumber', lang), margin + 92, creditY + 5.5)
+      pdf.text(t('amount', lang), margin + 106, creditY + 5.5)
+      pdf.text(t('paymentMethod', lang), margin + 142, creditY + 5.5)
+      creditY += 8
+
+      // Credit rows
+      for (let i = 0; i < monthlyIncomeItems.length; i++) {
+        if (creditY > pageHeight - 25) {
+          pdf.addPage()
+          creditY = 18
+          pdf.setFillColor(13, 124, 61)
+          pdf.rect(0, 0, pageWidth, 14, 'F')
+          pdf.setTextColor(255, 255, 255)
+          pdf.setFontSize(9)
+          pdf.text('Al Reef Al Madeena', margin, 9)
+          pdf.setFontSize(8)
+          pdf.text(`${t('income', lang)} (cont.) — ${monthName} ${selectedYear}`, pageWidth - margin, 9, { align: 'right' })
+          creditY = 22
+          // Re-draw header
+          pdf.setFillColor(13, 124, 61)
+          pdf.rect(margin, creditY, contentWidth, 8, 'F')
+          pdf.setTextColor(255, 255, 255)
+          pdf.setFontSize(7.5)
+          pdf.text('#', margin + 3, creditY + 5.5)
+          pdf.text(t('tenantName', lang), margin + 8, creditY + 5.5)
+          pdf.text(t('property', lang), margin + 58, creditY + 5.5)
+          pdf.text(t('unitNumber', lang), margin + 92, creditY + 5.5)
+          pdf.text(t('amount', lang), margin + 106, creditY + 5.5)
+          pdf.text(t('paymentMethod', lang), margin + 142, creditY + 5.5)
+          creditY += 8
+        }
+        const item = monthlyIncomeItems[i]
+        const rowBg = i % 2 === 0 ? '#FFFFFF' : '#F9FAFB'
+        pdf.setFillColor(rowBg)
+        pdf.rect(margin, creditY, contentWidth, 7, 'F')
+
+        // Late indicator
+        if (item.isLate) {
+          pdf.setFillColor('#FFEBEE')
+          pdf.rect(margin, creditY, contentWidth, 7, 'F')
+          pdf.setFillColor('#D32F2F')
+          pdf.rect(margin, creditY, 1.5, 7, 'F')
+        }
+
+        pdf.setTextColor(item.isLate ? 180 : 40, item.isLate ? 40 : 40, item.isLate ? 40 : 40)
+        pdf.setFontSize(7.5)
+        pdf.text(String(i + 1), margin + 3, creditY + 5)
+        pdf.text(item.tenantName.substring(0, 35), margin + 8, creditY + 5)
+        pdf.text(item.propertyName.substring(0, 24), margin + 58, creditY + 5)
+        pdf.text(item.unitNumber || '-', margin + 92, creditY + 5)
+        pdf.setTextColor(13, 124, 61)
+        pdf.text(formatAED(item.amount), margin + 106, creditY + 5)
+        pdf.setTextColor(item.isLate ? 180 : 40, item.isLate ? 40 : 40, item.isLate ? 40 : 40)
+        pdf.text((item.method || '-').substring(0, 18), margin + 142, creditY + 5)
+        creditY += 7
+      }
+
+      // Income total row
+      if (creditY > pageHeight - 25) { pdf.addPage(); creditY = 22 }
+      pdf.setFillColor('#E8F5E9')
+      pdf.rect(margin, creditY, contentWidth, 7, 'F')
+      pdf.setTextColor(13, 124, 61)
+      pdf.setFontSize(8)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text(`TOTAL INCOME: ${formatAED(data.cashCollected)}`, margin + 10, creditY + 5)
+      pdf.text(`${monthlyIncomeItems.length} payments`, margin + 142, creditY + 5)
+      pdf.setFont('helvetica', 'normal')
+      creditY += 10
+
+      // ── Payment Method Totals ──
+      const monthMethodTotals: Record<string, number> = {}
+      for (const p of monthlyIncomeItems) {
+        const method = (p.method || 'other').toLowerCase()
+        monthMethodTotals[method] = (monthMethodTotals[method] || 0) + p.amount
+      }
+      const mTotalCash = monthMethodTotals['cash'] || 0
+      const mTotalBankTransfer = monthMethodTotals['transfer'] || 0
+      const mTotalCheque = monthMethodTotals['cheque'] || 0
+
+      if (creditY > pageHeight - 35) { pdf.addPage(); creditY = 22 }
+      // Payment Method Summary box
+      pdf.setFillColor(245, 253, 244)
+      pdf.roundedRect(margin, creditY, contentWidth, 26, 3, 3, 'F')
+      pdf.setFillColor(13, 124, 61)
+      pdf.rect(margin, creditY, contentWidth, 3, 'F')
+      pdf.setTextColor(13, 124, 61)
+      pdf.setFontSize(8)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text(t('paymentMethodSummary', lang), margin + 4, creditY + 8)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(7.5)
+      pdf.setTextColor(40, 40, 40)
+      pdf.text(`${t('totalCashPayments', lang)}:`, margin + 8, creditY + 14)
+      pdf.setTextColor(13, 124, 61)
+      pdf.text(formatAED(mTotalCash), margin + 55, creditY + 14)
+      pdf.setTextColor(40, 40, 40)
+      pdf.text(`${t('totalBankTransferPayments', lang)}:`, margin + 8, creditY + 19)
+      pdf.setTextColor(13, 124, 61)
+      pdf.text(formatAED(mTotalBankTransfer), margin + 55, creditY + 19)
+      pdf.setTextColor(40, 40, 40)
+      pdf.text(`${t('totalChequePayments', lang)}:`, margin + 8, creditY + 24)
+      pdf.setTextColor(13, 124, 61)
+      pdf.text(formatAED(mTotalCheque), margin + 55, creditY + 24)
+      creditY += 30
 
       // ── Page 2: Charts ──
       // Track Y position manually for reliable placement

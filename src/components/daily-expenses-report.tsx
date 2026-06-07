@@ -84,6 +84,7 @@ interface DailyExpenseItem {
   amount: number
   vendor: string | null
   time: string
+  building: string | null
   recurring: boolean
 }
 
@@ -142,6 +143,7 @@ export default function DailyExpensesReport() {
       amount: e.amount,
       vendor: e.vendor,
       time: new Date(e.date).toLocaleTimeString('en-AE', { hour: '2-digit', minute: '2-digit' }),
+      building: e.building || null,
       recurring: e.recurring || false,
     }))
 
@@ -489,22 +491,20 @@ export default function DailyExpensesReport() {
       pdf.text(formatAED(totalIncome), pw - m - incomeBadgeW + 3, y)
       y += 6
 
-      // Income table header - redistributed columns to fit within printable width
+      // Income table header - Time and Status columns removed, Tenant Name widened
       pdf.setFillColor(13, 124, 61)
       pdf.rect(m, y, cw, 8, 'F')
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(7.5)
       pdf.text('#', m + 3, y + 5.5)
       pdf.text(t('tenantName', lang), m + 8, y + 5.5)
-      pdf.text(t('property', lang), m + 37, y + 5.5)
-      pdf.text(t('unitNumber', lang), m + 68, y + 5.5)
-      pdf.text(t('amount', lang), m + 83, y + 5.5)
-      pdf.text(t('paymentTime', lang), m + 119, y + 5.5)
-      pdf.text(t('paymentMethod', lang), m + 135, y + 5.5)
-      pdf.text('Status', m + 159, y + 5.5)
+      pdf.text(t('property', lang), m + 58, y + 5.5)
+      pdf.text(t('unitNumber', lang), m + 92, y + 5.5)
+      pdf.text(t('amount', lang), m + 106, y + 5.5)
+      pdf.text(t('paymentMethod', lang), m + 142, y + 5.5)
       y += 8
 
-      // Income rows
+      // Income rows - Time and Status columns removed
       const sortedIncome = [...incomeItems].sort((a, b) => a.time.localeCompare(b.time))
       for (let i = 0; i < sortedIncome.length; i++) {
         y = checkPage(y, 7)
@@ -525,15 +525,13 @@ export default function DailyExpensesReport() {
         pdf.setTextColor(item.isLate ? 180 : 40, item.isLate ? 40 : 40, item.isLate ? 40 : 40)
         pdf.setFontSize(7.5)
         pdf.text(String(i + 1), m + 3, y + 5)
-        pdf.text(item.tenantName.substring(0, 20), m + 8, y + 5)
-        pdf.text(item.propertyName.substring(0, 22), m + 37, y + 5)
-        pdf.text(item.unitNumber || '-', m + 68, y + 5)
+        pdf.text(item.tenantName.substring(0, 35), m + 8, y + 5)
+        pdf.text(item.propertyName.substring(0, 24), m + 58, y + 5)
+        pdf.text(item.unitNumber || '-', m + 92, y + 5)
         pdf.setTextColor(13, 124, 61)
-        pdf.text(formatAED(item.amount), m + 83, y + 5)
+        pdf.text(formatAED(item.amount), m + 106, y + 5)
         pdf.setTextColor(item.isLate ? 180 : 40, item.isLate ? 40 : 40, item.isLate ? 40 : 40)
-        pdf.text(item.time, m + 119, y + 5)
-        pdf.text((item.method || '-').substring(0, 14), m + 135, y + 5)
-        pdf.text(item.isLate ? 'LATE' : (item.notes?.includes('Partial') ? 'PARTIAL' : 'On Time'), m + 159, y + 5)
+        pdf.text((item.method || '-').substring(0, 18), m + 142, y + 5)
         y += 7
       }
 
@@ -545,9 +543,47 @@ export default function DailyExpensesReport() {
       pdf.setFontSize(8)
       pdf.setFont('helvetica', 'bold')
       pdf.text(`TOTAL INCOME: ${formatAED(totalIncome)}`, m + 10, y + 5)
-      pdf.text(`${incomeItems.length} payments`, m + 119, y + 5)
+      pdf.text(`${incomeItems.length} payments`, m + 142, y + 5)
       pdf.setFont('helvetica', 'normal')
-      y += 14
+      y += 10
+
+      // ─── PAYMENT METHOD TOTALS ───
+      const methodTotals: Record<string, number> = {}
+      for (const p of incomeItems) {
+        const method = (p.method || 'other').toLowerCase()
+        methodTotals[method] = (methodTotals[method] || 0) + p.amount
+      }
+      const totalCash = methodTotals['cash'] || 0
+      const totalBankTransfer = methodTotals['transfer'] || 0
+      const totalCheque = methodTotals['cheque'] || 0
+
+      y = checkPage(y, 30)
+      // Payment Method Summary box
+      drawRRect(m, y, cw, 26, 3, '#F0FDF4')
+      pdf.setFillColor('#0D7C3D')
+      pdf.rect(m, y, cw, 3, 'F')
+      pdf.setTextColor(13, 124, 61)
+      pdf.setFontSize(8)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text(t('paymentMethodSummary', lang), m + 4, y + 8)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(7.5)
+      pdf.setTextColor(40, 40, 40)
+      // Cash
+      pdf.text(`${t('totalCashPayments', lang)}:`, m + 8, y + 14)
+      pdf.setTextColor(13, 124, 61)
+      pdf.text(formatAED(totalCash), m + 55, y + 14)
+      // Bank Transfer
+      pdf.setTextColor(40, 40, 40)
+      pdf.text(`${t('totalBankTransferPayments', lang)}:`, m + 8, y + 19)
+      pdf.setTextColor(13, 124, 61)
+      pdf.text(formatAED(totalBankTransfer), m + 55, y + 19)
+      // Cheque
+      pdf.setTextColor(40, 40, 40)
+      pdf.text(`${t('totalChequePayments', lang)}:`, m + 8, y + 24)
+      pdf.setTextColor(13, 124, 61)
+      pdf.text(formatAED(totalCheque), m + 55, y + 24)
+      y += 30
 
       // ─── EXPENSE TABLE ───
       y = checkPage(y, 30)
@@ -562,21 +598,21 @@ export default function DailyExpensesReport() {
       pdf.text(formatAED(totalExpense), pw - m - 42, y)
       y += 6
 
-      // Expense table header - redistributed columns with Type column
+      // Expense table header - Time column removed, Property column added
       pdf.setFillColor(196, 101, 58)
       pdf.rect(m, y, cw, 8, 'F')
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(7.5)
       pdf.text('#', m + 3, y + 5.5)
       pdf.text(t('expenseCategory', lang), m + 8, y + 5.5)
-      pdf.text(t('description', lang), m + 33, y + 5.5)
-      pdf.text(t('amount', lang), m + 83, y + 5.5)
-      pdf.text(t('vendor', lang), m + 119, y + 5.5)
-      pdf.text(t('paymentTime', lang), m + 145, y + 5.5)
-      pdf.text('Type', m + 165, y + 5.5)
+      pdf.text(t('description', lang), m + 35, y + 5.5)
+      pdf.text(t('amount', lang), m + 77, y + 5.5)
+      pdf.text(t('vendor', lang), m + 109, y + 5.5)
+      pdf.text(t('property', lang), m + 136, y + 5.5)
+      pdf.text('Type', m + 168, y + 5.5)
       y += 8
 
-      // Expense rows
+      // Expense rows - Time removed, Property added
       const sortedExpenses = [...expenseItems].sort((a, b) => a.time.localeCompare(b.time))
       for (let i = 0; i < sortedExpenses.length; i++) {
         y = checkPage(y, 7)
@@ -594,13 +630,13 @@ export default function DailyExpensesReport() {
         pdf.setFontSize(7.5)
         pdf.text(String(i + 1), m + 3, y + 5)
         pdf.text(getExpenseCategoryLabel(item.category, lang), m + 8, y + 5)
-        pdf.text(item.description.substring(0, 32), m + 33, y + 5)
+        pdf.text(item.description.substring(0, 28), m + 35, y + 5)
         pdf.setTextColor(196, 101, 58)
-        pdf.text(formatAED(item.amount), m + 83, y + 5)
+        pdf.text(formatAED(item.amount), m + 77, y + 5)
         pdf.setTextColor(40, 40, 40)
-        pdf.text((item.vendor || '-').substring(0, 12), m + 119, y + 5)
-        pdf.text(item.time, m + 145, y + 5)
-        pdf.text(item.recurring ? 'Recurring' : 'One-time', m + 165, y + 5)
+        pdf.text((item.vendor || '-').substring(0, 15), m + 109, y + 5)
+        pdf.text((item.building || '-').substring(0, 20), m + 136, y + 5)
+        pdf.text(item.recurring ? 'Recurring' : 'One-time', m + 168, y + 5)
         y += 7
       }
 
@@ -612,7 +648,7 @@ export default function DailyExpensesReport() {
       pdf.setFontSize(8)
       pdf.setFont('helvetica', 'bold')
       pdf.text(`TOTAL EXPENSES: ${formatAED(totalExpense)}`, m + 10, y + 5)
-      pdf.text(`${expenseItems.length} items`, m + 119, y + 5)
+      pdf.text(`${expenseItems.length} items`, m + 136, y + 5)
       pdf.setFont('helvetica', 'normal')
       y += 14
 

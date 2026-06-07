@@ -46,6 +46,9 @@ export default function RentCollection() {
   const [paymentError, setPaymentError] = useState('')
   const [paymentActionLoading, setPaymentActionLoading] = useState(false)
 
+  // Tenant name search
+  const [tenantSearch, setTenantSearch] = useState('')
+
   // Invoice search
   const [invoiceSearch, setInvoiceSearch] = useState('')
   const [invoiceSearchResults, setInvoiceSearchResults] = useState<any[] | null>(null)
@@ -176,6 +179,12 @@ export default function RentCollection() {
     if (filter === 'unpaid') return status === 'overdue' || status === 'unpaid' || status === 'due-soon'
     if (filter === 'overdue') return status === 'overdue'
     return true
+  }).filter(t => {
+    // Tenant name search filter
+    if (!tenantSearch.trim()) return true
+    const searchLower = tenantSearch.trim().toLowerCase()
+    const tenantName = getNameByLang(t, language).toLowerCase()
+    return tenantName.includes(searchLower)
   })
 
   const stats = {
@@ -538,8 +547,8 @@ export default function RentCollection() {
         </Card>
       )}
 
-      {/* Filter */}
-      <div className="flex gap-2 flex-wrap">
+      {/* Filter & Search */}
+      <div className="flex gap-2 flex-wrap items-center">
         {(['all', 'paid', 'partial', 'unpaid', 'overdue'] as const).map(f => (
           <Button
             key={f}
@@ -555,6 +564,21 @@ export default function RentCollection() {
             {f === 'overdue' && t('overdue', language)}
           </Button>
         ))}
+        <div className="flex items-center gap-2 bg-white rounded-lg border px-2 py-1 ml-auto">
+          <Search className="w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder={t('searchTenant', language) || 'Search Tenant Name'}
+            value={tenantSearch}
+            onChange={e => setTenantSearch(e.target.value)}
+            className="border-0 outline-none text-sm w-36 lg:w-52 bg-transparent"
+          />
+          {tenantSearch && (
+            <button onClick={() => setTenantSearch('')} className="text-gray-400 hover:text-gray-600">
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tenant Payment Grid */}
