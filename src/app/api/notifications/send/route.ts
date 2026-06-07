@@ -9,6 +9,7 @@ import {
   forbiddenResponse,
 } from '@/lib/api-utils'
 import { sendNotificationEmail } from '@/lib/email'
+import { FINANCIALLY_ACTIVE_STATUSES } from '@/lib/utils'
 
 // POST /api/notifications/send — Trigger notification sending (owner/admin)
 // Supports: payment_receipt, overdue_notice, lease_renewal
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
 
       // Get all active tenants for the company
       const tenants = await prisma.tenant.findMany({
-        where: { companyId: user.companyId, status: 'active' },
+        where: { companyId: user.companyId, status: { in: [...FINANCIALLY_ACTIVE_STATUSES] } },
         include: { payments: true },
       })
 

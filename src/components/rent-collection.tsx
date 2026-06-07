@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import type { TenantData, PropertyData, PaymentData, RentAdjustmentData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
-import { formatAED, getPaymentStatusColor, cn2 } from '@/lib/utils'
+import { formatAED, getPaymentStatusColor, cn2, isFinanciallyActive } from '@/lib/utils'
 import { t, getMonthName, getNameByLang, getWhatsAppLink, type WhatsAppLanguage } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -124,7 +124,7 @@ export default function RentCollection() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  const activeTenants = tenants.filter(t => t.status === 'active')
+  const activeTenants = tenants.filter(t => isFinanciallyActive(t.status))
 
   // Helper: check if adjustment is active in a given month
   const isAdjustmentActiveInMonth = (a: RentAdjustmentData, month: number, year: number): boolean => {
@@ -617,6 +617,12 @@ export default function RentCollection() {
                     {status === 'unpaid' && t('unpaid', language)}
                     {status === 'due-soon' && t('dueSoon', language)}
                   </Badge>
+                  {/* Notice Period badge */}
+                  {tenant.status === 'notice' && (
+                    <Badge className="text-[10px] bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-100 px-1.5 py-0">
+                      {t('noticePeriod', language)}
+                    </Badge>
+                  )}
                   {/* Legal case badge */}
                   {tenant.legalCase && (
                     <Badge className="text-[10px] bg-red-100 text-red-700 border border-red-200 hover:bg-red-100 px-1.5 py-0">

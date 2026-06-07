@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import type { DashboardData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
-import { formatAED, getPaymentStatusColor, cn2 } from '@/lib/utils'
+import { formatAED, getPaymentStatusColor, cn2, isFinanciallyActive } from '@/lib/utils'
 import { t, getMonthName, getNameByLang, getWhatsAppLink, type Language, type WhatsAppLanguage } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -344,6 +344,11 @@ export default function Dashboard() {
                     {status === 'inactive' && t('inactive', lang)}
                     {status === 'due-soon' && t('dueSoon', lang)}
                   </p>
+                  {tenant.status === 'notice' && (
+                    <span className="inline-block mt-1 text-[10px] bg-amber-200/40 rounded px-1.5 py-0.5">
+                      {t('noticePeriod', lang)}
+                    </span>
+                  )}
                   {(status === 'overdue' || status === 'unpaid') && (
                     <button
                       onClick={(e) => {

@@ -12,6 +12,7 @@ import {
   occUpdate,
 } from '@/lib/api-utils'
 import { isFinancialUser } from '@/lib/api-utils'
+import { FINANCIALLY_ACTIVE_STATUSES } from '@/lib/utils'
 
 // Valid property types
 const VALID_PROPERTY_TYPES = ['apartment', 'villa', 'office', 'shop', 'studio', 'mixed_use']
@@ -56,7 +57,7 @@ export async function GET(
     // Compute tenant counts
     const { tenants, ...propertyData } = property
     const tenantCount = tenants.length
-    const activeTenantCount = tenants.filter((t) => t.status === 'active').length
+    const activeTenantCount = tenants.filter((t) => FINANCIALLY_ACTIVE_STATUSES.includes(t.status as any)).length
 
     const result = {
       ...propertyData,
@@ -216,7 +217,7 @@ export async function DELETE(
     }
 
     // Check for active tenants — warn but still allow soft delete
-    const activeTenants = existing.tenants.filter((t) => t.status === 'active')
+    const activeTenants = existing.tenants.filter((t) => FINANCIALLY_ACTIVE_STATUSES.includes(t.status as any))
 
     // PHASE 2/3: Cascade soft-delete within a transaction
     // PHASE 3: Also handle receipts (cascade delete like payments)

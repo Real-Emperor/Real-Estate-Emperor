@@ -11,6 +11,7 @@ import {
   parsePaginationParams,
   paginatedResponse,
 } from '@/lib/api-utils'
+import { FINANCIALLY_ACTIVE_STATUSES } from '@/lib/utils'
 
 // Valid property types
 const VALID_PROPERTY_TYPES = ['apartment', 'villa', 'office', 'shop', 'studio', 'mixed_use']
@@ -82,7 +83,7 @@ export async function GET(request: Request) {
     const result = properties.map((property) => {
       const { tenants, ...propertyData } = property
       const tenantCount = tenants.length
-      const activeTenantCount = tenants.filter((t) => t.status === 'active').length
+      const activeTenantCount = tenants.filter((t) => FINANCIALLY_ACTIVE_STATUSES.includes(t.status as any)).length
 
       return {
         ...propertyData,

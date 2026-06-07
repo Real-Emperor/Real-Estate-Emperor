@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import type { ReportData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
-import { formatAED, formatDate, getCategoryIcon } from '@/lib/utils'
+import { formatAED, formatDate, getCategoryIcon, isFinanciallyActive } from '@/lib/utils'
 import { t, getMonthName, getExpenseCategoryLabel, getNameByLang, type Language } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -611,7 +611,7 @@ export default function Reports() {
         'Floors', 'Active Tenants', 'Occupancy %', 'Monthly Revenue (AED)', 'Status',
       ]
       const propertiesRows = properties.map(p => {
-        const activeTenants = tenants.filter(t => t.propertyId === p.id && t.status === 'active')
+        const activeTenants = tenants.filter(t => t.propertyId === p.id && isFinanciallyActive(t.status))
         const occupancy = p.totalUnits > 0 ? Math.round((activeTenants.length / p.totalUnits) * 100) : 0
         const monthlyRevenue = activeTenants.reduce((sum, t) => sum + t.rentAmount, 0)
         return [

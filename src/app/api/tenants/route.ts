@@ -12,6 +12,7 @@ import {
   parsePaginationParams,
   paginatedResponse,
 } from '@/lib/api-utils'
+import { FINANCIALLY_ACTIVE_STATUSES } from '@/lib/utils'
 
 // GET /api/tenants - List tenants with pagination for the authenticated user's company
 export async function GET(request: Request) {
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
     const activeTenantCount = await prisma.tenant.count({
       where: {
         propertyId: body.propertyId,
-        status: 'active',
+        status: { in: [...FINANCIALLY_ACTIVE_STATUSES] },
         deletedAt: null,
       },
     })

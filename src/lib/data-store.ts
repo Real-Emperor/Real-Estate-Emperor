@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { PropertyData, TenantData, PaymentData, ExpenseData, MaintenanceData, ReservationData, RentAdjustmentData } from '@/lib/types'
+import { isFinanciallyActive } from '@/lib/utils'
 
 // Company info
 export interface CompanyInfo {
@@ -666,7 +667,7 @@ export const useDataStore = create<DataState>()(
         .filter(p => includeArchived || !p.archived)
         .map(p => ({
           ...p,
-          tenants: tenants.filter(t => t.propertyId === p.id && t.status === 'active').map(t => ({
+          tenants: tenants.filter(t => t.propertyId === p.id && isFinanciallyActive(t.status)).map(t => ({
             ...t,
             payments: payments.filter(p => p.tenantId === t.id),
             adjustments: adjustments.filter(a => a.tenantId === t.id),
@@ -680,7 +681,7 @@ export const useDataStore = create<DataState>()(
       const currentMonth = now.getMonth() + 1
       const currentYear = now.getFullYear()
 
-      const activeTenants = tenants.filter(t => t.status === 'active')
+      const activeTenants = tenants.filter(t => isFinanciallyActive(t.status))
       const expectedRevenue = activeTenants.reduce((sum, t) => sum + t.rentAmount, 0)
       const currentMonthPayments = payments.filter(p => p.month === currentMonth && p.year === currentYear)
       const collectedRevenue = currentMonthPayments.reduce((sum, p) => sum + p.amount, 0)
@@ -772,7 +773,7 @@ export const useDataStore = create<DataState>()(
         chartData,
         properties: properties.map(p => ({
           ...p,
-          tenants: tenants.filter(t => t.propertyId === p.id && t.status === 'active'),
+          tenants: tenants.filter(t => t.propertyId === p.id && isFinanciallyActive(t.status)),
         })),
         expenses,
         maintenanceItems,
@@ -781,7 +782,7 @@ export const useDataStore = create<DataState>()(
 
     getReportData: (month, year) => {
       const { tenants, payments, properties, expenses, adjustments } = get()
-      const activeTenants = tenants.filter(t => t.status === 'active')
+      const activeTenants = tenants.filter(t => isFinanciallyActive(t.status))
       const expectedRevenue = activeTenants.reduce((sum, t) => sum + t.rentAmount, 0)
       const monthPayments = payments.filter(p => p.month === month && p.year === year)
       const totalRevenue = monthPayments.reduce((sum, p) => sum + p.amount, 0)

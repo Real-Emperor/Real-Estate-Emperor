@@ -8,6 +8,7 @@ import {
   successResponse,
   safeNumber,
 } from '@/lib/api-utils'
+import { FINANCIALLY_ACTIVE_STATUSES } from '@/lib/utils'
 
 // GET /api/dashboard — aggregated dashboard data for the authenticated user's company
 // PHASE 1 FIX: Uses Prisma aggregate(), groupBy(), count() — NO full-table data loading
@@ -54,9 +55,9 @@ export async function GET() {
         where: { companyId, deletedAt: null },
       }),
 
-      // Active tenants count
+      // Financially active tenants count (active + notice period)
       prisma.tenant.count({
-        where: { companyId, deletedAt: null, status: 'active' },
+        where: { companyId, deletedAt: null, status: { in: [...FINANCIALLY_ACTIVE_STATUSES] } },
       }),
 
       // Non-deleted properties count
@@ -70,9 +71,9 @@ export async function GET() {
         _sum: { totalUnits: true },
       }),
 
-      // Occupied units = active tenants count
+      // Occupied units = financially active tenants count
       prisma.tenant.count({
-        where: { companyId, deletedAt: null, status: 'active' },
+        where: { companyId, deletedAt: null, status: { in: [...FINANCIALLY_ACTIVE_STATUSES] } },
       }),
 
       // Current month collected revenue via aggregate
@@ -85,9 +86,9 @@ export async function GET() {
         _sum: { amount: true },
       }),
 
-      // Expected revenue = sum of rentAmount for active tenants
+      // Expected revenue = sum of rentAmount for financially active tenants
       prisma.tenant.aggregate({
-        where: { companyId, deletedAt: null, status: 'active' },
+        where: { companyId, deletedAt: null, status: { in: [...FINANCIALLY_ACTIVE_STATUSES] } },
         _sum: { rentAmount: true },
       }),
     ])
@@ -142,9 +143,9 @@ export async function GET() {
       paidMap.set(p.tenantId, (paidMap.get(p.tenantId) || 0) + Number(p.amount))
     }
 
-    // Active tenants (lightweight — only fields needed for overdue calc)
+    // Financially active tenants (lightweight — only fields needed for overdue calc)
     const activeTenants = await prisma.tenant.findMany({
-      where: { companyId, deletedAt: null, status: 'active' },
+      where: { companyId, deletedAt: null, status: { in: [...FINANCIALLY_ACTIVE_STATUSES] } },
       select: {
         id: true,
         name: true,
@@ -294,7 +295,7 @@ export async function GET() {
       return {
         ...propertyData,
         tenantCount: tenants.length,
-        activeTenantCount: tenants.filter((t) => t.status === 'active').length,
+        activeTenantCount: tenants.filter((t) => FINANCIALLY_ACTIVE_STATUSES.includes(t.status as any)).length,
       }
     })
 

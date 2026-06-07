@@ -7,6 +7,7 @@ import {
   unauthorizedResponse,
   forbiddenResponse,
 } from '@/lib/api-utils'
+import { isFinanciallyActive } from '@/lib/utils'
 
 // POST /api/seed — Seed demo data for the company
 // Only works if company has no data yet. Only admin can seed.
@@ -228,7 +229,7 @@ export async function POST() {
 
       for (let i = 0; i < tenants.length; i++) {
         const tenant = tenants[i]
-        if (tenant.status !== 'active') continue
+        if (!isFinanciallyActive(tenant.status)) continue
 
         // Current month: some haven't paid
         if (monthOffset === 0) {

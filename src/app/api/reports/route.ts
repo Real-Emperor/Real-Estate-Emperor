@@ -9,6 +9,7 @@ import {
   successResponse,
   safeNumber,
 } from '@/lib/api-utils'
+import { FINANCIALLY_ACTIVE_STATUSES } from '@/lib/utils'
 
 // GET /api/reports?month=X&year=Y — P&L report data (owner/admin only)
 // PHASE 1 FIX: Uses Prisma aggregate() and groupBy() — NO full-table data loading
@@ -42,7 +43,7 @@ export async function GET(request: Request) {
         _count: true,
       }),
       prisma.tenant.aggregate({
-        where: { companyId, deletedAt: null, status: 'active' },
+        where: { companyId, deletedAt: null, status: { in: [...FINANCIALLY_ACTIVE_STATUSES] } },
         _sum: { rentAmount: true },
         _count: true,
       }),
@@ -91,7 +92,7 @@ export async function GET(request: Request) {
         _sum: { totalUnits: true },
       }),
       prisma.tenant.count({
-        where: { companyId, deletedAt: null, status: 'active' },
+        where: { companyId, deletedAt: null, status: { in: [...FINANCIALLY_ACTIVE_STATUSES] } },
       }),
     ])
 

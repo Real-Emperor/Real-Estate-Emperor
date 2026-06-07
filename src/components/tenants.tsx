@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { TenantData, PropertyData } from '@/lib/types'
 import { t, getNameByLang, getWhatsAppLink, getTenantScoreLabel, getTenantScoreColor, type Language, type WhatsAppLanguage } from '@/lib/i18n'
-import { cn2, formatAED, formatDate, getStatusColor } from '@/lib/utils'
+import { cn2, formatAED, formatDate, getStatusColor, isFinanciallyActive } from '@/lib/utils'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { Card, CardContent } from '@/components/ui/card'
@@ -287,18 +287,18 @@ export default function Tenants() {
   // Compute available units for the selected property in the add form
   const selectedProperty = properties.find(p => p.id === form.propertyId)
   const activeTenantsInProperty = selectedProperty
-    ? (selectedProperty.tenants || []).filter(t => t.status === 'active').length
+    ? (selectedProperty.tenants || []).filter(t => isFinanciallyActive(t.status)).length
     : 0
   const vacantCount = selectedProperty ? selectedProperty.totalUnits - activeTenantsInProperty : 0
   const occupiedUnitNumbers = selectedProperty
-    ? (selectedProperty.tenants || []).filter(t => t.status === 'active' && t.unitNumber).map(t => t.unitNumber!)
+    ? (selectedProperty.tenants || []).filter(t => isFinanciallyActive(t.status) && t.unitNumber).map(t => t.unitNumber!)
     : []
   const isPropertyFull = selectedProperty ? activeTenantsInProperty >= selectedProperty.totalUnits : false
   const now = new Date()
   const currentMonth = now.getMonth() + 1
   const currentYear = now.getFullYear()
 
-  const activeCount = tenants.filter(t => t.status === 'active').length
+  const activeCount = tenants.filter(t => isFinanciallyActive(t.status)).length
 
   const filtered = tenants.filter(t => {
     const name = getNameByLang(t, language).toLowerCase()
@@ -483,7 +483,7 @@ export default function Tenants() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
-                            {tenant.status === 'active' && !currentMonthPaid && (
+                            {isFinanciallyActive(tenant.status) && !currentMonthPaid && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setWhatsappTargetTenant(tenant); setWhatsappRemindAll(false); setWhatsappLangDialogOpen(true) }}
                                 className="p-1.5 rounded hover:bg-green-50 text-green-600"
@@ -877,7 +877,7 @@ export default function Tenants() {
                 </div>
 
                 {/* WhatsApp Reminder Button */}
-                {profileTenant.status === 'active' && (
+                {isFinanciallyActive(profileTenant.status) && (
                   <div className="pt-2">
                       <Button variant="outline" className="w-full border-green-300 text-green-700 hover:bg-green-50" onClick={() => { setWhatsappTargetTenant(profileTenant); setWhatsappRemindAll(false); setWhatsappLangDialogOpen(true) }}>
                         <MessageCircle className="w-4 h-4 mr-2" />
@@ -991,7 +991,7 @@ export default function Tenants() {
                       </SelectTrigger>
                       <SelectContent>
                         {properties.filter(p => !p.archived).map(p => {
-                          const activeCount = (p.tenants || []).filter(t => t.status === 'active').length
+                          const activeCount = (p.tenants || []).filter(t => isFinanciallyActive(t.status)).length
                           const vacant = p.totalUnits - activeCount
                           return (
                             <SelectItem key={p.id} value={p.id}>
@@ -1006,7 +1006,7 @@ export default function Tenants() {
                     {form.propertyId && (() => {
                       const selProp = properties.find(p => p.id === form.propertyId)
                       if (!selProp) return null
-                      const activeCount = (selProp.tenants || []).filter(t => t.status === 'active').length
+                      const activeCount = (selProp.tenants || []).filter(t => isFinanciallyActive(t.status)).length
                       const vacant = selProp.totalUnits - activeCount
                       const isFull = activeCount >= selProp.totalUnits
                       return (
@@ -1033,7 +1033,7 @@ export default function Tenants() {
                     {form.propertyId && (() => {
                       const selProp = properties.find(p => p.id === form.propertyId)
                       if (!selProp) return null
-                      const occupied = (selProp.tenants || []).filter(t => t.status === 'active' && t.unitNumber).map(t => t.unitNumber!)
+                      const occupied = (selProp.tenants || []).filter(t => isFinanciallyActive(t.status) && t.unitNumber).map(t => t.unitNumber!)
                       if (occupied.length === 0) return null
                       return (
                         <div className="mt-1 flex flex-wrap gap-1 items-center">
@@ -1274,7 +1274,7 @@ export default function Tenants() {
             <Button
               onClick={handleSave}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              disabled={!form.name || !form.phone || !form.propertyId || saving || (!editing && (() => { const sp = properties.find(p => p.id === form.propertyId); return sp ? (sp.tenants || []).filter(t => t.status === 'active').length >= sp.totalUnits : false })())}
+              disabled={!form.name || !form.phone || !form.propertyId || saving || (!editing && (() => { const sp = properties.find(p => p.id === form.propertyId); return sp ? (sp.tenants || []).filter(t => isFinanciallyActive(t.status)).length >= sp.totalUnits : false })())}
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {t('save', language)}

@@ -5,7 +5,7 @@ import type { TenantData } from '@/lib/types'
 import { useAppStore } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { t, getNameByLang, getMonthName } from '@/lib/i18n'
-import { formatAED, formatDate, cn2 } from '@/lib/utils'
+import { formatAED, formatDate, cn2, isFinanciallyActive } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -58,7 +58,7 @@ export default function Contracts() {
     const status = getContractStatus(tenant)
     const matchesFilter = filter === 'all' || filter === status
 
-    return matchesSearch && matchesFilter && tenant.status === 'active'
+    return matchesSearch && matchesFilter && isFinanciallyActive(tenant.status)
   })
 
   if (loading) {
@@ -73,7 +73,7 @@ export default function Contracts() {
       <div>
         <h1 className="text-2xl font-bold">{t('contractTracker', language)}</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          {tenants.filter(t => t.status === 'active').length} {t('activeTenants', language).toLowerCase()}
+          {tenants.filter(t => isFinanciallyActive(t.status)).length} {t('activeTenants', language).toLowerCase()}
         </p>
       </div>
 
@@ -171,6 +171,11 @@ export default function Contracts() {
                     {contractStatus === 'expired' && <><XCircle className="w-3 h-3 mr-1" />{t('expired', language)}</>}
                     {contractStatus === 'no-contract' && t('noContracts', language)}
                   </Badge>
+                  {tenant.status === 'notice' && (
+                    <Badge className="text-[10px] bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-100 px-1.5 py-0 ml-1">
+                      {t('noticePeriod', language)}
+                    </Badge>
+                  )}
                 </div>
 
                 <div className="space-y-2 text-sm">

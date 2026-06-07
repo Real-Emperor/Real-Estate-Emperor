@@ -77,3 +77,18 @@ export function getCategoryIcon(category: string): string {
 export function cn2(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ')
 }
+
+/**
+ * Determines if a tenant should be included in financial/operational workflows.
+ * Active and Notice Period tenants are financially active (they still occupy units and owe rent).
+ * Moved-out, inactive, and evicted tenants are excluded from operational calculations.
+ */
+export function isFinanciallyActive(status: string): boolean {
+  return status === 'active' || status === 'notice'
+}
+
+/**
+ * Prisma-compatible status filter for financially active tenants.
+ * Use in Prisma where clauses: { status: { in: FINANCIALLY_ACTIVE_STATUSES } }
+ */
+export const FINANCIALLY_ACTIVE_STATUSES = ['active', 'notice'] as const

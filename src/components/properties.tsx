@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import type { PropertyData } from '@/lib/types'
 import { useAppStore, isOwnerOrAdmin } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
-import { formatAED, cn2 } from '@/lib/utils'
+import { formatAED, cn2, isFinanciallyActive } from '@/lib/utils'
 import { t, getPropertyTypeLabel, getNameByLang, type Language } from '@/lib/i18n'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -137,7 +137,7 @@ export default function Properties() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
         {properties.map((p) => {
-          const activeTenantList = (p.tenants || []).filter(t => t.status === 'active')
+          const activeTenantList = (p.tenants || []).filter(t => isFinanciallyActive(t.status))
           const activeTenants = activeTenantList.length
           const occupancy = p.totalUnits > 0 ? Math.round((activeTenants / p.totalUnits) * 100) : 0
           const totalRent = activeTenantList.reduce((s, t) => s + t.rentAmount, 0)
