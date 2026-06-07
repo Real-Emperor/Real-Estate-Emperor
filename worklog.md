@@ -135,3 +135,25 @@ Stage Summary:
 - Production deployment: https://al-reef-al-junoobi.vercel.app
 - Commit: f28ae8b
 - Migration: 20260607000000_add_phase1_rental_accounting (safe, reversible, with defaults)
+
+---
+Task ID: notice-period-fix
+Agent: Main Agent
+Task: Fix critical bug where notice period tenants are excluded from financial/operational workflows
+
+Work Log:
+- Explored entire codebase to find all 28 locations where tenant status filtering occurs
+- Added isFinanciallyActive() helper function and FINANCIALLY_ACTIVE_STATUSES constant to src/lib/utils.ts
+- Fixed 6 backend API routes: dashboard (4 queries), reports (2 queries), notifications/send (1 query), properties/[id] (2 filters), properties (1 filter), tenants (1 over-allocation check), seed (1 filter)
+- Fixed 7 frontend components: rent-collection, data-store (4 filters), tenants (8 filters), contracts (2 filters), properties (1 filter), reports (1 filter), dashboard (1 badge)
+- Added visual Notice Period badges in rent-collection, contracts, and dashboard components
+- Added noticePeriod i18n translation key
+- Build succeeded, committed as cf4e653, pushed to GitHub, deployed to Vercel
+
+Stage Summary:
+- Root cause: All code used `status === 'active'` as universal gate for financial inclusion, excluding 'notice' tenants
+- Fix: Changed all financial/operational filters to include both 'active' and 'notice' statuses
+- Notice period tenants now appear in: rent collection lists, dashboard stats, reports, P&L, occupancy counts, overdue notifications
+- Moved-out tenants remain excluded from operational workflows (correct behavior)
+- Visual indicators: amber "Notice Period" badges added in rent collection cards, contract tracker, and payment status board
+- Production deployment verified: al-reef-al-junoobi.vercel.app returns HTTP 200
