@@ -105,3 +105,33 @@ Stage Summary:
 - Deployment: https://al-reef-al-junoobi.vercel.app
 - All 4 features verified working in production
 - No unrelated changes made
+---
+Task ID: 1
+Agent: Main Agent
+Task: Phase 1 Rental Accounting Enhancements - Full implementation
+
+Work Log:
+- Created production database backup at db/custom.db.pre-phase1-backup-20260607121037
+- Added 5 new fields to Tenant model in Prisma schema: openingBalance, creditBalance, legalCase, legalCaseNumber, legalCaseNotes
+- Added allocationType field to Payment model with index
+- Created migration 20260607000000_add_phase1_rental_accounting with safe defaults and backfill
+- Updated TenantData and PaymentData TypeScript interfaces
+- Updated /api/tenants POST to accept new fields with defaults
+- Updated /api/tenants/[id] PUT with admin-only permission checks for openingBalance, creditBalance, legalCase fields
+- Updated /api/payments POST with allocationType validation and business logic (ADVANCE_PAYMENT excess → creditBalance, HISTORICAL_DEBT → reduce openingBalance)
+- Updated /api/payments/[id] PUT to support allocationType updates
+- Updated /api/backup/route.ts for allocationType in payment restore
+- Added 14 new i18n translation keys in EN/AR/BN/UR
+- Updated tenants.tsx: form state, dialog, profile dialog with Legal Information section
+- Updated rent-collection.tsx: payment allocation selector, creditBalance auto-application, LEGAL/Outstanding badges
+- Updated bill-invoice.tsx: Rental Accounting Summary with total outstanding formula
+- Fixed duplicate vacantUnits key in i18n.ts (renamed second to 'vacant')
+- Build succeeded, committed as f28ae8b, pushed to GitHub, deployed to Vercel al-reef-al-junoobi
+- Migration auto-applied during Vercel build (prisma migrate deploy in build script)
+- Deployment verified: HTTP 200, API endpoints responding correctly
+
+Stage Summary:
+- All 7 features implemented as specified
+- Production deployment: https://al-reef-al-junoobi.vercel.app
+- Commit: f28ae8b
+- Migration: 20260607000000_add_phase1_rental_accounting (safe, reversible, with defaults)
