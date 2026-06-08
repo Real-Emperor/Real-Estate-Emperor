@@ -518,6 +518,7 @@ export const translations = {
   advancePayment: { en: 'Advance Payment', ar: 'دفعة مقدمة', bn: 'অগ্রিম পেমেন্ট', ur: 'پیشگی ادائیگی' },
   totalOutstanding: { en: 'Total Outstanding', ar: 'إجمالي المستحق', bn: 'মোট বকেয়', ur: 'کل واجب الادا' },
   creditApplied: { en: 'Credit Applied', ar: 'ائتمان مطبق', bn: 'ক্রেডিট প্রয়োগ', ur: 'کریڈٹ لاگو' },
+  currentCharges: { en: 'Current Charges', ar: 'الرسوم الحالية', bn: 'বর্তমান চার্জ', ur: 'موجودہ چارجز' },
   adminOnly: { en: 'Admin Only', ar: 'المسؤول فقط', bn: 'শুধুমাত্র অ্যাডমিন', ur: 'صرف ایڈمن' },
 
   // System Management

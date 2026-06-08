@@ -34,7 +34,10 @@ export default function BillInvoice({
   const [downloading, setDownloading] = useState(false)
 
   const muniFee = includeMuniFee ? Math.round(tenant.rentAmount * 0.05) : 0
-  const totalDue = tenant.rentAmount + muniFee
+  const openingBalance = Number(tenant.openingBalance) || 0
+  const creditBalance = Number(tenant.creditBalance) || 0
+  const currentCharges = tenant.rentAmount + muniFee
+  const totalDue = openingBalance + currentCharges - creditBalance
   const remaining = totalDue - paidAmount
   const invoiceNumber = `INV-${year}${String(month).padStart(2, '0')}-${tenant.unitNumber || '000'}`
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -211,35 +214,51 @@ export default function BillInvoice({
           </tbody>
         </table>
 
-        {/* Totals */}
+        {/* Financial Summary */}
         <div className="flex justify-end mb-6">
-          <div className="w-72">
-            <div className="flex justify-between py-2 text-sm">
-              <span className="text-gray-600">{t('subtotal', language)}</span>
-              <span className="font-medium">{formatAED(tenant.rentAmount)}</span>
+          <div className="w-80">
+            {openingBalance > 0 && (
+              <div className="flex justify-between py-1.5 text-sm">
+                <span className="text-amber-700">{t('openingBalance', language)}</span>
+                <span className="font-medium text-amber-800">{formatAED(openingBalance)}</span>
+              </div>
+            )}
+            <div className="flex justify-between py-1.5 text-sm">
+              <span className="text-gray-600">{t('currentCharges', language)}</span>
+              <span className="font-medium">{formatAED(currentCharges)}</span>
             </div>
             {includeMuniFee && (
-              <div className="flex justify-between py-2 text-sm">
-                <span className="text-gray-600">{t('municipalityFee', language)}</span>
-                <span className="font-medium">{formatAED(muniFee)}</span>
+              <div className="flex justify-between py-1 text-xs text-gray-500">
+                <span className="ml-4">{t('rent', language)}</span>
+                <span>{formatAED(tenant.rentAmount)}</span>
+              </div>
+            )}
+            {includeMuniFee && (
+              <div className="flex justify-between py-1 text-xs text-gray-500">
+                <span className="ml-4">{t('municipalityFee', language)}</span>
+                <span>{formatAED(muniFee)}</span>
+              </div>
+            )}
+            {creditBalance > 0 && (
+              <div className="flex justify-between py-1.5 text-sm">
+                <span className="text-emerald-700">{t('creditBalance', language)}</span>
+                <span className="font-medium text-emerald-700">({formatAED(creditBalance)})</span>
               </div>
             )}
             <div className="border-t-2 border-emerald-600 flex justify-between py-2">
               <span className="font-bold text-emerald-700">{t('totalDue', language)}</span>
-              <span className="font-bold text-emerald-700 text-lg">{formatAED(totalDue)}</span>
+              <span className="font-bold text-emerald-700 text-lg">{formatAED(Math.max(0, totalDue))}</span>
             </div>
             {paidAmount > 0 && (
-              <>
-                <div className="flex justify-between py-1 text-sm text-emerald-600">
-                  <span>{t('paid', language)}</span>
-                  <span>-{formatAED(paidAmount)}</span>
-                </div>
-                <div className="flex justify-between py-2 border-t border-gray-300">
-                  <span className="font-bold text-gray-700">{t('remaining', language)}</span>
-                  <span className="font-bold text-red-600">{formatAED(remaining)}</span>
-                </div>
-              </>
+              <div className="flex justify-between py-1.5 text-sm text-emerald-600">
+                <span>{t('paymentsReceived', language)}</span>
+                <span>-{formatAED(paidAmount)}</span>
+              </div>
             )}
+            <div className="flex justify-between py-2 border-t border-gray-300">
+              <span className="font-bold text-gray-700">{t('remainingBalance', language)}</span>
+              <span className="font-bold text-red-600">{formatAED(Math.max(0, remaining))}</span>
+            </div>
           </div>
         </div>
 
@@ -255,44 +274,7 @@ export default function BillInvoice({
           </div>
         </div>
 
-        {/* Rental Accounting Summary */}
-        {((tenant.openingBalance || 0) > 0 || (tenant.creditBalance || 0) > 0 || tenant.legalCase) && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-            <h3 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
-              <span className="w-5 h-5 rounded bg-amber-200 flex items-center justify-center text-amber-700 text-xs font-bold">!</span>
-              {t('financialSummary', language)}
-            </h3>
-            <div className="space-y-1.5 text-sm">
-              {(tenant.openingBalance || 0) > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-amber-700">{t('openingBalance', language)}</span>
-                  <span className="font-medium text-amber-800">{formatAED(tenant.openingBalance || 0)}</span>
-                </div>
-              )}
-              {(tenant.creditBalance || 0) > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-emerald-700">{t('creditBalance', language)}</span>
-                  <span className="font-medium text-emerald-700">-{formatAED(tenant.creditBalance || 0)}</span>
-                </div>
-              )}
-              {tenant.legalCase && (
-                <div className="flex justify-between items-center">
-                  <span className="text-red-700">{t('legalCase', language)}</span>
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-100 border border-red-200 rounded px-2 py-0.5">
-                    {t('yes', language)}
-                    {tenant.legalCaseNumber && ` — ${tenant.legalCaseNumber}`}
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between border-t border-amber-300 pt-1.5 mt-1.5">
-                <span className="font-semibold text-amber-900">{t('totalOutstanding', language)}</span>
-                <span className="font-bold text-red-700">
-                  {formatAED(Math.max(0, (tenant.openingBalance || 0) + Math.max(0, remaining) - (tenant.creditBalance || 0)))}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Footer */}
         <div className="border-t border-gray-200 pt-4 text-center text-xs text-gray-400">

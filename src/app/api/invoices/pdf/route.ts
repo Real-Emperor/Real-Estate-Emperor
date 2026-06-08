@@ -51,8 +51,11 @@ export async function GET(request: Request) {
 
     const paidAmount = payments.reduce((sum, p) => sum + Number(p.amount), 0)
     const rentAmount = Number(tenant.rentAmount)
+    const openingBalance = Number(tenant.openingBalance) || 0
+    const creditBalance = Number(tenant.creditBalance) || 0
     const muniFee = includeMuniFee ? Math.round(rentAmount * 0.05) : 0
-    const totalDue = rentAmount + muniFee
+    const currentCharges = rentAmount + muniFee
+    const totalDue = openingBalance + currentCharges - creditBalance
     const remaining = totalDue - paidAmount
 
     const invoiceNumber = `INV-${year}${String(month).padStart(2, '0')}-${tenant.unitNumber || '000'}`
@@ -275,15 +278,25 @@ export async function GET(request: Request) {
     const totalsX = tableX + tableWidth * 0.5
     const totalsWidth = tableWidth * 0.5
 
-    // Subtotal
+    // Opening Balance
+    if (openingBalance > 0) {
+      doc.fontSize(9).fillColor('#92400E').font(latinFont)
+      doc.text('Opening Balance', totalsX, y, { width: totalsWidth - 20, align: 'left' })
+      doc.text(formatAED(openingBalance), totalsX, y, { width: totalsWidth, align: 'right' })
+      y += 16
+    }
+
+    // Current Charges
     doc.fontSize(9).fillColor(gray).font(latinFont)
-    doc.text('Subtotal', totalsX, y, { width: totalsWidth - 20, align: 'left' })
-    doc.text(formatAED(rentAmount), totalsX, y, { width: totalsWidth, align: 'right' })
+    doc.text('Current Charges', totalsX, y, { width: totalsWidth - 20, align: 'left' })
+    doc.text(formatAED(currentCharges), totalsX, y, { width: totalsWidth, align: 'right' })
     y += 16
 
-    if (includeMuniFee) {
-      doc.text('Municipality Fee', totalsX, y, { width: totalsWidth - 20, align: 'left' })
-      doc.text(formatAED(muniFee), totalsX, y, { width: totalsWidth, align: 'right' })
+    // Credit Balance
+    if (creditBalance > 0) {
+      doc.fontSize(9).fillColor(emerald).font(latinFont)
+      doc.text('Credit Balance', totalsX, y, { width: totalsWidth - 20, align: 'left' })
+      doc.text(`(${formatAED(creditBalance)})`, totalsX, y, { width: totalsWidth, align: 'right' })
       y += 16
     }
 
@@ -293,13 +306,13 @@ export async function GET(request: Request) {
 
     doc.fontSize(11).fillColor(emerald).font(latinFontBold)
     doc.text('Total Due', totalsX, y, { width: totalsWidth - 20, align: 'left' })
-    doc.text(formatAED(totalDue), totalsX, y, { width: totalsWidth, align: 'right' })
+    doc.text(formatAED(Math.max(0, totalDue)), totalsX, y, { width: totalsWidth, align: 'right' })
     y += 18
 
-    // Paid / Remaining
+    // Payments Received
     if (paidAmount > 0) {
       doc.fontSize(9).fillColor(emerald).font(latinFont)
-      doc.text('Paid', totalsX, y, { width: totalsWidth - 20, align: 'left' })
+      doc.text('Payments Received', totalsX, y, { width: totalsWidth - 20, align: 'left' })
       doc.text(`-${formatAED(paidAmount)}`, totalsX, y, { width: totalsWidth, align: 'right' })
       y += 16
 
@@ -307,8 +320,8 @@ export async function GET(request: Request) {
       y += 6
 
       doc.fontSize(10).fillColor('#DC2626').font(latinFontBold)
-      doc.text('Remaining', totalsX, y, { width: totalsWidth - 20, align: 'left' })
-      doc.text(formatAED(remaining), totalsX, y, { width: totalsWidth, align: 'right' })
+      doc.text('Remaining Balance', totalsX, y, { width: totalsWidth - 20, align: 'left' })
+      doc.text(formatAED(Math.max(0, remaining)), totalsX, y, { width: totalsWidth, align: 'right' })
       y += 18
     }
 

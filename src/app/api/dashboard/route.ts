@@ -155,6 +155,8 @@ export async function GET() {
         phone: true,
         unitNumber: true,
         rentAmount: true,
+        openingBalance: true,
+        creditBalance: true,
         municipalityFee: true,
         securityDeposit: true,
         newRent: true,
@@ -177,10 +179,16 @@ export async function GET() {
     })
 
     const overdueAmount =
-      overdueTenants.reduce((sum, t) => sum + Number(t.rentAmount), 0) +
+      overdueTenants.reduce((sum, t) => {
+        const ob = Number(t.openingBalance) || 0
+        const cb = Number(t.creditBalance) || 0
+        return sum + Math.max(0, ob + Number(t.rentAmount) - cb)
+      }, 0) +
       partialTenants.reduce((sum, t) => {
         const paid = paidMap.get(t.id) || 0
-        return sum + (Number(t.rentAmount) - paid)
+        const ob = Number(t.openingBalance) || 0
+        const cb = Number(t.creditBalance) || 0
+        return sum + Math.max(0, ob + Number(t.rentAmount) - cb - paid)
       }, 0)
 
     // ─── 5. Chart data — last 6 months via groupBy (NO full-table scan) ───

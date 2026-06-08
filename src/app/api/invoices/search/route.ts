@@ -117,7 +117,7 @@ export async function GET(request: Request) {
             propertyName: tenant.property?.name || null,
             unitNumber: tenant.unitNumber,
             paidAmount: canSeeFinancials ? totalPaid : 0,
-            remaining: canSeeFinancials ? Math.max(0, rentAmount - totalPaid) : 0,
+            remaining: canSeeFinancials ? Math.max(0, (Number(tenant.openingBalance) || 0) + rentAmount - (Number(tenant.creditBalance) || 0) - totalPaid) : 0,
           })
 
           // Only one invoice per tenant per month matches

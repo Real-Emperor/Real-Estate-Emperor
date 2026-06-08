@@ -593,71 +593,86 @@ export default function RentCollection() {
           const paid = (tenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear).reduce((sum, p) => sum + p.amount, 0)
           const tenantAdjustments = getTenantAdjustments(tenant)
           const totalAdjustments = tenantAdjustments.reduce((sum, a) => sum + a.amount, 0)
-          const creditApplied = Math.min(tenant.creditBalance || 0, Math.max(0, tenant.rentAmount - paid - totalAdjustments))
-          const remaining = tenant.rentAmount - paid - totalAdjustments - creditApplied
+          // Calculate true remaining balance including opening balance and credit balance
+          const openingBalance = Number(tenant.openingBalance) || 0
+          const creditBalance = Number(tenant.creditBalance) || 0
+          const currentCharges = tenant.rentAmount + totalAdjustments
+          const totalDue = openingBalance + currentCharges - creditBalance
+          const remaining = totalDue - paid
           const tenantPayments = (tenant.payments || []).filter(p => p.month === selectedMonth && p.year === selectedYear)
           const isExpanded = expandedTenant === tenant.id
 
           return (
             <Card key={tenant.id} className={cn2('card-hover', (status === 'overdue' || status === 'unpaid') && 'ring-1 ring-red-300')}>
               <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h3 className="font-semibold text-sm">
-                      {getNameByLang(tenant, language)}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      {tenant.property ? getNameByLang(tenant.property, language) : ''} - {tenant.unitNumber || '—'}
-                    </p>
+                <div className="space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-sm truncate">
+                        {getNameByLang(tenant, language)}
+                      </h3>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {tenant.property ? getNameByLang(tenant.property, language) : ''} - {tenant.unitNumber || '—'}
+                      </p>
+                    </div>
+                    <Badge className={cn2('text-xs shrink-0', getPaymentStatusColor(status))}>
+                      {status === 'paid' && t('paid', language)}
+                      {status === 'partial' && t('partial', language)}
+                      {status === 'overdue' && t('overdue', language)}
+                      {status === 'unpaid' && t('unpaid', language)}
+                      {status === 'due-soon' && t('dueSoon', language)}
+                    </Badge>
                   </div>
-                  <Badge className={cn2('text-xs', getPaymentStatusColor(status))}>
-                    {status === 'paid' && t('paid', language)}
-                    {status === 'partial' && t('partial', language)}
-                    {status === 'overdue' && t('overdue', language)}
-                    {status === 'unpaid' && t('unpaid', language)}
-                    {status === 'due-soon' && t('dueSoon', language)}
-                  </Badge>
-                  {/* Notice Period badge */}
-                  {tenant.status === 'notice' && (
-                    <Badge className="text-[10px] bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-100 px-1.5 py-0">
-                      {t('noticePeriod', language)}
-                    </Badge>
-                  )}
-                  {/* Legal case badge */}
-                  {tenant.legalCase && (
-                    <Badge className="text-[10px] bg-red-100 text-red-700 border border-red-200 hover:bg-red-100 px-1.5 py-0">
-                      LEGAL
-                    </Badge>
-                  )}
-                  {/* Opening balance badge */}
-                  {(tenant.openingBalance || 0) > 0 && (
-                    <Badge className="text-[10px] bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100 px-1.5 py-0">
-                      {t('outstanding', language)}: {formatAED(tenant.openingBalance)}
-                    </Badge>
+                  {/* Secondary badges row */}
+                  {(tenant.legalCase || tenant.status === 'notice' || (tenant.openingBalance || 0) > 0) && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {tenant.legalCase && (
+                        <Badge className="text-[10px] bg-red-100 text-red-700 border border-red-200 hover:bg-red-100 px-1.5 py-0 shrink-0">
+                          <AlertTriangle className="w-3 h-3 mr-0.5" />
+                          LEGAL
+                        </Badge>
+                      )}
+                      {tenant.status === 'notice' && (
+                        <Badge className="text-[10px] bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-100 px-1.5 py-0 shrink-0">
+                          {t('noticePeriod', language)}
+                        </Badge>
+                      )}
+                      {(tenant.openingBalance || 0) > 0 && (
+                        <Badge className="text-[10px] bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100 px-1.5 py-0 shrink-0">
+                          {t('outstanding', language)}: {formatAED(tenant.openingBalance)}
+                        </Badge>
+                      )}
+                    </div>
                   )}
                 </div>
 
                 {canSeeRevenue && (
                   <div className="flex items-center justify-between mt-3">
                     <div>
-                      <p className="text-xs text-muted-foreground">{t('originalRent', language)}</p>
-                      <p className="font-bold text-sm">{formatAED(tenant.rentAmount)}</p>
+                      <p className="text-xs text-muted-foreground">{t('currentCharges', language)}</p>
+                      <p className="font-bold text-sm">{formatAED(currentCharges)}</p>
                     </div>
-                    {status !== 'paid' && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">{t('remainingBalance', language)}</p>
-                        <p className="font-bold text-sm text-red-600">{formatAED(remaining)}</p>
-                      </div>
-                    )}
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">{t('remainingBalance', language)}</p>
+                      <p className={cn2('font-bold text-sm', remaining > 0 ? 'text-red-600' : remaining === 0 ? 'text-emerald-600' : 'text-blue-600')}>
+                        {formatAED(Math.max(0, remaining))}
+                      </p>
+                    </div>
                   </div>
                 )}
 
-                {/* Invoice breakdown */}
-                {canSeeRevenue && (paid > 0 || totalAdjustments > 0 || creditApplied > 0) && (
+                {/* Financial breakdown */}
+                {canSeeRevenue && (openingBalance > 0 || creditBalance > 0 || paid > 0 || totalAdjustments > 0) && (
                   <div className="mt-2 bg-muted/30 rounded-lg p-2 text-xs space-y-1">
+                    {openingBalance > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('openingBalance', language)}</span>
+                        <span className="font-medium text-amber-700">+{formatAED(openingBalance)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('paymentsReceived', language)}</span>
-                      <span className="font-medium text-emerald-600">{formatAED(paid)}</span>
+                      <span className="text-muted-foreground">{t('currentCharges', language)}</span>
+                      <span className="font-medium">+{formatAED(currentCharges)}</span>
                     </div>
                     {totalAdjustments > 0 && (
                       <div className="flex justify-between">
@@ -665,15 +680,25 @@ export default function RentCollection() {
                         <span className="font-medium text-amber-600">-{formatAED(totalAdjustments)}</span>
                       </div>
                     )}
-                    {creditApplied > 0 && (
+                    {creditBalance > 0 && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">{t('creditApplied', language)}</span>
-                        <span className="font-medium text-blue-600">-{formatAED(creditApplied)}</span>
+                        <span className="text-muted-foreground">{t('creditBalance', language)}</span>
+                        <span className="font-medium text-blue-600">-{formatAED(creditBalance)}</span>
                       </div>
                     )}
                     <div className="flex justify-between border-t pt-1">
-                      <span className="text-muted-foreground">{t('remainingBalance', language)}</span>
-                      <span className={`font-bold ${remaining <= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{formatAED(Math.max(0, remaining))}</span>
+                      <span className="text-muted-foreground font-medium">{t('totalDue', language)}</span>
+                      <span className="font-semibold">{formatAED(Math.max(0, totalDue))}</span>
+                    </div>
+                    {paid > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('paymentsReceived', language)}</span>
+                        <span className="font-medium text-emerald-600">-{formatAED(paid)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t pt-1">
+                      <span className="text-muted-foreground font-medium">{t('remainingBalance', language)}</span>
+                      <span className={cn2('font-bold', remaining <= 0 ? 'text-emerald-600' : 'text-red-600')}>{formatAED(Math.max(0, remaining))}</span>
                     </div>
                   </div>
                 )}
