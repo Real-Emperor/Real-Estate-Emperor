@@ -274,3 +274,43 @@ Stage Summary:
 - Health endpoint includes 4 checks: database, environment, blob storage, data integrity
 - TwoFactorSettings and DataImport components now accessible via Settings page
 - Backup history shows 2 completed backups with storage URLs
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Root-cause investigation and fix for Legal Case Indicator Missing + Manual Score Override Not Working
+
+Work Log:
+- Investigated Issue #1 (Legal Case Indicator Missing):
+  - Traced full data flow: DB (Tenant.legalCase) → API (GET /api/tenants) → Frontend (tenants.tsx)
+  - Root cause: Legal case indicator only appeared inside profile dialog's "Legal Information" section (buried, requires clicking) and rent-collection component (separate page)
+  - NO legal case indicator in the main tenant TABLE rows
+  - NO legal case indicator in the profile dialog header
+  - NO prominent legal case alert banner
+- Investigated Issue #2 (Manual Score Override Not Working):
+  - Traced full data flow: Frontend form → handleSave → API PUT /api/tenants/[id] → DB
+  - ROOT CAUSE: `Number(form.tenantScore) || 100` treats 0 as falsy, so score=0 always reverts to 100
+  - Same bug exists in systemScore: `Number(form.tenantScore) || 100`
+  - Secondary: Score label condition `form.tenantScore ?` also treats "0" as falsy
+  - Secondary: No UI for the existing score-override API endpoint
+  - Secondary: backup/route.ts uses `tenant.tenantScore || 100` (same falsy-0 bug)
+- Implemented fixes:
+  - Added LEGAL badge next to tenant name in main table row
+  - Added legal case badge in profile dialog header
+  - Added prominent legal case alert banner at top of profile dialog
+  - Fixed `|| 100` to proper empty-string/NaN check: `form.tenantScore !== '' && !isNaN(Number(form.tenantScore)) ? Number(form.tenantScore) : 100`
+  - Fixed score label condition: `form.tenantScore !== '' && !isNaN(Number(form.tenantScore))`
+  - Added Override Score button + dialog in tenant profile
+  - Added Reset to System Score button when manual override active
+  - Added Score Override dialog with score input and mandatory reason
+  - Fixed backup/route.ts: `|| 100` → `?? 100` for tenantScore/systemScore
+- Built, committed (67cdeb6), pushed to GitHub main
+- Vercel auto-deployed from git push, deployment READY
+- E2E verification: All 5 tests passed
+- Deployed code verification: LEGAL badge + Score Override code confirmed in production JS bundle
+
+Stage Summary:
+- Commit: 67cdeb6 - fix: Legal case indicator missing + Manual score override not working
+- Deployed to: al-reef-al-junoobi.vercel.app (READY)
+- Files changed: src/components/tenants.tsx, src/app/api/backup/route.ts
+- All acceptance criteria verified
