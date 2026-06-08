@@ -140,6 +140,12 @@ export default function Tenants() {
   const [auditLogs, setAuditLogs] = useState<any[]>([])
   const [loadingAudit, setLoadingAudit] = useState(false)
 
+  // Score override dialog
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false)
+  const [overrideScore, setOverrideScore] = useState('0')
+  const [overrideReason, setOverrideReason] = useState('')
+  const [overrideSaving, setOverrideSaving] = useState(false)
+
   const isPrivileged = authUser ? isOwnerOrAdmin(authUser.role) : true
   // Staff can create tenants but not edit/delete (isPrivileged = owner/admin only for edit/delete)
   const canCreate = true // All authenticated users can create tenants
@@ -222,10 +228,10 @@ export default function Tenants() {
         floor: form.floor ? Number(form.floor) : null,
         sizeSqft: form.sizeSqft ? Number(form.sizeSqft) : null,
         contractDuration: form.contractDuration ? Number(form.contractDuration) : null,
-        tenantScore: Number(form.tenantScore) || 100,
+        tenantScore: form.tenantScore !== '' && !isNaN(Number(form.tenantScore)) ? Number(form.tenantScore) : 100,
         latePaymentCount: Number(form.latePaymentCount) || 0,
         // Sync systemScore with tenantScore when editing directly
-        systemScore: Number(form.tenantScore) || 100,
+        systemScore: form.tenantScore !== '' && !isNaN(Number(form.tenantScore)) ? Number(form.tenantScore) : 100,
         openingBalance: Number(form.openingBalance) || 0,
         creditBalance: Number(form.creditBalance) || 0,
         legalCase: form.legalCase === 'true',
@@ -270,6 +276,69 @@ export default function Tenants() {
       setAuditLogs([])
     } finally {
       setLoadingAudit(false)
+    }
+  }
+
+  // Score Override: Apply manual score override via dedicated API
+  const handleOverrideScore = async () => {
+    if (!profileTenant) return
+    const score = Number(overrideScore)
+    if (isNaN(score) || score < 0 || score > 100) {
+      alert('Score must be between 0 and 100')
+      return
+    }
+    if (!overrideReason.trim()) {
+      alert(t('overrideReasonPlaceholder', language))
+      return
+    }
+    setOverrideSaving(true)
+    try {
+      const response = await fetch(`/api/tenants/${profileTenant.id}/score-override`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score, reason: overrideReason.trim() }),
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ error: 'Failed to override score' }))
+        throw new Error(data.error || 'Failed to override score')
+      }
+      setOverrideDialogOpen(false)
+      // Refresh tenant data
+      await useDataStore.getState().refreshAllData()
+      fetchData()
+      // Update the profileTenant with fresh data
+      const store = useDataStore.getState()
+      const updatedTenants = store.getTenantsWithRelations()
+      const updated = updatedTenants.find((t: TenantData) => t.id === profileTenant.id)
+      if (updated) setProfileTenant(updated)
+    } catch (error: any) {
+      alert(error.message || 'Failed to override score')
+    } finally {
+      setOverrideSaving(false)
+    }
+  }
+
+  // Score Reset: Remove manual override and revert to system score
+  const handleResetScore = async (tenantId: string) => {
+    try {
+      const response = await fetch(`/api/tenants/${tenantId}/score-override`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ error: 'Failed to reset score' }))
+        throw new Error(data.error || 'Failed to reset score')
+      }
+      // Refresh tenant data
+      await useDataStore.getState().refreshAllData()
+      fetchData()
+      // Update the profileTenant with fresh data
+      const store = useDataStore.getState()
+      const updatedTenants = store.getTenantsWithRelations()
+      const updated = updatedTenants.find((t: TenantData) => t.id === tenantId)
+      if (updated) setProfileTenant(updated)
+    } catch (error: any) {
+      alert(error.message || 'Failed to reset score')
     }
   }
 
@@ -434,8 +503,16 @@ export default function Tenants() {
                                 {displayName.charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
-                              <p className="font-medium text-sm">{displayName}</p>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-medium text-sm truncate">{displayName}</p>
+                                {tenant.legalCase && (
+                                  <Badge className="text-[10px] bg-red-100 text-red-700 border border-red-200 hover:bg-red-100 px-1.5 py-0 shrink-0">
+                                    <AlertTriangle className="w-3 h-3 mr-0.5" />
+                                    LEGAL
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-xs text-muted-foreground">{tenant.phone}</p>
                             </div>
                           </div>
@@ -587,9 +664,17 @@ export default function Tenants() {
                       {getNameByLang(profileTenant, language).charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p>{t('tenantProfile', language)}</p>
-                    <p className="text-sm font-normal text-muted-foreground">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p>{t('tenantProfile', language)}</p>
+                      {profileTenant.legalCase && (
+                        <Badge className="text-[10px] bg-red-100 text-red-700 border border-red-200 hover:bg-red-100 px-1.5 py-0">
+                          <AlertTriangle className="w-3 h-3 mr-0.5" />
+                          {t('legalCase', language)}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm font-normal text-muted-foreground truncate">
                       {getNameByLang(profileTenant, language)}
                     </p>
                   </div>
@@ -601,6 +686,22 @@ export default function Tenants() {
           {profileTenant && (
             <ScrollArea className="max-h-[70vh] pr-1">
               <div className="space-y-5 pb-4">
+                {/* Legal Case Alert Banner */}
+                {profileTenant.legalCase && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-red-800">{t('legalCase', language)}</p>
+                      {profileTenant.legalCaseNumber && (
+                        <p className="text-xs text-red-700">{t('legalCaseNumber', language)}: {profileTenant.legalCaseNumber}</p>
+                      )}
+                      {profileTenant.legalCaseNotes && (
+                        <p className="text-xs text-red-600 mt-0.5">{profileTenant.legalCaseNotes}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Score & Late Payments */}
                 <div className="space-y-3">
                   <div className="flex gap-3 flex-wrap">
@@ -655,7 +756,7 @@ export default function Tenants() {
 
                   {/* Quick Actions */}
                   {isPrivileged && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Button
                         variant="outline"
                         size="sm"
@@ -674,6 +775,31 @@ export default function Tenants() {
                         <FileText className="w-3 h-3 mr-1" />
                         {t('viewAuditTrail', language)}
                       </Button>
+                      {profileTenant.manualScoreOverride !== null && profileTenant.manualScoreOverride !== undefined ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs border-gray-300 text-gray-700 hover:bg-gray-50 h-7"
+                          onClick={() => { handleResetScore(profileTenant.id) }}
+                        >
+                          <Star className="w-3 h-3 mr-1" />
+                          {t('resetToSystemScore', language)}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs border-purple-300 text-purple-700 hover:bg-purple-50 h-7"
+                          onClick={() => {
+                            setOverrideScore(String(profileTenant.tenantScore))
+                            setOverrideReason('')
+                            setOverrideDialogOpen(true)
+                          }}
+                        >
+                          <Star className="w-3 h-3 mr-1" />
+                          {t('overrideScore', language)}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1246,7 +1372,7 @@ export default function Tenants() {
                           placeholder="100"
                         />
                         <p className="text-[11px] text-muted-foreground mt-1">
-                          {form.tenantScore ? getTenantScoreLabel(Number(form.tenantScore), language) : ''}
+                          {form.tenantScore !== '' && !isNaN(Number(form.tenantScore)) ? getTenantScoreLabel(Number(form.tenantScore), language) : ''}
                         </p>
                       </div>
                       <div>
@@ -1352,6 +1478,56 @@ export default function Tenants() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===================== SCORE OVERRIDE DIALOG ===================== */}
+      <Dialog open={overrideDialogOpen} onOpenChange={setOverrideDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Star className="w-5 h-5 text-purple-600" />
+              {t('overrideScore', language)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>{t('tenantScore', language)} (0-100)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={overrideScore}
+                onChange={e => setOverrideScore(e.target.value)}
+                placeholder="0"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {overrideScore !== '' && !isNaN(Number(overrideScore))
+                  ? getTenantScoreLabel(Number(overrideScore), language)
+                  : ''}
+              </p>
+            </div>
+            <div>
+              <Label>{t('overrideReason', language)} *</Label>
+              <Textarea
+                value={overrideReason}
+                onChange={e => setOverrideReason(e.target.value)}
+                placeholder={t('overrideReasonPlaceholder', language)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOverrideDialogOpen(false)}>{t('cancel', language)}</Button>
+            <Button
+              onClick={handleOverrideScore}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              disabled={overrideSaving || overrideScore === '' || isNaN(Number(overrideScore)) || !overrideReason.trim()}
+            >
+              {overrideSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {t('overrideScore', language)}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
