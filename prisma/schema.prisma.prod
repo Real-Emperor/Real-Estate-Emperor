@@ -127,19 +127,33 @@ model Tenant {
   newRent          Decimal?  @db.Decimal(10,2)
   status           String   @default("active") // active, inactive, evicted, notice, moved_out
   movedOutAt       DateTime? // recorded when tenant moves out
-  latePaymentCount Int      @default(0)
-  tenantScore      Int      @default(100)
-  notes            String?
-  deletedAt        DateTime? // soft delete
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  payments         Payment[]
-  receipts         Receipt[]
-  adjustments      RentAdjustment[]
+  latePaymentCount    Int      @default(0)
+  tenantScore         Int      @default(100)
+  systemScore         Int      @default(100)
+  manualScoreOverride Int?
+  manualScoreReason   String?
+  manualOverrideBy    String?
+  manualOverrideById  String?
+  manualOverrideAt    DateTime?
+  notes               String?
+  // Phase 1 Rental Accounting: Opening Balance, Credit Balance, Legal Case
+  openingBalance      Decimal  @default(0) @db.Decimal(10,2)
+  creditBalance       Decimal  @default(0) @db.Decimal(10,2)
+  legalCase           Boolean  @default(false)
+  legalCaseNumber     String?
+  legalCaseNotes      String?
+  deletedAt           DateTime? // soft delete
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  payments            Payment[]
+  receipts            Receipt[]
+  adjustments         RentAdjustment[]
+  scoreAuditLogs      ScoreAuditLog[]
 
   @@index([companyId])
   @@index([propertyId])
   @@index([status])
+  @@index([legalCase])
   @@map("tenants")
 }
 
@@ -159,6 +173,8 @@ model Payment {
   notes         String?
   isLate        Boolean  @default(false)
   daysLate      Int      @default(0)
+  // Phase 1 Rental Accounting: Payment Allocation Type
+  allocationType String?  // CURRENT_RENT, HISTORICAL_DEBT, ADVANCE_PAYMENT
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -166,6 +182,7 @@ model Payment {
   @@index([tenantId])
   @@index([month, year])
   @@index([date])
+  @@index([allocationType])
   @@map("payments")
 }
 
@@ -346,15 +363,19 @@ model BackupRecord {
   id          String   @id @default(cuid())
   companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
-  type        String
-  size        Int
+  type        String       // "auto" | "manual"
+  size        Int          // bytes
   recordCount Int
-  status      String
+  status      String       // "completed" | "failed"
   error       String?
+  storageUrl  String?      // URL to stored backup (Vercel Blob / S3)
+  dataHash    String?      // SHA-256 hash of backup JSON for integrity verification
+  triggeredBy String?      // userId who triggered (or "system" for cron)
   createdAt   DateTime @default(now())
 
   @@index([companyId])
   @@index([createdAt])
+  @@index([status])
   @@map("backup_records")
 }
 
@@ -397,4 +418,24 @@ model Notification {
   @@index([read])
   @@index([createdAt])
   @@map("notifications")
+}
+
+model ScoreAuditLog {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  previousScore Int
+  newScore      Int
+  changeType    String   // SYSTEM_CALCULATED, MANUAL_OVERRIDE, RESET_TO_SYSTEM
+  changedBy     String   // User name who made the change
+  changedById   String?  // User ID who made the change
+  reason        String?  // Mandatory for MANUAL_OVERRIDE
+  companyId     String
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([changeType])
+  @@index([createdAt])
+  @@index([companyId])
+  @@map("score_audit_logs")
 }

@@ -17,7 +17,6 @@ import {
   Receipt,
   BarChart3,
   FileText,
-  Moon,
   Languages,
   ChevronLeft,
   Menu,
@@ -91,8 +90,8 @@ export default function Sidebar() {
       >
         {/* Logo area */}
         <div className="flex items-center gap-3 p-4 border-b border-white/10 shrink-0">
-          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gold/20 shrink-0">
-            <Moon className="w-5 h-5 text-gold" />
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-white/10 shrink-0 overflow-hidden">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           {sidebarOpen && (
             <div className="min-w-0 animate-fade-in-up">

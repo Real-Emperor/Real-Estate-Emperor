@@ -164,7 +164,7 @@ export default function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="owner@realestate.ae"
+                    placeholder="demoO@realestate.ae"
                     className="mt-1.5"
                     required
                   />

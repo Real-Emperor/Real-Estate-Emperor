@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "Real Estate Emperor Property Management L.L.C.",
   description: "Property Dashboard - Real Estate Emperor Property Management L.L.C.",
   icons: {
-    icon: "/logo.svg",
+    icon: "/logo.png",
   },
 };
 
