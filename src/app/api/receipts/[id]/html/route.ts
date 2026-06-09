@@ -72,8 +72,8 @@ export async function GET(
 
     const amountInWords = numberToWords(receipt.amount)
     const receiptDate = new Date(receipt.date).toLocaleDateString('en-AE', { year: 'numeric', month: 'long', day: 'numeric' })
-    const companyName = receipt.company?.name || 'Al Reef Al Junoobi'
-    const companyAr = receipt.company?.nameAr || 'الريف الجنوبي'
+    const companyName = receipt.company?.name || 'Real Estate Emperor'
+    const companyAr = receipt.company?.nameAr || 'الإمبراطور العقاري'
     const companyAddr = receipt.company?.address || ''
     const companyPhone = receipt.company?.phone || ''
     const companyEmail = receipt.company?.email || ''
@@ -153,7 +153,7 @@ export async function GET(
       </div>
     </div>
     <div class="footer">
-      <div class="left">Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.</div>
+      <div class="left">Real Estate Emperor Property Management L.L.C.</div>
       <div class="right">Thank you for your payment!</div>
     </div>
   </div>

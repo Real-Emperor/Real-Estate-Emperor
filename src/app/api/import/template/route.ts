@@ -133,7 +133,7 @@ export async function GET(request: Request) {
     return new Response(buffer, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="al-reef-import-template.xlsx"`,
+        'Content-Disposition': `attachment; filename="emperor-import-template.xlsx"`,
       },
     })
   } catch (error) {

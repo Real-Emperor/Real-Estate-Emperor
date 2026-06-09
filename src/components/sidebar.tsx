@@ -97,7 +97,7 @@ export default function Sidebar() {
           {sidebarOpen && (
             <div className="min-w-0 animate-fade-in-up">
               <h1 className="text-white font-bold text-sm leading-tight truncate">
-                {language === 'ar' ? 'الريف المدينة' : language === 'bn' ? 'আল রিফ আল মাদিনা' : language === 'ur' ? 'الریف المدینہ' : 'Al Reef Al Madeena'}
+                {language === 'ar' ? 'إمبراطور العقارات' : language === 'bn' ? 'রিয়েল এস্টেট এম্পেরর' : language === 'ur' ? 'رییل اسٹیٹ ایمپیرر' : 'Real Estate Emperor'}
               </h1>
               <p className="text-white/50 text-xs truncate">
                 {t('properties', language)}

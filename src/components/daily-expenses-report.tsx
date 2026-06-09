@@ -233,7 +233,7 @@ export default function DailyExpensesReport() {
           pdf.rect(0, 0, pw, 14, 'F')
           pdf.setTextColor(255, 255, 255)
           pdf.setFontSize(9)
-          pdf.text('Al Reef Al Madeena', m, 9)
+          pdf.text('Real Estate Emperor', m, 9)
           pdf.setFontSize(8)
           pdf.text(`${t('dailyExpensesReport', lang)} — ${formatDate(selectedDate + 'T00:00:00.000Z')}`, pw - m, 9, { align: 'right' })
           return 22
@@ -256,11 +256,11 @@ export default function DailyExpensesReport() {
       // Company name
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(22)
-      pdf.text('Al Reef Al Madeena', m, 18)
+      pdf.text('Real Estate Emperor', m, 18)
       pdf.setFontSize(10)
-      pdf.text('Real Estate Management and General Maintenance - L.L.C - S.P.C', m, 26)
+      pdf.text('Property Management L.L.C.', m, 26)
       pdf.setFontSize(9)
-      pdf.text("Near LuLu Muraba'a, Al Ain City, Abu Dhabi, UAE", m, 33)
+      pdf.text('Business Bay, Dubai, UAE', m, 33)
 
       // Report title — right aligned
       pdf.setFontSize(18)
@@ -472,7 +472,7 @@ export default function DailyExpensesReport() {
       pdf.rect(0, 0, pw, 14, 'F')
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(9)
-      pdf.text('Al Reef Al Madeena', m, 9)
+      pdf.text('Real Estate Emperor', m, 9)
       pdf.setFontSize(8)
       pdf.text(`${t('dailyExpensesReport', lang)} — ${formatDate(selectedDate + 'T00:00:00.000Z')}`, pw - m, 9, { align: 'right' })
       y = 22
@@ -680,12 +680,12 @@ export default function DailyExpensesReport() {
         drawLine(m, ph - 12, pw - m, ph - 12, '#E5E7EB', 0.3)
         pdf.setFontSize(6.5)
         pdf.setTextColor(150, 150, 150)
-        pdf.text(`Al Reef Al Madeena | ${t('dailyExpensesReport', lang)} | ${formatDate(selectedDate + 'T00:00:00.000Z')}`, m, ph - 7)
+        pdf.text(`Real Estate Emperor | ${t('dailyExpensesReport', lang)} | ${formatDate(selectedDate + 'T00:00:00.000Z')}`, m, ph - 7)
         pdf.text(`Page ${i} of ${totalPages}`, pw - m, ph - 7, { align: 'right' })
         pdf.text('CONFIDENTIAL', pw / 2, ph - 7, { align: 'center' })
       }
 
-      pdf.save(`Al_Reef_Daily_Report_${selectedDate}.pdf`)
+      pdf.save(`Real_Estate_Emperor_Daily_Report_${selectedDate}.pdf`)
       toast.success(t('exportSuccess', lang))
     } catch (error) {
       console.error('PDF Export failed:', error)
@@ -709,7 +709,7 @@ export default function DailyExpensesReport() {
       // ─── SHEET 1: EXECUTIVE SUMMARY ───
       const summaryRows: any[][] = [
         // Row 1: Company name (merged visually)
-        [company.name || 'Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C'],
+        [company.name || 'Real Estate Emperor Property Management L.L.C.'],
         // Row 2: Report title
         [t('dailyExpensesReport', lang).toUpperCase()],
         // Row 3: Date
@@ -856,7 +856,7 @@ export default function DailyExpensesReport() {
       wsCat['!cols'] = [{ wch: 20 }, { wch: 16 }, { wch: 20 }, { wch: 10 }, { wch: 14 }]
       XLSX.utils.book_append_sheet(wb, wsCat, 'Category Analysis')
 
-      XLSX.writeFile(wb, `Al_Reef_Daily_Report_${selectedDate}.xlsx`)
+      XLSX.writeFile(wb, `Real_Estate_Emperor_Daily_Report_${selectedDate}.xlsx`)
       toast.success(t('exportSuccess', lang))
     } catch (error) {
       console.error('XLSX Export failed:', error)
@@ -888,10 +888,10 @@ export default function DailyExpensesReport() {
       {/* Professional Report Header */}
       <div className="flex items-center justify-between flex-wrap gap-2 pb-4 border-b-2 border-emerald/20 print:border-emerald/40">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-lg bg-emerald flex items-center justify-center text-white font-bold text-sm shrink-0">AM</div>
+          <div className="w-10 h-10 rounded-lg bg-emerald flex items-center justify-center text-white font-bold text-sm shrink-0">RE</div>
           <div className="min-w-0">
-            <h2 className="font-bold text-foreground text-sm sm:text-base truncate">Al Reef Al Madeena</h2>
-            <p className="text-xs text-muted-foreground hidden sm:block">Real Estate Management & General Maintenance</p>
+            <h2 className="font-bold text-foreground text-sm sm:text-base truncate">Real Estate Emperor</h2>
+            <p className="text-xs text-muted-foreground hidden sm:block">Property Management L.L.C.</p>
           </div>
         </div>
         <div className="text-center hidden md:block">

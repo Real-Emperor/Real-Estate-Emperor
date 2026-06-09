@@ -10,7 +10,7 @@ interface EmailPayload {
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const DEFAULT_FROM = process.env.EMAIL_FROM || 'Al Reef Dashboard <noreply@alreef.ae>'
+const DEFAULT_FROM = process.env.EMAIL_FROM || 'Real Estate Emperor <noreply@realestateemperor.ae>'
 
 export async function sendEmail(payload: EmailPayload): Promise<{ success: boolean; error?: string }> {
   if (!RESEND_API_KEY) {
@@ -55,7 +55,7 @@ export async function sendEmail(payload: EmailPayload): Promise<{ success: boole
 export async function sendPasswordResetEmail(
   email: string,
   resetLink: string,
-  companyName: string = 'Al Reef Dashboard'
+  companyName: string = 'Real Estate Emperor'
 ): Promise<{ success: boolean; error?: string }> {
   return sendEmail({
     to: email,
@@ -99,7 +99,7 @@ export async function sendNotificationEmail(
   email: string,
   title: string,
   message: string,
-  companyName: string = 'Al Reef Dashboard'
+  companyName: string = 'Real Estate Emperor'
 ): Promise<{ success: boolean; error?: string }> {
   return sendEmail({
     to: email,
@@ -136,7 +136,7 @@ export async function sendReceiptEmail(
   amount: number,
   tenantName: string,
   receiptLink: string,
-  companyName: string = 'Al Reef Dashboard'
+  companyName: string = 'Real Estate Emperor'
 ): Promise<{ success: boolean; error?: string }> {
   const formattedAmount = new Intl.NumberFormat('en-AE', {
     style: 'currency',

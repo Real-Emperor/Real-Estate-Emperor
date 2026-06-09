@@ -1,7 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="64" fill="#0F766E"/>
-  <g transform="translate(256,256)">
-    <path d="M0,-120 A120,120 0 1,0 0,120 A90,90 0 1,1 0,-120" fill="#F59E0B" opacity="0.9"/>
-    <polygon points="60,-80 65,-65 80,-65 68,-55 72,-40 60,-50 48,-40 52,-55 40,-65 55,-65" fill="#F59E0B" opacity="0.7"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F766E"/>
+      <stop offset="100%" style="stop-color:#134E4A"/>
+    </linearGradient>
+    <linearGradient id="crown" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FBBF24"/>
+      <stop offset="100%" style="stop-color:#F59E0B"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="24" fill="url(#bg)"/>
+  <path d="M48 82 L67 52 L82 69 L96 42 L110 69 L125 52 L144 82 Z" fill="url(#crown)"/>
+  <rect x="48" y="79" width="96" height="7" rx="2" fill="url(#crown)"/>
+  <circle cx="67" cy="77" r="3" fill="#0F766E"/>
+  <circle cx="96" cy="74" r="4" fill="#0F766E"/>
+  <circle cx="125" cy="77" r="3" fill="#0F766E"/>
+  <rect x="56" y="92" width="28" height="50" rx="3" fill="#1a8a80" opacity="0.5"/>
+  <rect x="89" y="75" width="32" height="67" rx="3" fill="#1a8a80" opacity="0.5"/>
+  <rect x="126" y="98" width="22" height="44" rx="3" fill="#1a8a80" opacity="0.5"/>
 </svg>

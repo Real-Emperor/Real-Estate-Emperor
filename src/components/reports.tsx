@@ -175,9 +175,9 @@ export default function Reports() {
       pdf.rect(0, 0, pageWidth, 50, 'F')
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(24)
-      pdf.text('Al Reef Al Madeena', pageWidth / 2, 20, { align: 'center' })
+      pdf.text('Real Estate Emperor', pageWidth / 2, 20, { align: 'center' })
       pdf.setFontSize(12)
-      pdf.text('Real Estate Management and General Maintenance - L.L.C - S.P.C', pageWidth / 2, 30, { align: 'center' })
+      pdf.text('Property Management L.L.C.', pageWidth / 2, 30, { align: 'center' })
       pdf.setFontSize(16)
       pdf.text(`${t('financialSummary', lang)} - ${monthName} ${selectedYear}`, pageWidth / 2, 42, { align: 'center' })
 
@@ -240,7 +240,7 @@ export default function Reports() {
       pdf.rect(0, 0, pageWidth, 14, 'F')
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(9)
-      pdf.text('Al Reef Al Madeena', margin, 9)
+      pdf.text('Real Estate Emperor', margin, 9)
       pdf.setFontSize(8)
       pdf.text(`${t('financialSummary', lang)} — ${monthName} ${selectedYear}`, pageWidth - margin, 9, { align: 'right' })
       creditY = 22
@@ -281,7 +281,7 @@ export default function Reports() {
           pdf.rect(0, 0, pageWidth, 14, 'F')
           pdf.setTextColor(255, 255, 255)
           pdf.setFontSize(9)
-          pdf.text('Al Reef Al Madeena', margin, 9)
+          pdf.text('Real Estate Emperor', margin, 9)
           pdf.setFontSize(8)
           pdf.text(`${t('income', lang)} (cont.) — ${monthName} ${selectedYear}`, pageWidth - margin, 9, { align: 'right' })
           creditY = 22
@@ -532,10 +532,10 @@ export default function Reports() {
         pdf.setPage(i)
         pdf.setFontSize(7)
         pdf.setTextColor(150, 150, 150)
-        pdf.text(`Al Reef Al Madeena Real Estate | ${monthName} ${selectedYear} Report | Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' })
+        pdf.text(`Real Estate Emperor | ${monthName} ${selectedYear} Report | Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' })
       }
 
-      pdf.save(`Al_Reef_Report_${monthName}_${selectedYear}.pdf`)
+      pdf.save(`Real_Estate_Emperor_Report_${monthName}_${selectedYear}.pdf`)
       toast.success(t('exportSuccess', lang))
     } catch (error) {
       console.error('PDF Export failed:', error)
@@ -749,7 +749,7 @@ export default function Reports() {
       XLSX.utils.book_append_sheet(wb, wsMaintenance, 'Maintenance')
 
       // Generate and download
-      const fileName = `Al_Reef_Report_${getMonthName(selectedMonth, 'en')}_${selectedYear}.xlsx`
+      const fileName = `Real_Estate_Emperor_Report_${getMonthName(selectedMonth, 'en')}_${selectedYear}.xlsx`
       XLSX.writeFile(wb, fileName)
 
       toast.success(t('exportSuccess', lang))
@@ -807,10 +807,10 @@ export default function Reports() {
       {/* Professional Report Header */}
       <div className="flex items-center justify-between flex-wrap gap-2 pb-4 border-b-2 border-emerald/20 print:border-emerald/40">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-lg bg-emerald flex items-center justify-center text-white font-bold text-sm shrink-0">AM</div>
+          <div className="w-10 h-10 rounded-lg bg-emerald flex items-center justify-center text-white font-bold text-sm shrink-0">RE</div>
           <div className="min-w-0">
-            <h2 className="font-bold text-foreground text-sm sm:text-base truncate">Al Reef Al Madeena</h2>
-            <p className="text-xs text-muted-foreground hidden sm:block">Real Estate Management & General Maintenance</p>
+            <h2 className="font-bold text-foreground text-sm sm:text-base truncate">Real Estate Emperor</h2>
+            <p className="text-xs text-muted-foreground hidden sm:block">Property Management L.L.C.</p>
           </div>
         </div>
         <div className="text-center hidden md:block">

@@ -136,17 +136,17 @@ export default function BillInvoice({
         <div className="flex justify-between items-start border-b-2 border-emerald-600 pb-4 mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-10 h-10 rounded bg-emerald-600 flex items-center justify-center text-white font-bold text-lg">AM</div>
+              <div className="w-10 h-10 rounded bg-emerald-600 flex items-center justify-center text-white font-bold text-lg">RE</div>
               <div>
-                <h1 className="text-xl font-bold text-emerald-700">Al Reef Al Madeena</h1>
-                <p className="text-xs text-gray-500">Real Estate Management and General Maintenance - L.L.C - S.P.C</p>
+                <h1 className="text-xl font-bold text-emerald-700">Real Estate Emperor</h1>
+                <p className="text-xs text-gray-500">Property Management L.L.C.</p>
               </div>
             </div>
             <div className="text-xs text-gray-500 mt-2 space-y-0.5">
-              <p>Near LuLu Muraba'a, Al Ain City, Abu Dhabi, UAE</p>
-              <p>Tel: +971504225590 / +971568452161 | Email: alreef.junoobi@gmail.com</p>
-              <p>{t('taxId', language)}: 105383159800003</p>
-              <p>{t('commercialLicense', language)}: CN-6177648</p>
+              <p>Business Bay, Dubai, UAE</p>
+              <p>Tel: +971-4-555-0100 / +971-4-555-0101 | Email: info@realestateemperor.ae</p>
+              <p>{t('taxId', language)}: 100XXXXXXXXX001</p>
+              <p>{t('commercialLicense', language)}: CN-DEMO-2024001</p>
             </div>
           </div>
           <div className="text-right">
@@ -278,8 +278,8 @@ export default function BillInvoice({
 
         {/* Footer */}
         <div className="border-t border-gray-200 pt-4 text-center text-xs text-gray-400">
-          <p>Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C | Near LuLu Muraba'a, Al Ain City, Abu Dhabi, UAE</p>
-          <p>Thank you for your payment. For questions, contact alreef.junoobi@gmail.com or +971504225590</p>
+          <p>Real Estate Emperor Property Management L.L.C. | Business Bay, Dubai, UAE</p>
+          <p>Thank you for your payment. For questions, contact info@realestateemperor.ae or +971-4-555-0100</p>
         </div>
       </div>
 

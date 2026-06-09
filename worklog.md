@@ -45,7 +45,7 @@ Fixed 16 bugs across 3 files: `reports.tsx`, `daily-expenses-report.tsx`, and `g
 
 9. **Bug 9 — KPI card formatAED overflow**: Added `drawCardAmount()` helper that auto-scales font size from 12pt down to 7pt using `pdf.getStringUnitWidth()` to ensure amounts fit within card width.
 
-10. **Bug 10 — Footer text too long**: Shortened from `Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C` to `Al Reef Al Madeena`.
+10. **Bug 10 — Footer text too long**: Shortened from `Real Estate Emperor Real Estate Management and General Maintenance - L.L.C - S.P.C` to `Real Estate Emperor`.
 
 **Additional PDF fixes:**
 - Changed `checkPage` helper to use `ph - 25` instead of `ph - 18` for footer room.
@@ -97,12 +97,12 @@ Work Log:
 - Added i18n translations: searchTenant, totalCashPayments, totalBankTransferPayments, totalChequePayments, paymentMethodSummary
 - Added getNameByLang import to reports.tsx
 - Committed as 0efa9a8 and pushed to GitHub
-- Deployed to Vercel al-reef-al-junoobi successfully
+- Deployed to Vercel real-estate-emperor successfully
 - E2E test: ALL 4 tests PASS
 
 Stage Summary:
 - Commit: 0efa9a8
-- Deployment: https://al-reef-al-junoobi.vercel.app
+- Deployment: https://real-estate-emperor.vercel.app
 - All 4 features verified working in production
 - No unrelated changes made
 ---
@@ -126,13 +126,13 @@ Work Log:
 - Updated rent-collection.tsx: payment allocation selector, creditBalance auto-application, LEGAL/Outstanding badges
 - Updated bill-invoice.tsx: Rental Accounting Summary with total outstanding formula
 - Fixed duplicate vacantUnits key in i18n.ts (renamed second to 'vacant')
-- Build succeeded, committed as f28ae8b, pushed to GitHub, deployed to Vercel al-reef-al-junoobi
+- Build succeeded, committed as f28ae8b, pushed to GitHub, deployed to Vercel real-estate-emperor
 - Migration auto-applied during Vercel build (prisma migrate deploy in build script)
 - Deployment verified: HTTP 200, API endpoints responding correctly
 
 Stage Summary:
 - All 7 features implemented as specified
-- Production deployment: https://al-reef-al-junoobi.vercel.app
+- Production deployment: https://real-estate-emperor.vercel.app
 - Commit: f28ae8b
 - Migration: 20260607000000_add_phase1_rental_accounting (safe, reversible, with defaults)
 
@@ -156,7 +156,7 @@ Stage Summary:
 - Notice period tenants now appear in: rent collection lists, dashboard stats, reports, P&L, occupancy counts, overdue notifications
 - Moved-out tenants remain excluded from operational workflows (correct behavior)
 - Visual indicators: amber "Notice Period" badges added in rent collection cards, contract tracker, and payment status board
-- Production deployment verified: al-reef-al-junoobi.vercel.app returns HTTP 200
+- Production deployment verified: real-estate-emperor.vercel.app returns HTTP 200
 
 ---
 Task ID: expenses-restructure
@@ -182,7 +182,7 @@ Stage Summary:
 - 3 files changed, 273 insertions, 42 deletions
 - API: GET /api/expenses now supports ?date=YYYY-MM-DD, ?month=6&year=2026, ?startDate=&endDate=
 - UI: Defaults to Today View, full daily/monthly navigation, clear filter context
-- Production live at al-reef-al-junoobi.vercel.app
+- Production live at real-estate-emperor.vercel.app
 
 ---
 Task ID: 1
@@ -247,10 +247,10 @@ Stage Summary:
 ---
 Task ID: 2
 Agent: Main Agent
-Task: Implement production-grade backup/DR improvements for Al Reef Al Madeena
+Task: Implement production-grade backup/DR improvements for Real Estate Emperor
 
 Work Log:
-- Created Vercel Blob Store (al-reef-backups, store_H9UihODLtAc3D2oD) and linked to project
+- Created Vercel Blob Store (emperor-backups, store_H9UihODLtAc3D2oD) and linked to project
 - BLOB_READ_WRITE_TOKEN automatically added to Vercel env vars
 - Resolved merge conflict with previous session's implementation (9660656)
 - Fixed critical bug: /api/backup/auto not whitelisted in middleware (cron would fail with 401)
@@ -311,6 +311,6 @@ Work Log:
 
 Stage Summary:
 - Commit: 67cdeb6 - fix: Legal case indicator missing + Manual score override not working
-- Deployed to: al-reef-al-junoobi.vercel.app (READY)
+- Deployed to: real-estate-emperor.vercel.app (READY)
 - Files changed: src/components/tenants.tsx, src/app/api/backup/route.ts
 - All acceptance criteria verified

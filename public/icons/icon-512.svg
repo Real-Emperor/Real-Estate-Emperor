@@ -1,7 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="64" fill="#0F766E"/>
-  <g transform="translate(256,256)">
-    <path d="M0,-120 A120,120 0 1,0 0,120 A90,90 0 1,1 0,-120" fill="#F59E0B" opacity="0.9"/>
-    <polygon points="60,-80 65,-65 80,-65 68,-55 72,-40 60,-50 48,-40 52,-55 40,-65 55,-65" fill="#F59E0B" opacity="0.7"/>
-  </g>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F766E"/>
+      <stop offset="100%" style="stop-color:#134E4A"/>
+    </linearGradient>
+    <linearGradient id="crown" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FBBF24"/>
+      <stop offset="100%" style="stop-color:#F59E0B"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="64" fill="url(#bg)"/>
+  <path d="M128 218 L178 138 L218 184 L256 112 L294 184 L334 138 L384 218 Z" fill="url(#crown)"/>
+  <rect x="128" y="212" width="256" height="18" rx="4" fill="url(#crown)"/>
+  <circle cx="178" cy="206" r="7" fill="#0F766E"/>
+  <circle cx="256" cy="198" r="10" fill="#0F766E"/>
+  <circle cx="334" cy="206" r="7" fill="#0F766E"/>
+  <rect x="150" y="248" width="75" height="130" rx="6" fill="#1a8a80" opacity="0.5"/>
+  <rect x="236" y="200" width="85" height="178" rx="6" fill="#1a8a80" opacity="0.5"/>
+  <rect x="334" y="262" width="58" height="116" rx="6" fill="#1a8a80" opacity="0.5"/>
+  <text x="256" y="440" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="white" letter-spacing="2">REAL ESTATE EMPEROR</text>
 </svg>

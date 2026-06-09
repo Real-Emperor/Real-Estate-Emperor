@@ -1,7 +1,7 @@
 {
-  "name": "Al Reef Al Junoobi - Property Dashboard",
-  "short_name": "Al Reef",
-  "description": "Property Management Dashboard - Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.",
+  "name": "Real Estate Emperor - Property Dashboard",
+  "short_name": "Emperor",
+  "description": "Property Management Dashboard - Real Estate Emperor Property Management L.L.C.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFF8F0",

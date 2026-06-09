@@ -152,7 +152,7 @@ function buildCover() {
     alignment: AlignmentType.LEFT,
     indent: { left: 800 },
     spacing: { line: 400, lineRule: "atLeast" },
-    children: [new TextRun({ text: "Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.", size: 28, color: P.coverSub, font: { ascii: "Times New Roman", eastAsia: "Noto Sans SC" } })],
+    children: [new TextRun({ text: "Real Estate Emperor Property Management L.L.C.", size: 28, color: P.coverSub, font: { ascii: "Times New Roman", eastAsia: "Noto Sans SC" } })],
   }));
 
   children.push(new Paragraph({
@@ -279,7 +279,7 @@ function buildEnglishSection() {
 
   content.push(heading1EN("2. The Solution: Property Dashboard"));
 
-  content.push(bodyEN("A custom-built digital dashboard designed exclusively for Al Reef Al Junoobi. Accessible from any device \u2014 your phone, tablet, or laptop \u2014 it puts your entire property operation in one place. No more notebooks. No more guesswork. Just clarity."));
+  content.push(bodyEN("A custom-built digital dashboard designed exclusively for Real Estate Emperor. Accessible from any device \u2014 your phone, tablet, or laptop \u2014 it puts your entire property operation in one place. No more notebooks. No more guesswork. Just clarity."));
 
   content.push(heading2EN("What It Does"));
 
@@ -324,8 +324,8 @@ function buildEnglishSection() {
   content.push(accentLine());
 
   content.push(bodyBoldEN("Contact: ", "Ahmed Ali"));
-  content.push(bodyBoldEN("Dashboard: ", "https://al-reef-al-junoobi.vercel.app"));
-  content.push(bodyBoldEN("Login: ", "owner@alreef.ae / owner123"));
+  content.push(bodyBoldEN("Dashboard: ", "https://real-estate-emperor.vercel.app"));
+  content.push(bodyBoldEN("Login: ", "demoO@realestate.ae / owner123"));
 
   return content;
 }
@@ -381,8 +381,8 @@ function buildBengaliSection() {
   content.push(accentLine());
 
   content.push(bodyBoldBN("\u09AF\u09CB\u0997\u09BE\u09AF\u09CB\u0997: ", "\u0986\u09B9\u09AE\u09C7\u09A6 \u0986\u09B2\u09C0"));
-  content.push(bodyBoldBN("\u09A1\u09CD\u09AF\u09BE\u09B6\u09AC\u09CB\u09B0\u09CD\u09A1: ", "https://al-reef-al-junoobi.vercel.app"));
-  content.push(bodyBoldBN("\u09B2\u0985\u0997\u0987\u09A8: ", "owner@alreef.ae / owner123"));
+  content.push(bodyBoldBN("\u09A1\u09CD\u09AF\u09BE\u09B6\u09AC\u09CB\u09B0\u09CD\u09A1: ", "https://real-estate-emperor.vercel.app"));
+  content.push(bodyBoldBN("\u09B2\u0985\u0997\u0987\u09A8: ", "demoO@realestate.ae / owner123"));
 
   return content;
 }
@@ -418,7 +418,7 @@ const doc = new Document({
           children: [new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
-              new TextRun({ text: "Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.  |  Page ", size: 16, color: P.secondary, font: { ascii: "Times New Roman" } }),
+              new TextRun({ text: "Real Estate Emperor Property Management L.L.C.  |  Page ", size: 16, color: P.secondary, font: { ascii: "Times New Roman" } }),
               new TextRun({ children: [PageNumber.CURRENT], size: 16, color: P.secondary }),
             ],
           })],
@@ -442,7 +442,7 @@ const doc = new Document({
 });
 
 // ── Generate ──
-const outPath = "/home/z/my-project/download/Al_Reef_Al_Junoobi_Pitch_Proposal.docx";
+const outPath = "/home/z/my-project/download/Real_Estate_Emperor_Pitch_Proposal.docx";
 Packer.toBuffer(doc).then(buf => {
   fs.writeFileSync(outPath, buf);
   console.log("Generated:", outPath);

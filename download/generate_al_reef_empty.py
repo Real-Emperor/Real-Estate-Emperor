@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Al Reef Al Janoubi — Real Estate Management System (Updated)
+Real Estate Emperor — Real Estate Management System (Updated)
 =============================================================
 AED 2,000 value professional empty template.
 11-sheet comprehensive RE management system.
@@ -94,8 +94,8 @@ CF_WARNING_FILL = base.CF_WARNING_FILL
 CF_WARNING_FONT = base.CF_WARNING_FONT
 
 # ── Constants ──
-OUTPUT_PATH = "/home/z/my-project/download/Al_Reef_Al_Janoubi_Empty.xlsx"
-COMPANY = "Al Reef Al Janoubi"
+OUTPUT_PATH = "/home/z/my-project/download/Real_Estate_Emperor_Empty.xlsx"
+COMPANY = "Real Estate Emperor"
 CURRENCY_FMT = "#,##0.00"
 DATE_FMT = "YYYY-MM-DD"
 PCT_FMT = "0.0%"
@@ -138,7 +138,7 @@ ws_guide = wb.active
 ws_guide.title = "Guidance"
 ws_guide.sheet_properties.tabColor = TAB_COLOR
 
-setup_sheet(ws_guide, title="Al Reef Al Janoubi — System Usage Guide", last_col=10)
+setup_sheet(ws_guide, title="Real Estate Emperor — System Usage Guide", last_col=10)
 
 # Column widths
 ws_guide.column_dimensions["A"].width = 3
@@ -427,7 +427,7 @@ setup_print(ws_guide, "J", r, "2:3")
 ws_dash = wb.create_sheet("Dashboard")
 ws_dash.sheet_properties.tabColor = TAB_COLOR
 
-setup_sheet(ws_dash, title="Al Reef Al Janoubi — Real Estate Dashboard", last_col=14)
+setup_sheet(ws_dash, title="Real Estate Emperor — Real Estate Dashboard", last_col=14)
 
 # ── KPI Cards Row ──
 # Net Profit is now at P&L row 32 (was 33 — removed Late Fee Income line)
@@ -1212,7 +1212,7 @@ setup_print(ws_rev, "O", current_row + 25, "2:4")
 ws_pl = wb.create_sheet("Profit & Loss")
 ws_pl.sheet_properties.tabColor = TAB_COLOR
 
-setup_sheet(ws_pl, title="Profit & Loss Statement — Al Reef Al Janoubi", last_col=4)
+setup_sheet(ws_pl, title="Profit & Loss Statement — Real Estate Emperor", last_col=4)
 
 pl_col_start = 2
 pl_col_end = 4
@@ -1508,7 +1508,7 @@ setup_print(ws_con, "L", con_summary_start + len(con_summary_items) + 1, "2:4")
 # SAVE
 # ================================================================
 wb.save(OUTPUT_PATH)
-print(f"Al Reef Al Janoubi RE System saved to: {OUTPUT_PATH}")
+print(f"Real Estate Emperor RE System saved to: {OUTPUT_PATH}")
 print(f"  Sheets: {len(wb.sheetnames)}")
 for s in wb.sheetnames:
     print(f"  - {s}")

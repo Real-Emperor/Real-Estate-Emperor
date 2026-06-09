@@ -135,7 +135,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               <div className="w-16 h-16 rounded-2xl bg-deep-teal/10 flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="w-8 h-8 text-deep-teal" />
               </div>
-              <CardTitle className="text-2xl">Welcome to Al Reef Dashboard</CardTitle>
+              <CardTitle className="text-2xl">Welcome to Real Estate Emperor Dashboard</CardTitle>
               <CardDescription className="text-base mt-2">
                 Let's set up your property management system. This will only take a few minutes.
               </CardDescription>
@@ -196,7 +196,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   id="company-name"
                   value={companyForm.name}
                   onChange={(e) => setCompanyForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Al Reef Al Junoobi Real Estate"
+                  placeholder="Real Estate Emperor Property Management"
                   className="mt-1.5"
                 />
               </div>
@@ -206,7 +206,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   id="company-name-ar"
                   value={companyForm.nameAr}
                   onChange={(e) => setCompanyForm(f => ({ ...f, nameAr: e.target.value }))}
-                  placeholder="الريف الجنوبي للعقارات"
+                  placeholder="الإمبراطور العقاري"
                   className="mt-1.5"
                   dir="rtl"
                 />

@@ -173,7 +173,7 @@ def write_section_header(ws, row, title, fill_color=None):
 row = write_section_header(ws1, 4, "OVERVIEW")
 ws1.merge_cells(start_row=row, start_column=2, end_row=row+4, end_column=8)
 overview = (
-    "This workbook is a structured data collection template for the Al Reef Al Madeena property management system migration. "
+    "This workbook is a structured data collection template for the Real Estate Emperor property management system migration. "
     "It captures all required information about properties, units, tenants, leases, balances, and payment history so that the data "
     "can be imported into the Property Dashboard with 100% accuracy and zero assumptions.\n\n"
     "The existing APRIL-25 billing spreadsheet was used as a reference source only. Where data could be safely extracted "

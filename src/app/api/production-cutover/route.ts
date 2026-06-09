@@ -81,13 +81,13 @@ export async function POST(request: NextRequest) {
     const updatedCompany = await prisma.company.update({
       where: { id: companyId },
       data: {
-        name: 'Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C',
-        nameAr: 'الريف المدينة لإدارة العقارات والصيانة العامة ذ.م.م - ش. ش. و',
-        nameBn: 'আল রিফ আল মাদিনা রিয়েল এস্টেট ম্যানেজমেন্ট অ্যান্ড জেনারেল মেইনটেন্যান্স - এলএলসি - এসপিসি',
-        nameUr: 'الریف المدینہ برائے املاک کا انتظام اور عام دیکھ بھال - ذ.م.م - ش. ش. و',
-        phone: '+971504225590',
-        email: 'alreef.junoobi@gmail.com',
-        address: "Near LuLu Muraba'a, Al Ain City, Abu Dhabi Emirate, UAE",
+        name: 'Real Estate Emperor Property Management L.L.C.',
+        nameAr: 'إمبراطور العقارات لإدارة الممتلكات ذ.م.م',
+        nameBn: 'রিয়েল এস্টেট এম্পেরর প্রপার্টি ম্যানেজমেন্ট এলএলসি',
+        nameUr: 'رییل اسٹیٹ ایمپیرر پراپرٹی مینجمنٹ ایل ایل سی',
+        phone: '+971-4-555-0100',
+        email: 'info@realestateemperor.ae',
+        address: 'Business Bay, Dubai, UAE',
       },
     })
 

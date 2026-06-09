@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C",
-  description: "Property Dashboard - Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C",
+  title: "Real Estate Emperor Property Management L.L.C.",
+  description: "Property Dashboard - Real Estate Emperor Property Management L.L.C.",
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌙</text></svg>",
+    icon: "/logo.svg",
   },
 };
 

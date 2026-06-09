@@ -1,4 +1,4 @@
-const CACHE_NAME = 'al-reef-v1';
+const CACHE_NAME = 'emperor-v1';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

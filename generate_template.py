@@ -1,5 +1,5 @@
 """
-Al Reef Al Junoobi - Data Import Template Generator
+Real Estate Emperor - Data Import Template Generator
 =====================================================
 Creates a professional XLSX template with:
   Sheet 1: Instructions (English + Bengali)
@@ -30,7 +30,7 @@ from templates.base import (
     NEUTRAL_900, NEUTRAL_600, NEUTRAL_200, NEUTRAL_100, NEUTRAL_0,
 )
 
-# Override with Al Reef Al Junoobi brand colors (green/gold Islamic theme)
+# Override with Real Estate Emperor brand colors (green/gold Islamic theme)
 BRAND_GREEN     = "1B6B3A"    # Deep Islamic green
 BRAND_GREEN_LT  = "D4EDDA"    # Light green
 BRAND_GOLD      = "C5960C"    # Rich gold
@@ -101,7 +101,7 @@ ws1.row_dimensions[row].height = 15  # margin
 
 row = 2
 ws1.merge_cells("B2:G2")
-cell = ws1.cell(row=2, column=2, value="Al Reef Al Junoobi Real Estate - Data Import Template")
+cell = ws1.cell(row=2, column=2, value="Real Estate Emperor - Data Import Template")
 cell.font = Font(name="Calibri", size=20, bold=True, color=BRAND_WHITE)
 cell.fill = PatternFill("solid", fgColor=BRAND_GREEN)
 cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -109,7 +109,7 @@ ws1.row_dimensions[2].height = 45
 
 row = 3
 ws1.merge_cells("B3:G3")
-cell = ws1.cell(row=3, column=2, value="الريف الجنوبي للعقارات والصيانة العامة ذ.م.م")
+cell = ws1.cell(row=3, column=2, value="الإمبراطور العقاري لإدارة الممتلكات ذ.م.م")
 cell.font = Font(name="Calibri", size=14, bold=False, color=BRAND_GOLD)
 cell.fill = PatternFill("solid", fgColor=BRAND_GREEN)
 cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -159,11 +159,11 @@ ws1.row_dimensions[7].height = 25
 
 overview_data = [
     (
-        "This Excel file is a template for importing real estate data into the Al Reef Al Junoobi Property Dashboard. "
+        "This Excel file is a template for importing real estate data into the Real Estate Emperor Dashboard. "
         "Please fill in your actual property, tenant, and payment information in the sheets provided. "
         "The dashboard will then be populated with your real data replacing the fictional examples currently shown.",
         (
-            "এই এক্সেল ফাইলটি আল রিফ আল জুনুবি প্রপার্টি ড্যাশবোর্ডে রিয়েল এস্টেট ডাটা আমদানি করার একটি টেমপ্লেট। "
+            "এই এক্সেল ফাইলটি রিয়েল এস্টেট এম্পেরর প্রপার্টি ড্যাশবোর্ডে রিয়েল এস্টেট ডাটা আমদানি করার একটি টেমপ্লেট। "
             "অনুগ্রহ করে প্রদত্ত শীটগুলিতে আপনার প্রকৃত সম্পত্তি, ভাড়াটে এবং পেমেন্ট তথ্য পূরণ করুন। "
             "ড্যাশবোর্ডে তখন বর্তমানে প্রদর্শিত কাল্পনিক উদাহরণগুলির পরিবর্তে আপনার প্রকৃত ডাটা দেখানো হবে।"
         )
@@ -443,7 +443,7 @@ row = 37
 ws1.row_dimensions[37].height = 12
 row = 38
 ws1.merge_cells("B38:G38")
-cell = ws1.cell(row=38, column=2, value="Al Reef Al Junoobi Real Estate & General Maintenance L.L.C. | Prepared for Shafiul Azam")
+cell = ws1.cell(row=38, column=2, value="Real Estate Emperor Property Management L.L.C. | Prepared for Shafiul Azam")
 cell.font = Font(name="Calibri", size=10, italic=True, color=BRAND_GOLD)
 cell.fill = PatternFill("solid", fgColor=BRAND_DARK)
 cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -502,7 +502,7 @@ ws2.row_dimensions[4].height = ROW_HEIGHTS["header"]
 
 # Sample data rows
 prop_samples = [
-    [1, "Al Reef Tower 1", "برج الريف 1", "Residential", 24, "Abu Dhabi", "Active"],
+    [1, "Emperor Tower 1", "برج الإمبراطور 1", "Residential", 24, "Abu Dhabi", "Active"],
     [2, "Souk Commercial Center", "سوق المركز التجاري", "Commercial", 12, "Dubai", "Active"],
     [3, "Al Fahad Residence", "مسكن الفهد", "Residential", 16, "Sharjah", "Active"],
     [4, "Industrial Warehouse Zone", "منطقة المستودعات الصناعية", "Industrial", 8, "Ajman", "Maintenance"],
@@ -596,7 +596,7 @@ ws3.row_dimensions[4].height = ROW_HEIGHTS["header"]
 
 # Sample data
 tenant_samples = [
-    [1, "Mohammed Al Rashid", "محمد الراشد", "0501234567", "mohammed@email.com", "Al Reef Tower 1", "101", 45000, "2025-01-01", "2025-12-31", "Active"],
+    [1, "Mohammed Al Rashid", "محمد الراشد", "0501234567", "mohammed@email.com", "Emperor Tower 1", "101", 45000, "2025-01-01", "2025-12-31", "Active"],
     [2, "Ahmad Trading LLC", "شركة أحمد التجارية", "0559876543", "info@ahmadtrading.ae", "Souk Commercial Center", "S-5", 120000, "2025-03-01", "2026-02-28", "Active"],
     [3, "Fatima Al Zaabi", "فاطمة الزعابي", "0521112233", "", "Al Fahad Residence", "3A", 38000, "2025-06-01", "2026-05-31", "Active"],
     [4, "Khalid Construction", "مؤسسة خالد للمقاولات", "0543334455", "khalid@construction.ae", "Industrial Warehouse Zone", "W-2", 65000, "2025-01-15", "2025-07-14", "Overdue"],
@@ -695,7 +695,7 @@ ws4.row_dimensions[4].height = ROW_HEIGHTS["header"]
 
 # Sample data
 payment_samples = [
-    [1, "Mohammed Al Rashid", "Al Reef Tower 1", "101", 45000, "2025-01-05", "Bank Transfer", "Paid", "Annual rent - January"],
+    [1, "Mohammed Al Rashid", "Emperor Tower 1", "101", 45000, "2025-01-05", "Bank Transfer", "Paid", "Annual rent - January"],
     [2, "Ahmad Trading LLC", "Souk Commercial Center", "S-5", 60000, "2025-03-10", "Cheque", "Partial", "First half payment"],
     [3, "Fatima Al Zaabi", "Al Fahad Residence", "3A", 38000, "2025-06-01", "Cash", "Paid", "Full payment received"],
     [4, "Khalid Construction", "Industrial Warehouse Zone", "W-2", 32500, "2025-01-20", "Bank Transfer", "Overdue", "Half payment - remainder overdue"],
@@ -800,7 +800,7 @@ ws2.conditional_formatting.add('H5:H14',
 # ============================================================
 # SAVE
 # ============================================================
-output_path = "/home/z/my-project/download/Al_Reef_Al_Junoobi_Data_Template.xlsx"
+output_path = "/home/z/my-project/download/Real_Estate_Emperor_Data_Template.xlsx"
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 wb.save(output_path)
 print(f"Template saved to: {output_path}")

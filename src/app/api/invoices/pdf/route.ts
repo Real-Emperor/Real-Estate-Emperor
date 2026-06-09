@@ -157,24 +157,24 @@ export async function GET(request: Request) {
     // ═══════════════════════════════════════════════════════════
     let y = 50
 
-    // Company logo area (green square with "AM" initials)
+    // Company logo area (green square with "RE" initials)
     doc.save()
     doc.roundedRect(50, y, 36, 36, 4).fill(emerald)
     doc.fontSize(16).fillColor('#FFFFFF').font(latinFontBold)
-    doc.text('AM', 50, y + 8, { width: 36, align: 'center' })
+    doc.text('RE', 50, y + 8, { width: 36, align: 'center' })
     doc.restore()
 
     // Company name
     doc.fontSize(16).fillColor(emerald).font(latinFontBold)
-    doc.text('Al Reef Al Madeena', 95, y + 2)
+    doc.text('Real Estate Emperor', 95, y + 2)
     doc.fontSize(8).fillColor(gray).font(latinFont)
-    doc.text('Real Estate Management and General Maintenance - L.L.C - S.P.C', 95, y + 22)
+    doc.text('Property Management L.L.C.', 95, y + 22)
 
     // Company details
     doc.fontSize(7).fillColor(gray).font(latinFont)
-    doc.text("Near LuLu Muraba'a, Al Ain City, Abu Dhabi, UAE", 95, y + 34)
-    doc.text('Tel: +971504225590 / +971568452161 | Email: alreef.junoobi@gmail.com', 95, y + 44)
-    doc.text('Tax ID: 105383159800003 | Commercial License: CN-6177648', 95, y + 54)
+    doc.text('Business Bay, Dubai, UAE', 95, y + 34)
+    doc.text('Tel: +971-4-555-0100 / +971-4-555-0101 | Email: info@realestateemperor.ae', 95, y + 44)
+    doc.text('Tax ID: 100XXXXXXXXX001 | Commercial License: CN-DEMO-2024001', 95, y + 54)
 
     // Invoice title (right side)
     doc.fontSize(20).fillColor(emerald).font(latinFontBold)
@@ -359,11 +359,11 @@ export async function GET(request: Request) {
 
     doc.fontSize(7).fillColor('#9CA3AF').font(latinFont)
     doc.text(
-      "Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C | Near LuLu Muraba'a, Al Ain City, Abu Dhabi, UAE",
+      "Real Estate Emperor Property Management L.L.C. | Business Bay, Dubai, UAE",
       50, footerY + 8, { width: pageWidth - 100, align: 'center' }
     )
     doc.text(
-      'Thank you for your payment. For questions, contact alreef.junoobi@gmail.com or +971504225590',
+      'Thank you for your payment. For questions, contact info@realestateemperor.ae or +971-4-555-0100',
       50, footerY + 20, { width: pageWidth - 100, align: 'center' }
     )
 

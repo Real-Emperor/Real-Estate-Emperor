@@ -35,26 +35,26 @@ export async function POST(request: Request) {
     const body = await request.json()
 
     // Validate required fields
-    const companyName = body.companyName || 'Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.'
-    const companyNameAr = body.companyNameAr || 'الريف الجنوبي للعقارات والصيانة العامة ذ.م.م'
-    const companyPhone = body.companyPhone || '+971-2-555-0199'
-    const companyEmail = body.companyEmail || 'info@alreefjanoubi.ae'
-    const companyAddress = body.companyAddress || 'Khalifa City A, Abu Dhabi, UAE'
+    const companyName = body.companyName || 'Real Estate Emperor Property Management L.L.C.'
+    const companyNameAr = body.companyNameAr || 'الإمبراطور العقاري لإدارة الممتلكات ذ.م.م'
+    const companyPhone = body.companyPhone || '+971-4-555-0100'
+    const companyEmail = body.companyEmail || 'info@realestateemperor.ae'
+    const companyAddress = body.companyAddress || 'Business Bay, Dubai, UAE'
 
-    const adminEmail = body.adminEmail || 'admin@alreef.ae'
+    const adminEmail = body.adminEmail || 'admin@realestateemperor.ae'
     const adminPassword = body.adminPassword || 'admin2024'
-    const adminName = body.adminName || 'Ahmed Mahmoud'
-    const adminNameAr = body.adminNameAr || 'أحمد محمود'
+    const adminName = body.adminName || 'Demo Admin'
+    const adminNameAr = body.adminNameAr || 'مدير تجريبي'
 
-    const ownerEmail = body.ownerEmail || 'owner@alreef.ae'
+    const ownerEmail = body.ownerEmail || 'demoO@realestate.ae'
     const ownerPassword = body.ownerPassword || 'owner123'
-    const ownerName = body.ownerName || 'Shafiul Azam'
-    const ownerNameAr = body.ownerNameAr || 'شفيول أعظم'
+    const ownerName = body.ownerName || 'Demo Owner'
+    const ownerNameAr = body.ownerNameAr || 'مالك تجريبي'
 
-    const staffEmail = body.staffEmail || 'staff@alreef.ae'
+    const staffEmail = body.staffEmail || 'demoS@realestate.ae'
     const staffPassword = body.staffPassword || 'staff123'
-    const staffName = body.staffName || 'Karim Hossain'
-    const staffNameAr = body.staffNameAr || 'كريم حسين'
+    const staffName = body.staffName || 'Demo Staff'
+    const staffNameAr = body.staffNameAr || 'موظف تجريبي'
 
     // Create company
     const company = await prisma.company.create({

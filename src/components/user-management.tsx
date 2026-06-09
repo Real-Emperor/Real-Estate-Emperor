@@ -591,7 +591,7 @@ export default function UserManagement() {
             </div>
             <div>
               <Label>{t('username', lang)} *</Label>
-              <Input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="mt-1" type="email" placeholder="staff@alreef.ae" />
+              <Input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="mt-1" type="email" placeholder="staff@realestate.ae" />
             </div>
             <div>
               <Label>{t('role', lang)} *</Label>

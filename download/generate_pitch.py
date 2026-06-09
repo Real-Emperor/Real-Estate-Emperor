@@ -130,7 +130,7 @@ p = cell.paragraphs[0]
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_before = Pt(30)
 p.paragraph_format.space_after = Pt(30)
-run = p.add_run("AL REEF AL JUNOOBI")
+run = p.add_run("REAL ESTATE EMPEROR")
 run.font.size = Pt(28)
 run.font.bold = True
 run.font.color.rgb = WHITE
@@ -145,7 +145,7 @@ run2.font.name = 'Calibri'
 p3 = cell.add_paragraph()
 p3.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p3.paragraph_format.space_after = Pt(20)
-run3 = p3.add_run("الريف الجنوبي للعقارات والصيانة العامة ذ.م.م")
+run3 = p3.add_run("الإمبراطور العقاري لإدارة الممتلكات ذ.م.م")
 run3.font.size = Pt(14)
 run3.font.color.rgb = WHITE
 run3.font.name = 'Calibri'
@@ -171,7 +171,7 @@ if os.path.exists('/home/z/my-project/download/qr_code.png'):
     run_qr.add_picture('/home/z/my-project/download/qr_code.png', width=Inches(1.8))
 
     add_styled_paragraph(doc, "Scan to view the live dashboard", font_size=9, bold=False, color=GRAY, alignment=WD_ALIGN_PARAGRAPH.CENTER, space_after=Pt(2))
-    add_styled_paragraph(doc, "al-reef-al-junoobi.vercel.app", font_size=9, bold=True, color=GREEN_MID, alignment=WD_ALIGN_PARAGRAPH.CENTER, space_after=Pt(20))
+    add_styled_paragraph(doc, "real-estate-emperor.vercel.app", font_size=9, bold=True, color=GREEN_MID, alignment=WD_ALIGN_PARAGRAPH.CENTER, space_after=Pt(20))
 
 # Prepared for
 add_green_line(doc)
@@ -212,7 +212,7 @@ add_styled_paragraph(doc,
     font_size=11, color=BLACK, space_after=Pt(10))
 
 add_styled_paragraph(doc,
-    "I built something for you. Not a generic app — a dashboard tailored to Al Reef Al Junoobi, with your company's identity, your languages, and your way of doing business baked into every screen. It's already live. It's already working.",
+    "I built something for you. Not a generic app — a dashboard tailored to Real Estate Emperor, with your company's identity, your languages, and your way of doing business baked into every screen. It's already live. It's already working.",
     font_size=11, color=BLACK, space_after=Pt(14))
 
 # ─── The Problem ───
@@ -226,7 +226,7 @@ add_styled_paragraph(doc,
 add_section_header(doc, "THE SOLUTION")
 
 add_styled_paragraph(doc,
-    "The Al Reef Al Junoobi Dashboard puts your entire rental operation on one screen. Every property, every tenant, every payment — organized, color-coded, and actionable. Green means paid. Red means overdue. One click sends a WhatsApp reminder. Your staff sees only what they need; you see everything. It's designed for the way you already work — just faster, cleaner, and impossible to forget.",
+    "The Real Estate Emperor Dashboard puts your entire rental operation on one screen. Every property, every tenant, every payment — organized, color-coded, and actionable. Green means paid. Red means overdue. One click sends a WhatsApp reminder. Your staff sees only what they need; you see everything. It's designed for the way you already work — just faster, cleaner, and impossible to forget.",
     font_size=11, color=BLACK, space_after=Pt(10))
 
 # ─── Key Features ───
@@ -374,7 +374,7 @@ p = cell.paragraphs[0]
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_before = Pt(16)
 p.paragraph_format.space_after = Pt(16)
-run = p.add_run("Let's talk. The dashboard is already live.\nScan the QR code or visit: al-reef-al-junoobi.vercel.app")
+run = p.add_run("Let's talk. The dashboard is already live.\nScan the QR code or visit: real-estate-emperor.vercel.app")
 run.font.size = Pt(13)
 run.font.bold = True
 run.font.color.rgb = WHITE
@@ -579,7 +579,7 @@ p = cell.paragraphs[0]
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_before = Pt(16)
 p.paragraph_format.space_after = Pt(16)
-run = p.add_run("আসুন কথা বলি। ড্যাশবোর্ড ইতিমধ্যে লাইভ আছে।\nQR কোড স্ক্যান করুন অথবা ভিজিট করুন: al-reef-al-junoobi.vercel.app")
+run = p.add_run("আসুন কথা বলি। ড্যাশবোর্ড ইতিমধ্যে লাইভ আছে।\nQR কোড স্ক্যান করুন অথবা ভিজিট করুন: real-estate-emperor.vercel.app")
 run.font.size = Pt(13)
 run.font.bold = True
 run.font.color.rgb = WHITE
@@ -598,6 +598,6 @@ if os.path.exists('/home/z/my-project/download/qr_code.png'):
 # ═══════════════════════════════════════════════════════════════
 # SAVE
 # ═══════════════════════════════════════════════════════════════
-output_path = '/home/z/my-project/download/Al_Reef_Al_Junoobi_Pitch.docx'
+output_path = '/home/z/my-project/download/Real_Estate_Emperor_Pitch.docx'
 doc.save(output_path)
 print(f"Document saved to: {output_path}")

@@ -135,7 +135,7 @@ export default function DataImport() {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = 'al-reef-import-template.xlsx'
+        a.download = 'emperor-import-template.xlsx'
         a.click()
         URL.revokeObjectURL(url)
       }

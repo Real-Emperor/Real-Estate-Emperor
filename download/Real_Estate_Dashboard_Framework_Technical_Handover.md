@@ -6,10 +6,10 @@
 | **Version** | 1.0.0 |
 | **Date** | 2026-05-26 |
 | **Framework Name** | Property Dashboard Framework (PDF) |
-| **Template Origin** | Al Reef Al Junoobi Real Estate & General Maintenance L.L.C. |
+| **Template Origin** | Real Estate Emperor Property Management L.L.C. |
 | **Owner** | Shafiul Azam |
 
-> **Purpose**: This document is the definitive, reusable technical blueprint for spinning up a new real estate property dashboard for any client. Everything in this framework is identical to the Al Reef Al Junoobi project — only the items marked with `{{PLACEHOLDER}}` need to be customized per client. When you get a new client, simply replace all placeholders and deploy.
+> **Purpose**: This document is the definitive, reusable technical blueprint for spinning up a new real estate property dashboard for any client. Everything in this framework is identical to the Real Estate Emperor project — only the items marked with `{{PLACEHOLDER}}` need to be customized per client. When you get a new client, simply replace all placeholders and deploy.
 
 ---
 
@@ -19,12 +19,12 @@ Before spinning up a new instance, collect the following from the client:
 
 | # | Information Needed | Where It Goes | Example |
 |---|---|---|---|
-| 1 | **Company Name** (English) | `DEFAULT_COMPANY.name`, `metadata.title`, `loginSubtitle` translation | "Al Reef Al Junoobi Real Estate & General Maintenance L.L.C." |
-| 2 | **Company Name** (Arabic) | `DEFAULT_COMPANY.nameAr`, Arabic `loginSubtitle` translation | "الريف الجنوبي للعقارات والصيانة العامة ذ.م.م" |
-| 3 | **Company Name** (Bengali) | `DEFAULT_COMPANY.nameBn`, Bengali `loginSubtitle` translation | "আল রিফ আল জুনুবি রিয়েল এস্টেট অ্যান্ড জেনারেল মেইনটেন্যান্স এলএলসি" |
-| 4 | **Company Name** (Urdu) | `DEFAULT_COMPANY.nameUr`, Urdu `loginSubtitle` translation | "الریف الجنوبی ریئل اسٹیٹ اینڈ جنرل مینٹیننس لمیٹڈ" |
+| 1 | **Company Name** (English) | `DEFAULT_COMPANY.name`, `metadata.title`, `loginSubtitle` translation | "Real Estate Emperor Property Management L.L.C." |
+| 2 | **Company Name** (Arabic) | `DEFAULT_COMPANY.nameAr`, Arabic `loginSubtitle` translation | "الإمبراطور العقاري لإدارة الممتلكات ذ.م.م" |
+| 3 | **Company Name** (Bengali) | `DEFAULT_COMPANY.nameBn`, Bengali `loginSubtitle` translation | "রিয়েল এস্টেট এম্পেরর প্রপার্টি ম্যানেজমেন্ট এলএলসি" |
+| 4 | **Company Name** (Urdu) | `DEFAULT_COMPANY.nameUr`, Urdu `loginSubtitle` translation | "املاک کا شہنشاہ" |
 | 5 | **Company Phone** | `DEFAULT_COMPANY.phone` | "+971-2-555-0199" |
-| 6 | **Company Email** | `DEFAULT_COMPANY.email` | "info@alreefjanoubi.ae" |
+| 6 | **Company Email** | `DEFAULT_COMPANY.email` | "info@realestateemperor.ae" |
 | 7 | **Company Address** | `DEFAULT_COMPANY.address` | "Khalifa City A, Abu Dhabi, UAE" |
 | 8 | **Primary Color** (brand/emerald) | CSS `--primary`, `--color-emerald` | "#0D7C3D" |
 | 9 | **Accent Color** (gold) | CSS `--accent`, `--color-gold` | "#C5A028" |
@@ -36,16 +36,16 @@ Before spinning up a new instance, collect the following from the client:
 | 15 | **Default Admin Email** | `DEFAULT_USERS[0].email` | "admin@alreef.ae" |
 | 16 | **Default Admin Password** | `DEFAULT_USERS[0].password` | "admin2024" |
 | 17 | **Default Owner Name** | `DEFAULT_USERS[1]` name fields | "Shafiul Azam" |
-| 18 | **Default Owner Email** | `DEFAULT_USERS[1].email` | "owner@alreef.ae" |
+| 18 | **Default Owner Email** | `DEFAULT_USERS[1].email` | "demoO@realestate.ae" |
 | 19 | **Default Owner Password** | `DEFAULT_USERS[1].password` | "owner123" |
-| 20 | **Vercel Project Name** | Vercel deployment slug | "al-reef-al-junoobi" |
-| 21 | **Domain/Subdomain** | Vercel custom domain | "al-reef-al-junoobi.vercel.app" |
+| 20 | **Vercel Project Name** | Vercel deployment slug | "real-estate-emperor" |
+| 21 | **Domain/Subdomain** | Vercel custom domain | "real-estate-emperor.vercel.app" |
 | 22 | **WhatsApp Country Code** | `getWhatsAppLink` phone formatting | "+971" (UAE) |
 | 23 | **Currency Format** | `formatAED` function | "AED" (UAE Dirham) |
 | 24 | **Municipality Fee Percentage** | Auto-calc in tenant form | 5% |
 | 25 | **Design Theme/Cultural Style** | CSS patterns, animation names | "Islamic/Bengali" |
-| 26 | **localStorage Key Prefix** | `al-reef-storage`, `al-reef-data-store` | "al-reef" |
-| 27 | **Package Name** | `package.json` name field | "al-reef-al-junoobi" |
+| 26 | **localStorage Key Prefix** | `realestateemperor-storage`, `realestateemperor-data-store` | "real-estate-emperor" |
+| 27 | **Package Name** | `package.json` name field | "real-estate-emperor" |
 
 > **Note**: Items 8-11 are design choices. If the client has no preference, use the defaults (emerald/gold/deep-teal/cream). Items 25-27 affect branding but not functionality.
 
@@ -1156,8 +1156,8 @@ When spinning up a new client instance, follow this checklist in order:
 - [ ] Update municipality fee percentage in tenant auto-calculation if different from 5%
 
 ### Step 5: localStorage Keys
-- [ ] Update `name: 'al-reef-storage'` in `store.ts` to `{{CLIENT_SLUG}}-storage`
-- [ ] Update `name: 'al-reef-data-store'` in `data-store.ts` to `{{CLIENT_SLUG}}-data-store`
+- [ ] Update `name: 'realestateemperor-storage'` in `store.ts` to `{{CLIENT_SLUG}}-storage`
+- [ ] Update `name: 'realestateemperor-data-store'` in `data-store.ts` to `{{CLIENT_SLUG}}-data-store`
 
 ### Step 6: Seed Data
 - [ ] Update `createSeedData()` in `data-store.ts` with client-appropriate property names, addresses, tenant names, expense vendors
@@ -1177,7 +1177,7 @@ When spinning up a new client instance, follow this checklist in order:
 This section lists every file and exactly which parts need customization per client.
 
 ### `package.json`
-- `name`: Change from `"al-reef-al-junoobi"` to `"{{CLIENT_SLUG}}"`
+- `name`: Change from `"real-estate-emperor"` to `"{{CLIENT_SLUG}}"`
 
 ### `src/app/layout.tsx`
 - `metadata.title`: Change company name
@@ -1208,12 +1208,12 @@ This section lists every file and exactly which parts need customization per cli
 - Currency label in `monthlyRent`, `amount`, etc. if not AED
 
 ### `src/lib/store.ts`
-- `name: 'al-reef-storage'`: Change localStorage key prefix
+- `name: 'realestateemperor-storage'`: Change localStorage key prefix
 
 ### `src/lib/data-store.ts`
 - `DEFAULT_COMPANY`: All fields (name, nameAr, nameBn, nameUr, phone, email, address)
 - `DEFAULT_USERS`: All 3 default users (names, emails, passwords)
-- `name: 'al-reef-data-store'`: Change localStorage key prefix
+- `name: 'realestateemperor-data-store'`: Change localStorage key prefix
 - `createSeedData()`: Property names, tenant names, addresses, expense vendors
 - Migration fallback admin user: Match new `DEFAULT_USERS[0]`
 - All `companyId: 'company-1'` references (only if multi-company needed — typically no change)
@@ -1223,7 +1223,7 @@ This section lists every file and exactly which parts need customization per cli
 - Date formatting locale in `formatDate` if not UAE
 
 ### `src/components/login.tsx`
-- Placeholder text in email input: currently `"owner@alreefjanoubi.ae"` — change to client's default
+- Placeholder text in email input: currently `"owner@realestate.ae"` — change to client's default
 - Cultural security message text (hardcoded 4-language string)
 
 ### `src/components/sidebar.tsx`

@@ -250,7 +250,7 @@ export default function SystemManagement() {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `al-reef-backup-${new Date().toISOString().split('T')[0]}.json`
+        a.download = `emperor-backup-${new Date().toISOString().split('T')[0]}.json`
         a.click()
         URL.revokeObjectURL(url)
         setStatusMessage({ type: 'success', text: t('backupCreated', language) })

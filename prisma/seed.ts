@@ -10,23 +10,23 @@ async function main() {
   const company = await prisma.company.upsert({
     where: { id: 'company-1' },
     update: {
-      name: 'Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C',
-      nameAr: 'الريف المدينة لإدارة العقارات والصيانة العامة ذ.م.م - ش. ش. و',
-      nameBn: 'আল রিফ আল মাদিনা রিয়েল এস্টেট ম্যানেজমেন্ট অ্যান্ড জেনারেল মেইনটেন্যান্স - এলএলসি - এসপিসি',
-      nameUr: 'الریف المدینہ برائے املاک کا انتظام اور عام دیکھ بھال - ذ.م.م - ش. ش. و',
-      phone: '+971504225590',
-      email: 'alreef.junoobi@gmail.com',
-      address: "Near LuLu Muraba'a, Al Ain City, Abu Dhabi Emirate, UAE",
+      name: 'Real Estate Emperor Property Management L.L.C.',
+      nameAr: 'إمبراطور العقارات لإدارة الممتلكات ذ.م.م',
+      nameBn: 'রিয়েল এস্টেট এম্পেরর প্রপার্টি ম্যানেজমেন্ট এলএলসি',
+      nameUr: 'رییل اسٹیٹ ایمپیرر پراپرٹی مینجمنٹ ایل ایل سی',
+      phone: '+971-4-555-0100',
+      email: 'info@realestateemperor.ae',
+      address: 'Business Bay, Dubai, UAE',
     },
     create: {
       id: 'company-1',
-      name: 'Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C',
-      nameAr: 'الريف المدينة لإدارة العقارات والصيانة العامة ذ.م.م - ش. ش. و',
-      nameBn: 'আল রিফ আল মাদিনা রিয়েল এস্টেট ম্যানেজমেন্ট অ্যান্ড জেনারেল মেইনটেন্যান্স - এলএলসি - এসপিসি',
-      nameUr: 'الریف المدینہ برائے املاک کا انتظام اور عام دیکھ بھال - ذ.م.م - ش. ش. و',
-      phone: '+971504225590',
-      email: 'alreef.junoobi@gmail.com',
-      address: "Near LuLu Muraba'a, Al Ain City, Abu Dhabi Emirate, UAE",
+      name: 'Real Estate Emperor Property Management L.L.C.',
+      nameAr: 'إمبراطور العقارات لإدارة الممتلكات ذ.م.م',
+      nameBn: 'রিয়েল এস্টেট এম্পেরর প্রপার্টি ম্যানেজমেন্ট এলএলসি',
+      nameUr: 'رییل اسٹیٹ ایمپیرر پراپرٹی مینجمنٹ ایل ایل سی',
+      phone: '+971-4-555-0100',
+      email: 'info@realestateemperor.ae',
+      address: 'Business Bay, Dubai, UAE',
     },
   })
 
@@ -34,20 +34,21 @@ async function main() {
 
   // Create default users with strong hashed passwords
   // NOTE: Change these passwords immediately after first login!
-  const adminPassword = await bcrypt.hash('AlReef@Admin2024!', 12)
-  const ownerPassword = await bcrypt.hash('AlReef@Owner2024!', 12)
-  const staffPassword = await bcrypt.hash('AlReef@Staff2024!', 12)
+  const adminPassword = await bcrypt.hash('Emperor@Admin2024!', 12)
+  const ownerPassword = await bcrypt.hash('Emperor@Owner2024!', 12)
+  const staffPassword = await bcrypt.hash('Emperor@Staff2024!', 12)
+  const accountantPassword = await bcrypt.hash('Emperor@Accountant2024!', 12)
 
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@alreef.ae' },
+    where: { email: 'admin@realestateemperor.ae' },
     update: {},
     create: {
-      email: 'admin@alreef.ae',
+      email: 'admin@realestateemperor.ae',
       password: adminPassword,
-      name: 'Ahmed Mahmoud',
-      nameAr: 'أحمد محمود',
-      nameBn: 'আহমেদ মাহমুদ',
-      nameUr: 'احمد محمود',
+      name: 'Demo Admin',
+      nameAr: 'مدير تجريبي',
+      nameBn: 'ডেমো অ্যাডমিন',
+      nameUr: 'ڈیمو ایڈمن',
       role: 'admin',
       companyId: company.id,
       mustChangePassword: true,
@@ -55,38 +56,54 @@ async function main() {
   })
 
   const owner = await prisma.user.upsert({
-    where: { email: 'owner@alreef.ae' },
+    where: { email: 'demoO@realestate.ae' },
     update: {},
     create: {
-      email: 'owner@alreef.ae',
+      email: 'demoO@realestate.ae',
       password: ownerPassword,
-      name: 'Shafiul Azam',
-      nameAr: 'شفيول أعظم',
-      nameBn: 'শাফিউল আযম',
-      nameUr: 'شفیول اعظم',
+      name: 'Demo Owner',
+      nameAr: 'مالك تجريبي',
+      nameBn: 'ডেমো মালিক',
+      nameUr: 'ڈیمو مالک',
       role: 'owner',
       companyId: company.id,
       mustChangePassword: true,
     },
   })
 
-  const staff = await prisma.user.upsert({
-    where: { email: 'staff@alreef.ae' },
+  const accountant = await prisma.user.upsert({
+    where: { email: 'demoA@realestate.ae' },
     update: {},
     create: {
-      email: 'staff@alreef.ae',
+      email: 'demoA@realestate.ae',
+      password: accountantPassword,
+      name: 'Demo Accountant',
+      nameAr: 'محاسب تجريبي',
+      nameBn: 'ডেমো হিসাবরক্ষক',
+      nameUr: 'ڈیمو اکاؤنٹنٹ',
+      role: 'accountant',
+      companyId: company.id,
+      mustChangePassword: true,
+    },
+  })
+
+  const staff = await prisma.user.upsert({
+    where: { email: 'demoS@realestate.ae' },
+    update: {},
+    create: {
+      email: 'demoS@realestate.ae',
       password: staffPassword,
-      name: 'Karim Hossain',
-      nameAr: 'كريم حسين',
-      nameBn: 'করিম হোসেন',
-      nameUr: 'کریم حسین',
+      name: 'Demo Staff',
+      nameAr: 'موظف تجريبي',
+      nameBn: 'ডেমো স্টাফ',
+      nameUr: 'ڈیمو اسٹاف',
       role: 'staff',
       companyId: company.id,
       mustChangePassword: true,
     },
   })
 
-  console.log('Users created:', admin.email, owner.email, staff.email)
+  console.log('Users created:', admin.email, owner.email, accountant.email, staff.email)
   console.log('Seed completed successfully!')
 }
 

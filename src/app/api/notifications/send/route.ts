@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
     const createdNotifications: any[] = []
     const company = await prisma.company.findUnique({ where: { id: user.companyId } })
-    const companyName = company?.name || 'Al Reef Dashboard'
+    const companyName = company?.name || 'Real Estate Emperor'
 
     if (type === 'payment_receipt') {
       // Create payment receipt notification for a specific tenant

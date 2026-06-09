@@ -253,7 +253,7 @@ export default function Properties() {
           <div className="space-y-4">
             <div>
               <Label>{t('propertyName', language)}</Label>
-              <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Al Reef Al Madeena - Building 1" />
+              <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Emperor Tower - Building 1" />
             </div>
             <div>
               <Label>{t('nameArabic', language)}</Label>

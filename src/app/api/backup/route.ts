@@ -127,7 +127,7 @@ export async function GET() {
     return new Response(backupJson, {
       headers: {
         'Content-Type': 'application/json',
-        'Content-Disposition': `attachment; filename="al-reef-backup-${new Date().toISOString().split('T')[0]}.json"`,
+        'Content-Disposition': `attachment; filename="emperor-backup-${new Date().toISOString().split('T')[0]}.json"`,
         'X-Backup-Hash': dataHash,
       },
     })

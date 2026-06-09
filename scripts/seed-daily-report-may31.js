@@ -134,8 +134,8 @@ async function main() {
     // ── MANPOWER (recurring monthly staff costs) ──
     { category: 'manpower', description: 'Building security staff - May salary', amount: 12000, vendor: 'SafeGuard Security LLC', invoiceNumber: 'INV-SG-0526', recurring: true, building: 'All Buildings', hour: 9, min: 0 },
     { category: 'manpower', description: 'Building cleaners - May salary', amount: 8000, vendor: 'CleanPro Services', invoiceNumber: 'INV-CP-0526', recurring: true, building: 'All Buildings', hour: 9, min: 15 },
-    { category: 'manpower', description: 'Maintenance technicians - May salary', amount: 15000, vendor: 'Al Reef Maintenance', invoiceNumber: 'INV-ARM-0526', recurring: true, building: 'All Buildings', hour: 9, min: 30 },
-    { category: 'manpower', description: 'Reception & admin staff - May salary', amount: 6000, vendor: 'Al Reef Maintenance', invoiceNumber: 'INV-ARM-A0526', recurring: true, building: 'All Buildings', hour: 9, min: 45 },
+    { category: 'manpower', description: 'Maintenance technicians - May salary', amount: 15000, vendor: 'Emperor Maintenance', invoiceNumber: 'INV-ARM-0526', recurring: true, building: 'All Buildings', hour: 9, min: 30 },
+    { category: 'manpower', description: 'Reception & admin staff - May salary', amount: 6000, vendor: 'Emperor Maintenance', invoiceNumber: 'INV-ARM-A0526', recurring: true, building: 'All Buildings', hour: 9, min: 45 },
     { category: 'salary', description: 'Office management salaries - May', amount: 25000, vendor: 'Internal Payroll', invoiceNumber: 'SAL-052026', recurring: true, building: 'All Buildings', hour: 10, min: 0 },
 
     // ── MUNICIPALITY FEES ──
@@ -148,14 +148,14 @@ async function main() {
     { category: 'utility', description: 'Gas supply - May 2026', amount: 1300, vendor: 'ADNOC Gas', invoiceNumber: 'GAS-052026', recurring: true, building: 'All Buildings', hour: 11, min: 30 },
 
     // ── MAINTENANCE (mix of recurring and one-time) ──
-    { category: 'maintenance', description: 'Elevator maintenance - Al Reef Bldg 1 (May)', amount: 1800, vendor: 'Schindler Elevators', invoiceNumber: 'SCH-ARJ1-0526', recurring: true, building: 'Al Reef Al Junoobi - Building 1', hour: 12, min: 0 },
-    { category: 'maintenance', description: 'Elevator maintenance - Al Reef Bldg 2 (May)', amount: 1700, vendor: 'Schindler Elevators', invoiceNumber: 'SCH-ARJ2-0526', recurring: true, building: 'Al Reef Al Junoobi - Building 2', hour: 12, min: 15 },
-    { category: 'maintenance', description: 'Elevator maintenance - Reef Madeena Bldg 1 (May)', amount: 1600, vendor: 'Schindler Elevators', invoiceNumber: 'SCH-RAM1-0526', recurring: true, building: 'Reef Al Madeena - Building 1', hour: 12, min: 30 },
-    { category: 'maintenance', description: 'Elevator maintenance - Reef Madeena Bldg 2 (May)', amount: 1500, vendor: 'Schindler Elevators', invoiceNumber: 'SCH-RAM2-0526', recurring: true, building: 'Reef Al Madeena - Building 2', hour: 12, min: 45 },
-    { category: 'maintenance', description: 'AC compressor replacement - Unit 202', amount: 3500, vendor: 'CoolTech Services', invoiceNumber: 'CT-AC202-0531', recurring: false, building: 'Al Reef Al Junoobi - Building 1', hour: 13, min: 30 },
-    { category: 'maintenance', description: 'Emergency plumbing repair - Unit 303 kitchen', amount: 750, vendor: 'Al Fix Plumbing', invoiceNumber: 'AFP-303-0531', recurring: false, building: 'Reef Al Madeena - Building 2', hour: 14, min: 0 },
-    { category: 'maintenance', description: 'Staircase lighting replacement - Floors 3-5', amount: 420, vendor: 'SafeWire Electric', invoiceNumber: 'SWE-LT-0531', recurring: false, building: 'Al Reef Al Junoobi - Building 2', hour: 14, min: 30 },
-    { category: 'maintenance', description: 'Intercom system repair - Main panel', amount: 1850, vendor: 'SafeWire Electric', invoiceNumber: 'SWE-IC-0531', recurring: false, building: 'Al Reef Al Junoobi - Building 2', hour: 15, min: 0 },
+    { category: 'maintenance', description: 'Elevator maintenance - Real Estate Emperor Bldg 1 (May)', amount: 1800, vendor: 'Schindler Elevators', invoiceNumber: 'SCH-ARJ1-0526', recurring: true, building: 'Real Estate Emperor - Building 1', hour: 12, min: 0 },
+    { category: 'maintenance', description: 'Elevator maintenance - Real Estate Emperor Bldg 2 (May)', amount: 1700, vendor: 'Schindler Elevators', invoiceNumber: 'SCH-ARJ2-0526', recurring: true, building: 'Real Estate Emperor - Building 2', hour: 12, min: 15 },
+    { category: 'maintenance', description: 'Elevator maintenance - Emperor Heights Bldg 1 (May)', amount: 1600, vendor: 'Schindler Elevators', invoiceNumber: 'SCH-RAM1-0526', recurring: true, building: 'Emperor Heights - Building 1', hour: 12, min: 30 },
+    { category: 'maintenance', description: 'Elevator maintenance - Emperor Heights Bldg 2 (May)', amount: 1500, vendor: 'Schindler Elevators', invoiceNumber: 'SCH-RAM2-0526', recurring: true, building: 'Emperor Heights - Building 2', hour: 12, min: 45 },
+    { category: 'maintenance', description: 'AC compressor replacement - Unit 202', amount: 3500, vendor: 'CoolTech Services', invoiceNumber: 'CT-AC202-0531', recurring: false, building: 'Real Estate Emperor - Building 1', hour: 13, min: 30 },
+    { category: 'maintenance', description: 'Emergency plumbing repair - Unit 303 kitchen', amount: 750, vendor: 'Al Fix Plumbing', invoiceNumber: 'AFP-303-0531', recurring: false, building: 'Emperor Heights - Building 2', hour: 14, min: 0 },
+    { category: 'maintenance', description: 'Staircase lighting replacement - Floors 3-5', amount: 420, vendor: 'SafeWire Electric', invoiceNumber: 'SWE-LT-0531', recurring: false, building: 'Real Estate Emperor - Building 2', hour: 14, min: 30 },
+    { category: 'maintenance', description: 'Intercom system repair - Main panel', amount: 1850, vendor: 'SafeWire Electric', invoiceNumber: 'SWE-IC-0531', recurring: false, building: 'Real Estate Emperor - Building 2', hour: 15, min: 0 },
 
     // ── FUEL / TRANSPORT ──
     { category: 'other', description: 'Fuel for site visits & inspections - May', amount: 2800, vendor: 'ADNOC Distribution', invoiceNumber: 'FUEL-052026', recurring: true, building: 'All Buildings', hour: 8, min: 30 },
@@ -163,13 +163,13 @@ async function main() {
 
     // ── SECURITY ──
     { category: 'security', description: 'CCTV monitoring service - May 2026', amount: 6000, vendor: 'SafeGuard Security LLC', invoiceNumber: 'INV-SG-CCTV-0526', recurring: true, building: 'All Buildings', hour: 10, min: 15 },
-    { category: 'security', description: 'Fire extinguisher annual replacement - Bldg 1', amount: 950, vendor: 'FirePro Safety', invoiceNumber: 'FPS-B1-0531', recurring: false, building: 'Al Reef Al Junoobi - Building 1', hour: 14, min: 15 },
+    { category: 'security', description: 'Fire extinguisher annual replacement - Bldg 1', amount: 950, vendor: 'FirePro Safety', invoiceNumber: 'FPS-B1-0531', recurring: false, building: 'Real Estate Emperor - Building 1', hour: 14, min: 15 },
 
     // ── INSURANCE ──
     { category: 'insurance', description: 'Building property insurance - Q2 2026', amount: 2800, vendor: 'Oman Insurance Company', invoiceNumber: 'POL-Q2-2026', recurring: true, building: 'All Buildings', hour: 11, min: 45 },
 
     // ── LEASING ──
-    { category: 'leasing', description: 'Leasing commission - 1 new tenant (Unit 105)', amount: 2300, vendor: 'Al Reef Leasing', invoiceNumber: 'LC-0531', recurring: false, building: 'Al Reef Al Junoobi - Building 1', hour: 16, min: 0 },
+    { category: 'leasing', description: 'Leasing commission - 1 new tenant (Unit 105)', amount: 2300, vendor: 'Emperor Leasing', invoiceNumber: 'LC-0531', recurring: false, building: 'Real Estate Emperor - Building 1', hour: 16, min: 0 },
 
     // ── WATER (additional/separate from utility) ──
     { category: 'utility', description: 'Sewerage service charge - May', amount: 900, vendor: 'Abu Dhabi Sewerage Services', invoiceNumber: 'ADSS-052026', recurring: true, building: 'All Buildings', hour: 11, min: 50 },
@@ -177,9 +177,9 @@ async function main() {
     // ── ONE-TIME / OPERATIONAL ──
     { category: 'other', description: 'Office supplies & printing', amount: 450, vendor: 'Emirates Stationery', invoiceNumber: 'ES-0531', recurring: false, building: 'All Buildings', hour: 16, min: 30 },
     { category: 'other', description: 'Pest control treatment - All buildings', amount: 3500, vendor: 'PestGuard UAE', invoiceNumber: 'PG-0531', recurring: false, building: 'All Buildings', hour: 13, min: 0 },
-    { category: 'maintenance', description: 'Roof waterproofing repair - Reef Madeena Bldg 2', amount: 8500, vendor: 'WaterShield LLC', invoiceNumber: 'WS-RM2-0531', recurring: false, building: 'Reef Al Madeena - Building 2', hour: 8, min: 0 },
+    { category: 'maintenance', description: 'Roof waterproofing repair - Emperor Heights Bldg 2', amount: 8500, vendor: 'WaterShield LLC', invoiceNumber: 'WS-RM2-0531', recurring: false, building: 'Emperor Heights - Building 2', hour: 8, min: 0 },
     { category: 'other', description: 'Waste collection service - May', amount: 1800, vendor: 'Tadweer Waste Management', invoiceNumber: 'TAD-052026', recurring: true, building: 'All Buildings', hour: 9, min: 50 },
-    { category: 'other', description: 'Parking lot cleaning & line repainting', amount: 2800, vendor: 'ColorPro Painters', invoiceNumber: 'CP-PK-0531', recurring: false, building: 'Reef Al Madeena - Building 2', hour: 7, min: 30 },
+    { category: 'other', description: 'Parking lot cleaning & line repainting', amount: 2800, vendor: 'ColorPro Painters', invoiceNumber: 'CP-PK-0531', recurring: false, building: 'Emperor Heights - Building 2', hour: 7, min: 30 },
     { category: 'utility', description: 'Emergency generator fuel top-up', amount: 2200, vendor: 'ADNOC Distribution', invoiceNumber: 'ADNOC-GEN-0531', recurring: false, building: 'All Buildings', hour: 7, min: 0 },
   ];
 

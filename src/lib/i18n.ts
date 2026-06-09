@@ -1,4 +1,4 @@
-// Al Reef Al Madeena Real Estate - 4-Language i18n System
+// Real Estate Emperor - 4-Language i18n System
 // EN = English, AR = Arabic, BN = Bengali, UR = Urdu
 // Academic/professional translations, NOT literal
 
@@ -22,7 +22,7 @@ export const translations = {
   // Auth
   login: { en: 'Sign In', ar: 'تسجيل الدخول', bn: 'সাইন ইন', ur: 'داخل ہوں' },
   loginTitle: { en: 'Property Dashboard', ar: 'لوحة التحكم العقارية', bn: 'সম্পত্তি ড্যাশবোর্ড', ur: 'املاک کا ڈیش بورڈ' },
-  loginSubtitle: { en: 'Al Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C', ar: 'الريف المدينة لإدارة العقارات والصيانة العامة ذ.م.م - ش. ش. و', bn: 'আল রিফ আল মাদিনা রিয়েল এস্টেট ম্যানেজমেন্ট অ্যান্ড জেনারেল মেইনটেন্যান্স - এলএলসি - এসপিসি', ur: 'الریف المدینہ برائے املاک کا انتظام اور عام دیکھ بھال - ذ.م.م - ش. ش. و' },
+  loginSubtitle: { en: 'Real Estate Emperor Property Management L.L.C.', ar: 'إمبراطور العقارات لإدارة الممتلكات ذ.م.م', bn: 'রিয়েল এস্টেট এম্পেরর প্রপার্টি ম্যানেজমেন্ট এলএলসি', ur: 'رییل اسٹیٹ ایمپیرر پراپرٹی مینجمنٹ ایل ایل سی' },
   email: { en: 'Email Address', ar: 'البريد الإلكتروني', bn: 'ইমেইল ঠিকানা', ur: 'ای میل ایڈریس' },
   password: { en: 'Password', ar: 'كلمة المرور', bn: 'পাসওয়ার্ড', ur: 'پاس ورڈ' },
   signInButton: { en: 'Sign In', ar: 'دخول', bn: 'সাইন ইন', ur: 'داخل ہوں' },
@@ -291,7 +291,7 @@ export const translations = {
   resetRequestSent: { en: 'Reset request sent! The administrator will contact you with new credentials.', ar: 'تم إرسال طلب إعادة التعيين! سيتواصل معك المسؤول ببيانات اعتماد جديدة.', bn: 'রিসেট অনুরোধ পাঠানো হয়েছে! প্রশাসক নতুন পরিচয়পত্র দিয়ে আপনার সাথে যোগাযোগ করবেন।', ur: 'ری سیٹ کی درخواست بھیج دی گئی! ناظم آپ کو نئی اسناد کے ساتھ رابطہ کرے گا۔' },
   backToLogin: { en: 'Back to Login', ar: 'العودة لتسجيل الدخول', bn: 'লগইনে ফিরুন', ur: 'لاگ ان پر واپس' },
   yourEmail: { en: 'Your Email Address', ar: 'بريدك الإلكتروني', bn: 'আপনার ইমেইল ঠিকানা', ur: 'آپ کا ای میل ایڈریس' },
-  resetSubject: { en: 'Password Reset Request - Al Reef Al Madeena Dashboard', ar: 'طلب إعادة تعيين كلمة المرور - لوحة الريف المدينة', bn: 'পাসওয়ার্ড রিসেট অনুরোধ - আল রিফ আল মাদিনা ড্যাশবোর্ড', ur: 'پاس ورڈ ری سیٹ کی درخواست - الريف المدینہ ڈیش بورڈ' },
+  resetSubject: { en: 'Password Reset Request - Real Estate Emperor Dashboard', ar: 'طلب إعادة تعيين كلمة المرور - لوحة إمبراطور العقارات', bn: 'পাসওয়ার্ড রিসেট অনুরোধ - রিয়েল এস্টেট এম্পেরর ড্যাশবোর্ড', ur: 'پاس ورڈ ری سیٹ کی درخواست - رییل اسٹیٹ ایمپیرر ڈیش بورڈ' },
   resetEmailBody: { en: 'Password Reset Request', ar: 'طلب إعادة تعيين كلمة المرور', bn: 'পাসওয়ার্ড রিসেট অনুরোধ', ur: 'پاس ورڈ ری سیٹ کی درخواست' },
 
   // User Management
@@ -612,11 +612,11 @@ export function getWhatsAppLink(phone: string, name: string, amount: number, mon
   const amountStr = new Intl.NumberFormat('en-AE').format(amount) + ' AED'
 
   const messages: Record<WhatsAppLanguage, string> = {
-    en: `Subject: Rent Payment Reminder\nDear ${name},\nThis is a reminder that your monthly rent for ${monthName} ${year} in the amount of AED ${amountStr} is currently outstanding.\nKindly arrange for payment at your earliest convenience.\nBest regards,\nAl Reef Al Madeena Real Estate Management and General Maintenance - L.L.C - S.P.C`,
-    ar: `موضوع: تذكير بدفع الإيجار\nالسيد/ة ${name} المحترم/ة،\nنود تذكيركم بأن إيجاركم الشهري عن شهر ${monthName} ${year} بمبلغ ${amountStr} درهم إماراتي لم يتم سداده بعد.\nنرجو التفضل بسداد المبلغ في أقرب وقت ممكن.\nمع خالص التقدير،\nالريف المدينة لإدارة العقارات والصيانة العامة ذ.م.م - ش. ش. و`,
-    bn: `বিষয়: ভাড়া প্রদানের স্মারক\nশ্রদ্ধেয় ${name},\nএটি একটি স্মারক যে ${monthName} ${year} মাসের আপনার মাসিক ভাড়া ${amountStr} দিরহাম এখনও পরিশোধিত হয়নি।\nঅনুগ্রহ করে শীঘ্রই প্রদানের ব্যবস্থা করুন।\nশুভেচ্ছান্তে,\nআল রিফ আল মাদিনা রিয়েল এস্টেট ম্যানেজমেন্ট অ্যান্ড জেনারেল মেইনটেন্যান্স - এলএলসি - এসপিসি`,
-    ur: `موضوع: کرایے کی ادائیگی کی یاد دہانی\nمحترم ${name}،\nہم آپ کو یاد دہانی دے رہے ہیں کہ ${monthName} ${year} کے ماہانہ کرایے کی رقم ${amountStr} درہم ابھی تک ادا نہیں ہوئی ہے۔\nبرائے مہربانی جلد از جلد ادائیگی کا انتظام کریں۔\nبااحترام،\nالریف المدینہ برائے املاک کا انتظام اور عام دیکھ بھال - ذ.م.م - ش. ش. و`,
-    hi: `विषय: किराया भुगतान अनुस्मारक\nप्रिय ${name},\nयह अनुस्मारक है कि ${monthName} ${year} का आपका मासिक किराया ${amountStr} दिरहम अभी तक अदाय नहीं हुआ है।\nकृपया शीघ्रातिशीघ्र भुगतान की व्यवस्था करें।\nसादर,\nअल रीफ अल मदीना रियल एस्टेट मैनेजमेंट एंड जनरल मेंटेनेंस - एलएलसी - एसपीसी`,
+    en: `Subject: Rent Payment Reminder\nDear ${name},\nThis is a reminder that your monthly rent for ${monthName} ${year} in the amount of AED ${amountStr} is currently outstanding.\nKindly arrange for payment at your earliest convenience.\nBest regards,\nReal Estate Emperor Property Management L.L.C.`,
+    ar: `موضوع: تذكير بدفع الإيجار\nالسيد/ة ${name} المحترم/ة،\nنود تذكيركم بأن إيجاركم الشهري عن شهر ${monthName} ${year} بمبلغ ${amountStr} درهم إماراتي لم يتم سداده بعد.\nنرجو التفضل بسداد المبلغ في أقرب وقت ممكن.\nمع خالص التقدير،\nالإمبراطور للعقارات لإدارة الممتلكات ذ.م.م`,
+    bn: `বিষয়: ভাড়া প্রদানের স্মারক\nশ্রদ্ধেয় ${name},\nএটি একটি স্মারক যে ${monthName} ${year} মাসের আপনার মাসিক ভাড়া ${amountStr} দিরহাম এখনও পরিশোধিত হয়নি।\nঅনুগ্রহ করে শীঘ্রই প্রদানের ব্যবস্থা করুন।\nশুভেচ্ছান্তে,\nরিয়েল এস্টেট এম্পেরর প্রপার্টি ম্যানেজমেন্ট এলএলসি`,
+    ur: `موضوع: کرایے کی ادائیگی کی یاد دہانی\nمحترم ${name}،\nہم آپ کو یاد دہانی دے رہے ہیں کہ ${monthName} ${year} کے ماہانہ کرایے کی رقم ${amountStr} درہم ابھی تک ادا نہیں ہوئی ہے۔\nبرائے مہربانی جلد از جلد ادائیگی کا انتظام کریں۔\nبااحترام،\nرییل اسٹیٹ ایمپیرر پراپرٹی مینجمنٹ ایل ایل سی`,
+    hi: `विषय: किराया भुगतान अनुस्मारक\nप्रिय ${name},\nयह अनुस्मारक है कि ${monthName} ${year} का आपका मासिक किराया ${amountStr} दिरहम अभी तक अदाय नहीं हुआ है।\nकृपया शीघ्रातिशीघ्र भुगतान की व्यवस्था करें।\nसादर,\nरियल एस्टेट एम्पेरर प्रॉपर्टी मैनेजमेंट एलएलसी`,
   }
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(messages[lang] || messages.en)}`

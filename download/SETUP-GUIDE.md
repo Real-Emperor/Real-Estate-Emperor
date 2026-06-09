@@ -1,4 +1,4 @@
-# Al Reef Property Dashboard - Production Setup Guide
+# Real Estate Emperor Property Dashboard - Production Setup Guide
 
 ## Quick Setup (5 Minutes) - When Client Says YES
 
@@ -7,7 +7,7 @@ This guide walks you through setting up a production-ready instance for a new cl
 ### Step 1: Create Vercel Postgres Database
 
 1. Go to https://vercel.com/dashboard
-2. Click on **al-reef-al-junoobi** project
+2. Click on **real-estate-emperor** project
 3. Go to **Storage** tab
 4. Click **Create Database** → Select **Postgres (Neon)**
 5. Choose the free tier (Hobby) or paid tier based on client needs
@@ -42,7 +42,7 @@ Use the API endpoint to seed demo data (or skip this for a clean start):
 
 ```bash
 # Seed with demo data (for client demo)
-curl -X POST https://al-reef-al-junoobi.vercel.app/api/seed \
+curl -X POST https://real-estate-emperor.vercel.app/api/seed \
   -H "Content-Type: application/json"
 
 # OR seed with the admin setup only (clean start for production)
@@ -51,11 +51,11 @@ curl -X POST https://al-reef-al-junoobi.vercel.app/api/seed \
 
 ### Step 4: Verify It Works
 
-1. Visit https://al-reef-al-junoobi.vercel.app
+1. Visit https://real-estate-emperor.vercel.app
 2. Login with:
    - **Admin**: admin@alreef.ae / admin2024
-   - **Owner**: owner@alreef.ae / owner123
-   - **Staff**: staff@alreef.ae / staff123
+   - **Owner**: demoO@realestate.ae / owner123
+   - **Staff**: demoS@realestate.ae / staff123
 
 ---
 
@@ -115,7 +115,7 @@ curl -X POST https://al-reef-al-junoobi.vercel.app/api/seed \
 When a client provides their data in Excel format, you can import it via the API:
 
 ```bash
-curl -X POST https://al-reef-al-junoobi.vercel.app/api/import \
+curl -X POST https://real-estate-emperor.vercel.app/api/import \
   -H "Content-Type: application/json" \
   -H "Cookie: next-auth.session-token=SESSION_TOKEN" \
   -d '{

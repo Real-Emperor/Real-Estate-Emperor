@@ -1,11 +1,11 @@
-# Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.
+# Real Estate Emperor Property Management L.L.C.
 # Property Dashboard — Technical Handover Document
 
 | Field | Value |
 |---|---|
 | **Version** | 1.0.0 |
 | **Date** | 2026-05-26 |
-| **Live URL** | https://al-reef-al-junoobi.vercel.app |
+| **Live URL** | https://real-estate-emperor.vercel.app |
 | **Deployment** | Vercel (Next.js framework) |
 | **Owner** | Shafiul Azam (شفيول أعظم / শাফিউল আযম / شفیول اعظم) |
 
@@ -16,8 +16,8 @@
 | Role | Email | Password | Name |
 |---|---|---|---|
 | **Admin** | admin@alreef.ae | admin2024 | Ahmed Mahmoud |
-| **Owner** | owner@alreef.ae | owner123 | Shafiul Azam |
-| **Staff** | staff@alreef.ae | staff123 | Karim Hossain |
+| **Owner** | demoO@realestate.ae | owner123 | Shafiul Azam |
+| **Staff** | demoS@realestate.ae | staff123 | Karim Hossain |
 
 ---
 
@@ -39,7 +39,7 @@
 
 ## 1. Project Overview
 
-Al Reef Al Junoobi Real Estate & General Maintenance L.L.C. Property Dashboard is a comprehensive, multilingual property management application for a UAE-based real estate company. The system manages properties, tenants, rent collection, maintenance requests, expenses, financial reports, contracts, and user management.
+Real Estate Emperor Property Management L.L.C. Property Dashboard is a comprehensive, multilingual property management application for a UAE-based real estate company. The system manages properties, tenants, rent collection, maintenance requests, expenses, financial reports, contracts, and user management.
 
 ### Key Features
 
@@ -196,8 +196,8 @@ Authentication is entirely client-side. User credentials are hardcoded in `data-
 | ID | Email | Password | Name | Role |
 |---|---|---|---|---|
 | `user-admin` | admin@alreef.ae | admin2024 | Ahmed Mahmoud (أحمد محمود) | admin |
-| `user-owner` | owner@alreef.ae | owner123 | Shafiul Azam (شفيول أعظم) | owner |
-| `user-staff` | staff@alreef.ae | staff123 | Karim Hossain (كريم حسين) | staff |
+| `user-owner` | demoO@realestate.ae | owner123 | Shafiul Azam (شفيول أعظم) | owner |
+| `user-staff` | demoS@realestate.ae | staff123 | Karim Hossain (كريم حسين) | staff |
 
 ### AuthUser Interface (store.ts)
 
@@ -220,7 +220,7 @@ export interface AuthUser {
 2. `login.tsx` calls `useDataStore.getState().authenticate(email, password)`
 3. The `authenticate` method finds a user with matching email and compares passwords (plaintext)
 4. If matched, the user object is stored in the app store via `useAppStore.getState().login(user)`
-5. Auth state is persisted in localStorage under key `al-reef-storage`
+5. Auth state is persisted in localStorage under key `realestateemperor-storage`
 6. On subsequent visits, the persisted auth state is restored automatically
 
 ### Authenticate Implementation
@@ -296,8 +296,8 @@ All data is stored in the browser's localStorage using Zustand's `persist` middl
 
 | Store | localStorage Key | Persisted Fields |
 |---|---|---|
-| **App Store** | `al-reef-storage` | `isAuthenticated`, `authUser`, `language` |
-| **Data Store** | `al-reef-data-store` | `users`, `resetRequests`, `properties`, `tenants`, `payments`, `expenses`, `maintenanceItems`, `isSeeded` |
+| **App Store** | `realestateemperor-storage` | `isAuthenticated`, `authUser`, `language` |
+| **Data Store** | `realestateemperor-data-store` | `users`, `resetRequests`, `properties`, `tenants`, `payments`, `expenses`, `maintenanceItems`, `isSeeded` |
 
 ### LocalUser Interface (data-store.ts)
 
@@ -527,12 +527,12 @@ Default company:
 ```ts
 const DEFAULT_COMPANY: CompanyInfo = {
   id: 'company-1',
-  name: 'Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.',
-  nameAr: 'الريف الجنوبي للعقارات والصيانة العامة ذ.م.م',
-  nameBn: 'আল রিফ আল জুনুবি রিয়েল এস্টেট অ্যান্ড জেনারেল মেইনটেন্যান্স এলএলসি',
-  nameUr: 'الریف الجنوبی ریئل اسٹیٹ اینڈ جنرل مینٹیننس لمیٹڈ',
+  name: 'Real Estate Emperor Property Management L.L.C.',
+  nameAr: 'الإمبراطور العقاري لإدارة الممتلكات ذ.م.م',
+  nameBn: 'রিয়েল এস্টেট এম্পেরর প্রপার্টি ম্যানেজমেন্ট এলএলসি',
+  nameUr: 'املاک کا شہنشاہ',
   phone: '+971-2-555-0199',
-  email: 'info@alreefjanoubi.ae',
+  email: 'info@realestateemperor.ae',
   address: 'Khalifa City A, Abu Dhabi, UAE',
 }
 ```
@@ -678,7 +678,7 @@ Dear {name},
 This is a reminder that your monthly rent for {month} {year} in the amount of AED {amount} is currently outstanding.
 Kindly arrange for payment at your earliest convenience.
 Best regards,
-Al Reef Al Junoobi Real Estate & General Maintenance
+Real Estate Emperor Property Management
 ```
 
 ### WhatsApp Language Selection Popup
@@ -995,8 +995,8 @@ The sidebar shows a notification badge on the Settings item when there are pendi
 
 ```ts
 export const metadata: Metadata = {
-  title: "Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.",
-  description: "Property Dashboard - Al Reef Al Junoobi Real Estate & General Maintenance L.L.C.",
+  title: "Real Estate Emperor Property Management L.L.C.",
+  description: "Property Dashboard - Real Estate Emperor Property Management L.L.C.",
   icons: {
     icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌙</text></svg>",
   },
@@ -1015,7 +1015,7 @@ export const metadata: Metadata = {
 | **Build Command** | `next build` |
 | **Output Directory** | `.next` |
 | **Node.js Version** | 18.x+ |
-| **Live URL** | https://al-reef-al-junoobi.vercel.app |
+| **Live URL** | https://real-estate-emperor.vercel.app |
 
 ### Deployment Steps
 
@@ -1044,7 +1044,7 @@ GET /api
 Response:
 
 ```json
-{ "status": "ok", "app": "Al Reef Al Junoobi Real Estate & General Maintenance L.L.C." }
+{ "status": "ok", "app": "Real Estate Emperor Property Management L.L.C." }
 ```
 
 ---

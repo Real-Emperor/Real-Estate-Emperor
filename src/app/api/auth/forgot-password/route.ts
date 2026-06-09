@@ -65,14 +65,14 @@ export async function POST(request: Request) {
     })
 
     // Build the reset link
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://al-reef-al-junoobi.vercel.app'
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://real-estate-emperor.vercel.app'
     const resetLink = `${baseUrl}?view=reset-password&token=${token}`
 
     // Send the reset email
     const emailResult = await sendPasswordResetEmail(
       email,
       resetLink,
-      user.company?.name || 'Al Reef Dashboard'
+      user.company?.name || 'Real Estate Emperor'
     )
 
     // Record rate limit attempt

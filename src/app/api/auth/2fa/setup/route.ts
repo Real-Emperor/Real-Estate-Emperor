@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
     // Generate secret
     const secret = authenticator.generateSecret()
-    const serviceName = 'Al Reef Dashboard'
+    const serviceName = 'Real Estate Emperor'
     const otpauth = authenticator.keyuri(user.email, serviceName, secret)
 
     // Store secret temporarily (not enabled yet)

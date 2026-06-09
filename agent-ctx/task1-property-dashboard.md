@@ -19,7 +19,7 @@
 - `src/lib/store.ts` - Zustand store for app state
 
 #### API Routes
-- `src/app/api/seed/route.ts` - POST: Seeds database with Al Reef Al Janoubi sample data
+- `src/app/api/seed/route.ts` - POST: Seeds database with Real Estate Emperor sample data
 - `src/app/api/dashboard/route.ts` - GET: Dashboard stats, overdue, charts, recent payments
 - `src/app/api/properties/route.ts` - GET/POST/PUT/DELETE: Full CRUD
 - `src/app/api/tenants/route.ts` - GET/POST/PUT/DELETE: Full CRUD with payments
@@ -52,7 +52,7 @@
 - **Animations**: Fade-in-up, overdue pulse, stagger children, card hover
 
 ### Sample Data
-- **Company**: Al Reef Al Janoubi Real Estate (الريف الجنوبي للعقارات)
+- **Company**: Real Estate Emperor Real Estate (الإمبراطور العقاري للعقارات)
 - **3 Properties**: Building A (12 units), Building B (8 units), Commercial Plaza (6 units)
 - **19 Tenants**: Mix of Arabic/Bengali names, paid/unpaid/overdue statuses
 - **94 Payments**: 6 months of history, cash/transfer/cheque methods

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Al Reef Al Janoubi — Real Estate Management System SAMPLE (with Demo Data)
+Real Estate Emperor — Real Estate Management System SAMPLE (with Demo Data)
 ===========================================================================
 AED 2,000 value professional sample workbook.
 11-sheet comprehensive RE management system with demo data.
@@ -80,7 +80,7 @@ CF_NEGATIVE_FONT = base.CF_NEGATIVE_FONT
 CF_WARNING_FILL = base.CF_WARNING_FILL
 CF_WARNING_FONT = base.CF_WARNING_FONT
 
-OUTPUT_PATH = "/home/z/my-project/download/Al_Reef_Al_Janoubi_Sample.xlsx"
+OUTPUT_PATH = "/home/z/my-project/download/Real_Estate_Emperor_Sample.xlsx"
 CURRENCY_FMT = "#,##0.00"
 DATE_FMT = "YYYY-MM-DD"
 PCT_FMT = "0.0%"
@@ -309,7 +309,7 @@ ws_guide = wb.active
 ws_guide.title = "Guidance"
 ws_guide.sheet_properties.tabColor = TAB_COLOR
 
-setup_sheet(ws_guide, title="Al Reef Al Janoubi — System Usage Guide", last_col=10)
+setup_sheet(ws_guide, title="Real Estate Emperor — System Usage Guide", last_col=10)
 
 ws_guide.column_dimensions["A"].width = 3
 ws_guide.column_dimensions["B"].width = 6
@@ -448,7 +448,7 @@ setup_print(ws_guide, "J", r, "2:3")
 ws_dash = wb.create_sheet("Dashboard")
 ws_dash.sheet_properties.tabColor = TAB_COLOR
 
-setup_sheet(ws_dash, title="Al Reef Al Janoubi — Real Estate Dashboard", last_col=14)
+setup_sheet(ws_dash, title="Real Estate Emperor — Real Estate Dashboard", last_col=14)
 
 # KPI Cards - demo values
 kpi_data = [
@@ -1163,13 +1163,13 @@ for i, w in enumerate(exp_widths):
 exp_demo = [
     (date(2025,3,1), "Manpower/Staff", "Building security - March", 12000, "Bank Transfer", "SafeGuard Security", "INV-2001", "Yes", "All Buildings", "Monthly contract"),
     (date(2025,3,1), "Manpower/Staff", "Building cleaners - March", 8000, "Bank Transfer", "CleanPro Services", "INV-2002", "Yes", "All Buildings", "Monthly contract"),
-    (date(2025,3,1), "Manpower/Staff", "Building maintenance staff - March", 15000, "Bank Transfer", "Al Reef Maintenance", "INV-2003", "Yes", "All Buildings", "3 staff members"),
+    (date(2025,3,1), "Manpower/Staff", "Building maintenance staff - March", 15000, "Bank Transfer", "Emperor Maintenance", "INV-2003", "Yes", "All Buildings", "3 staff members"),
     (date(2025,3,5), "Municipality Fees", "Q1 Municipality fees", 9267, "Bank Transfer", "Dubai Municipality", "MUN-0125", "Yes", "All Buildings", "5% of rental income"),
     (date(2025,3,10), "Maintenance", "AC repair B-108", 380, "Cheque", "CoolTech Services", "INV-2010", "No", "Building B", "MR-001"),
     (date(2025,3,12), "Maintenance", "Paint touch-up A-110", 100, "Cash", "ColorPro Painters", "INV-2011", "No", "Building A", "MR-004"),
     (date(2025,3,15), "Utilities", "DEWA electricity March", 5500, "Bank Transfer", "DEWA", "DEWA-3301", "Yes", "All Buildings", ""),
     (date(2025,3,15), "Utilities", "Water bill March", 3000, "Bank Transfer", "DEWA", "DEWA-3302", "Yes", "All Buildings", ""),
-    (date(2025,3,18), "Leasing Commission", "Leasing commission - 2 new tenants", 4600, "Bank Transfer", "Al Reef Leasing", "INV-2020", "No", "All Buildings", "A-110, B-205"),
+    (date(2025,3,18), "Leasing Commission", "Leasing commission - 2 new tenants", 4600, "Bank Transfer", "Emperor Leasing", "INV-2020", "No", "All Buildings", "A-110, B-205"),
     (date(2025,3,20), "Insurance", "Building insurance Q2", 2800, "Bank Transfer", "Oman Insurance", "POL-4455", "Yes", "All Buildings", "Quarterly payment"),
     (date(2025,3,22), "Security", "CCTV monitoring March", 6000, "Bank Transfer", "SafeGuard Security", "INV-2004", "Yes", "All Buildings", ""),
     (date(2025,3,25), "Maintenance", "Electrical repair B-205", 180, "Cash", "SafeWire Electric", "INV-2012", "No", "Building B", "MR-006"),
@@ -1388,7 +1388,7 @@ setup_print(ws_rev, "O", current_row + 25, "2:4")
 ws_pl = wb.create_sheet("Profit & Loss")
 ws_pl.sheet_properties.tabColor = TAB_COLOR
 
-setup_sheet(ws_pl, title="Profit & Loss Statement — Al Reef Al Janoubi", last_col=4)
+setup_sheet(ws_pl, title="Profit & Loss Statement — Real Estate Emperor", last_col=4)
 
 pl_col_start = 2
 pl_col_end = 4

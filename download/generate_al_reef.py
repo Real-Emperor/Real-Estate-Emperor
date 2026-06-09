@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Al Reef Al Janoubi — Real Estate Management System (SAMPLE)
+Real Estate Emperor — Real Estate Management System (SAMPLE)
 AED 2000 Value Production-Ready Excel System
 Bottega Palette — Dark Forest Green (2D4A3E)
 """
@@ -339,7 +339,7 @@ ws_dash.title = "Dashboard"
 set_tab_color(ws_dash)
 last_col_dash = 14
 
-setup_sheet(ws_dash, "Al Reef Al Janoubi — Real Estate Dashboard", last_col_dash)
+setup_sheet(ws_dash, "Real Estate Emperor — Real Estate Dashboard", last_col_dash)
 
 # KPI Cards in row 4-6
 kpi_labels = ["Total Units", "Occupied", "Vacant", "Occupancy Rate", "Monthly Revenue", "Net Profit"]
@@ -957,7 +957,7 @@ maint_data = [
     ["MR-001", date(2025,3,28), "B-108", "AC not cooling", "Urgent", "Completed", "Al Amal AC Services", date(2025,3,30), 350, 380, None, "Compressor issue, extra refrigerant"],
     ["MR-002", date(2025,3,29), "A-103", "Water leak in bathroom", "High", "In Progress", "Al Jazira Plumbing", None, 200, None, None, "Leak from upper floor"],
     ["MR-003", date(2025,3,30), "C-112", "Door lock broken", "Medium", "Open", "Secure Locksmith", None, 150, None, None, "Tenant locked out twice"],
-    ["MR-004", date(2025,4,1), "A-110", "Paint touch-up needed", "Low", "Completed", "Al Reef Painters", date(2025,4,3), 100, 100, None, "Hallway wall scuffs"],
+    ["MR-004", date(2025,4,1), "A-110", "Paint touch-up needed", "Low", "Completed", "Emperor Painters", date(2025,4,3), 100, 100, None, "Hallway wall scuffs"],
     ["MR-005", date(2025,4,1), "D-103", "Kitchen pipe blocked", "High", "Completed", "Quick Fix Plumbing", date(2025,4,2), 250, 270, None, "Grease buildup in pipe"],
     ["MR-006", date(2025,4,2), "B-105", "AC filter replacement", "Medium", "Completed", "Cool Air Maintenance", date(2025,4,3), 120, 120, None, "Routine filter change"],
     ["MR-007", date(2025,4,2), "C-109", "Electrical socket sparking", "Urgent", "Completed", "Safe Wire Electric", date(2025,4,2), 180, 200, None, "Replaced socket and wiring"],
@@ -965,10 +965,10 @@ maint_data = [
     ["MR-009", date(2025,4,3), "D-108", "Window glass crack", "High", "Open", "Crystal Glass Works", None, 300, None, None, "Ordered glass panel"],
     ["MR-010", date(2025,4,3), "Building B", "Elevator maintenance", "Medium", "Completed", "Otis Elevators", date(2025,4,4), 2500, 2500, None, "Quarterly service"],
     ["MR-011", date(2025,4,4), "Building A", "Common area lighting", "Low", "In Progress", "Safe Wire Electric", None, 400, None, None, "3rd floor corridor lights"],
-    ["MR-012", date(2025,4,4), "Building C", "Pest control treatment", "Medium", "Completed", "Al Reef Pest Control", date(2025,4,5), 800, 800, None, "Monthly treatment all floors"],
+    ["MR-012", date(2025,4,4), "Building C", "Pest control treatment", "Medium", "Completed", "Emperor Pest Control", date(2025,4,5), 800, 800, None, "Monthly treatment all floors"],
     ["MR-013", date(2025,4,4), "Building D", "Roof waterproofing", "High", "In Progress", "Al Shamil Waterproofing", None, 3500, None, None, "Monsoon preparation"],
     ["MR-014", date(2025,4,5), "Building A", "Intercom system repair", "Medium", "Open", "Secure Comm Tech", None, 600, None, None, "3rd-4th floor intercom down"],
-    ["MR-015", date(2025,4,5), "All Buildings", "Parking area cleaning", "Low", "Completed", "Al Reef Cleaning", date(2025,4,5), 500, 500, None, "Monthly deep clean"],
+    ["MR-015", date(2025,4,5), "All Buildings", "Parking area cleaning", "Low", "Completed", "Emperor Cleaning", date(2025,4,5), 500, 500, None, "Monthly deep clean"],
 ]
 
 for idx_m, md in enumerate(maint_data):
@@ -1053,8 +1053,8 @@ expenses_data = [
     [1, date(2025,4,1), "Manpower", "Security Guard — Building A & B", "Al Ameen Security", 3500, "Bank Transfer", "PAY-0401", "Monthly salary"],
     [2, date(2025,4,1), "Manpower", "Security Guard — Building C & D", "Al Ameen Security", 3500, "Bank Transfer", "PAY-0402", "Monthly salary"],
     [3, date(2025,4,1), "Manpower", "Security Guard — Night Shift", "Al Ameen Security", 3500, "Bank Transfer", "PAY-0403", "Monthly salary"],
-    [4, date(2025,4,1), "Manpower", "Cleaner — Building A & B", "Al Reef Services", 2500, "Bank Transfer", "PAY-0404", "Monthly salary"],
-    [5, date(2025,4,1), "Manpower", "Cleaner — Building C & D", "Al Reef Services", 2500, "Bank Transfer", "PAY-0405", "Monthly salary"],
+    [4, date(2025,4,1), "Manpower", "Cleaner — Building A & B", "Emperor Services", 2500, "Bank Transfer", "PAY-0404", "Monthly salary"],
+    [5, date(2025,4,1), "Manpower", "Cleaner — Building C & D", "Emperor Services", 2500, "Bank Transfer", "PAY-0405", "Monthly salary"],
     [6, date(2025,4,1), "Manpower", "Building Supervisor", "Ahmad Al Rashid", 4500, "Bank Transfer", "PAY-0406", "Monthly salary"],
     [7, date(2025,4,1), "Manpower", "Receptionist/Admin", "Fatima Al Suwaidi", 3000, "Bank Transfer", "PAY-0407", "Monthly salary"],
     # Municipality Fees
@@ -1067,13 +1067,13 @@ expenses_data = [
     [13, date(2025,4,3), "Maintenance", "Water leak repair — Unit A-103", "Al Jazira Plumbing", 270, "Cash", "INV-M005", "MR-005 completed"],
     [14, date(2025,4,3), "Maintenance", "Electrical socket — Unit C-109", "Safe Wire Electric", 200, "Cash", "INV-M007", "MR-007 completed"],
     [15, date(2025,4,4), "Maintenance", "AC filter replacement — Unit B-105", "Cool Air Maintenance", 120, "Cash", "INV-M006", "MR-006 completed"],
-    [16, date(2025,4,4), "Maintenance", "Paint touch-up — Unit A-110", "Al Reef Painters", 100, "Cash", "INV-M004", "MR-004 completed"],
-    [17, date(2025,4,5), "Maintenance", "Pest control — Building C", "Al Reef Pest Control", 800, "Cheque", "INV-M012", "MR-012 completed"],
+    [16, date(2025,4,4), "Maintenance", "Paint touch-up — Unit A-110", "Emperor Painters", 100, "Cash", "INV-M004", "MR-004 completed"],
+    [17, date(2025,4,5), "Maintenance", "Pest control — Building C", "Emperor Pest Control", 800, "Cheque", "INV-M012", "MR-012 completed"],
     [18, date(2025,4,5), "Maintenance", "Elevator service — Building B", "Otis Elevators", 2500, "Cheque", "INV-M010", "MR-010 quarterly"],
-    [19, date(2025,4,5), "Maintenance", "Parking cleaning — All Buildings", "Al Reef Cleaning", 500, "Cash", "INV-M015", "MR-015 monthly"],
+    [19, date(2025,4,5), "Maintenance", "Parking cleaning — All Buildings", "Emperor Cleaning", 500, "Cash", "INV-M015", "MR-015 monthly"],
     [20, date(2025,4,5), "Maintenance", "Kitchen pipe — Unit D-103", "Quick Fix Plumbing", 270, "Cash", "INV-M005B", "Additional work"],
     # Leasing Commission
-    [21, date(2025,4,1), "Leasing Commission", "New tenant placement — 3 units", "Al Reef Leasing", 5200, "Cheque", "COM-0401", "Commission for March placements"],
+    [21, date(2025,4,1), "Leasing Commission", "New tenant placement — 3 units", "Emperor Leasing", 5200, "Cheque", "COM-0401", "Commission for March placements"],
     # Insurance
     [22, date(2025,4,1), "Insurance", "Building insurance — All Buildings", "Oman Insurance Co.", 4200, "Bank Transfer", "INS-0401", "Quarterly premium"],
     # Utilities
@@ -1087,12 +1087,12 @@ expenses_data = [
     # Legal
     [29, date(2025,4,2), "Legal", "Contract preparation — 4 new tenants", "Al Suwaidi Advocates", 2000, "Cheque", "LEG-0401", "Ejari registration included"],
     # Cleaning
-    [30, date(2025,4,1), "Cleaning", "Deep cleaning — Vacant units", "Al Reef Cleaning", 1200, "Cash", "CLN-0401", "7 vacant units prep"],
-    [31, date(2025,4,1), "Cleaning", "Monthly deep cleaning — Common areas", "Al Reef Cleaning", 2000, "Cheque", "CLN-0402", "All 4 buildings"],
+    [30, date(2025,4,1), "Cleaning", "Deep cleaning — Vacant units", "Emperor Cleaning", 1200, "Cash", "CLN-0401", "7 vacant units prep"],
+    [31, date(2025,4,1), "Cleaning", "Monthly deep cleaning — Common areas", "Emperor Cleaning", 2000, "Cheque", "CLN-0402", "All 4 buildings"],
     # Security
     [32, date(2025,4,1), "Security", "CCTV monitoring service", "Secure Vision LLC", 1800, "Bank Transfer", "SEC-0401", "Monthly monitoring fee"],
     # Pest Control
-    [33, date(2025,4,4), "Pest Control", "Monthly treatment — All Buildings", "Al Reef Pest Control", 1200, "Cheque", "PST-0401", "Preventive treatment"],
+    [33, date(2025,4,4), "Pest Control", "Monthly treatment — All Buildings", "Emperor Pest Control", 1200, "Cheque", "PST-0401", "Preventive treatment"],
     # Elevator Service
     [34, date(2025,4,1), "Elevator Service", "Monthly maintenance — All elevators", "Otis Elevators", 2800, "Bank Transfer", "ELV-0401", "4 elevators across buildings"],
     # Other
@@ -1272,7 +1272,7 @@ set_tab_color(ws_pnl)
 
 pnl_last_col = 4  # B=Category, C=Sub-category, D=Amount, E=Margin
 
-setup_sheet(ws_pnl, "Profit & Loss Statement — Al Reef Al Janoubi — April 2025", pnl_last_col)
+setup_sheet(ws_pnl, "Profit & Loss Statement — Real Estate Emperor — April 2025", pnl_last_col)
 
 # Custom layout for P&L
 ws_pnl.cell(row=4, column=2, value="Category").font = font_header()
@@ -1634,7 +1634,7 @@ for i, name in enumerate(desired_order):
     wb.move_sheet(name, offset=i - idx)
 
 # Save
-OUTPUT = "/home/z/my-project/download/Al_Reef_Al_Janoubi_Sample.xlsx"
+OUTPUT = "/home/z/my-project/download/Real_Estate_Emperor_Sample.xlsx"
 wb.save(OUTPUT)
 print(f"✅ Saved: {OUTPUT}")
 print(f"   Sheets: {wb.sheetnames}")

@@ -60,7 +60,7 @@ export const useAppStore = create<AppState>()(
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
     }),
     {
-      name: 'al-reef-storage',
+      name: 'realestateemperor-storage',
       partialize: (state) => ({
         language: state.language,
         // Don't persist auth - it comes from NextAuth session

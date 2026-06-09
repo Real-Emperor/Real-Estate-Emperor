@@ -93,7 +93,7 @@ export async function POST(request: Request) {
     await recordApiRateLimit(rateKey, 3, 60 * 60 * 1000)
 
     // Send welcome email (non-blocking)
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://al-reef-al-junoobi.vercel.app'
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://real-estate-emperor.vercel.app'
     sendWelcomeEmail(adminEmail, adminName, companyName, baseUrl).catch(() => {})
 
     return successResponse({
