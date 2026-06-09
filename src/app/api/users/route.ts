@@ -80,6 +80,9 @@ export async function POST(request: Request) {
       return errorResponse('Email, password, and name are required')
     }
 
+    // Normalize email to lowercase (auth system lowercases before lookup)
+    const normalizedEmail = email.trim().toLowerCase()
+
     // Validate role is one of the allowed values
     const validRoles = ['owner', 'admin', 'staff', 'accountant']
     if (role && !validRoles.includes(role)) {
@@ -97,9 +100,9 @@ export async function POST(request: Request) {
       return errorResponse('Password must contain at least one number')
     }
 
-    // Check if email is already taken
+    // Check if email is already taken (use normalized lowercase)
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     })
 
     if (existingUser) {
@@ -110,7 +113,7 @@ export async function POST(request: Request) {
 
     const newUser = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
         name,
         nameAr: nameAr || null,
@@ -141,7 +144,7 @@ export async function POST(request: Request) {
       entityId: newUser.id,
       userId: user.id,
       companyId: user.companyId,
-      details: { email, name, role: newUser.role },
+      details: { email: normalizedEmail, name, role: newUser.role },
     })
 
     return successResponse(serialize(newUser), 201)

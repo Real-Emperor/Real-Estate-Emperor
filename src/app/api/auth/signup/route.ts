@@ -34,7 +34,10 @@ export async function POST(request: Request) {
       return errorResponse(firstError.message)
     }
 
-    const { companyName, adminName, adminEmail, password } = result.data
+    const { companyName, adminName, adminEmail: rawEmail, password } = result.data
+
+    // Normalize email to lowercase (auth system lowercases before lookup)
+    const adminEmail = rawEmail.trim().toLowerCase()
 
     // Check email uniqueness globally
     const existingUser = await prisma.user.findUnique({
@@ -61,7 +64,7 @@ export async function POST(request: Request) {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Create the admin user
+    // Create the admin user (email already normalized)
     const admin = await prisma.user.create({
       data: {
         email: adminEmail,

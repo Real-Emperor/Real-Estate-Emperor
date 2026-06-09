@@ -41,22 +41,22 @@ export async function POST(request: Request) {
     const companyEmail = body.companyEmail || 'info@realestateemperor.ae'
     const companyAddress = body.companyAddress || 'Business Bay, Dubai, UAE'
 
-    const adminEmail = body.adminEmail || 'admin@realestateemperor.ae'
+    const adminEmail = (body.adminEmail || 'admin@realestateemperor.ae').trim().toLowerCase()
     const adminPassword = body.adminPassword || 'Emperor@Admin2024!'
     const adminName = body.adminName || 'Demo Admin'
     const adminNameAr = body.adminNameAr || 'مدير تجريبي'
 
-    const ownerEmail = body.ownerEmail || 'demoO@realestate.ae'
+    const ownerEmail = (body.ownerEmail || 'demoo@realestate.ae').trim().toLowerCase()
     const ownerPassword = body.ownerPassword || 'Emperor@Owner2024!'
     const ownerName = body.ownerName || 'Demo Owner'
     const ownerNameAr = body.ownerNameAr || 'مالك تجريبي'
 
-    const staffEmail = body.staffEmail || 'demos@realestate.ae'
+    const staffEmail = (body.staffEmail || 'demos@realestate.ae').trim().toLowerCase()
     const staffPassword = body.staffPassword || 'Emperor@Staff2024!'
     const staffName = body.staffName || 'Demo Staff'
     const staffNameAr = body.staffNameAr || 'موظف تجريبي'
 
-    const accountantEmail = body.accountantEmail || 'demoA@realestate.ae'
+    const accountantEmail = (body.accountantEmail || 'demoa@realestate.ae').trim().toLowerCase()
     const accountantPassword = body.accountantPassword || 'Emperor@Accountant2024!'
     const accountantName = body.accountantName || 'Demo Accountant'
     const accountantNameAr = body.accountantNameAr || 'محاسب تجريبي'

@@ -47,10 +47,11 @@ export async function PUT(
       }
     }
 
-    // If email is being changed, check for uniqueness
-    if (email && email !== existing.email) {
+    // If email is being changed, normalize and check for uniqueness
+    const normalizedEmail = email ? email.trim().toLowerCase() : undefined
+    if (normalizedEmail && normalizedEmail !== existing.email) {
       const emailTaken = await prisma.user.findUnique({
-        where: { email },
+        where: { email: normalizedEmail },
       })
       if (emailTaken) {
         return errorResponse('Email is already in use')
@@ -59,7 +60,7 @@ export async function PUT(
 
     // Build update data
     const data: Record<string, unknown> = {}
-    if (email !== undefined) data.email = email
+    if (normalizedEmail !== undefined) data.email = normalizedEmail
     if (name !== undefined) data.name = name
     if (nameAr !== undefined) data.nameAr = nameAr
     if (nameBn !== undefined) data.nameBn = nameBn

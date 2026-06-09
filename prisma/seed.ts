@@ -33,7 +33,9 @@ async function main() {
   console.log('Company created:', company.name)
 
   // Create default users with strong hashed passwords
-  // NOTE: Change these passwords immediately after first login!
+  // IMPORTANT: update block ensures re-seeding resets passwords to known values
+  // Emails are stored lowercase — auth system lowercases input before lookup
+  //   demoO → demoo, demoA → demoa, demoS → demos (case-insensitive login)
   const adminPassword = await bcrypt.hash('Emperor@Admin2024!', 12)
   const ownerPassword = await bcrypt.hash('Emperor@Owner2024!', 12)
   const staffPassword = await bcrypt.hash('Emperor@Staff2024!', 12)
@@ -41,7 +43,17 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@realestateemperor.ae' },
-    update: {},
+    update: {
+      password: adminPassword,
+      name: 'Demo Admin',
+      nameAr: 'مدير تجريبي',
+      nameBn: 'ডেমো অ্যাডমিন',
+      nameUr: 'ڈیمو ایڈمن',
+      role: 'admin',
+      isActive: true,
+      deletedAt: null,
+      mustChangePassword: false,
+    },
     create: {
       email: 'admin@realestateemperor.ae',
       password: adminPassword,
@@ -51,13 +63,23 @@ async function main() {
       nameUr: 'ڈیمو ایڈمن',
       role: 'admin',
       companyId: company.id,
-      mustChangePassword: true,
+      mustChangePassword: false,
     },
   })
 
   const owner = await prisma.user.upsert({
     where: { email: 'demoo@realestate.ae' },
-    update: {},
+    update: {
+      password: ownerPassword,
+      name: 'Demo Owner',
+      nameAr: 'مالك تجريبي',
+      nameBn: 'ডেমো মালিক',
+      nameUr: 'ڈیمو مالک',
+      role: 'owner',
+      isActive: true,
+      deletedAt: null,
+      mustChangePassword: false,
+    },
     create: {
       email: 'demoo@realestate.ae',
       password: ownerPassword,
@@ -67,13 +89,23 @@ async function main() {
       nameUr: 'ڈیمو مالک',
       role: 'owner',
       companyId: company.id,
-      mustChangePassword: true,
+      mustChangePassword: false,
     },
   })
 
   const accountant = await prisma.user.upsert({
     where: { email: 'demoa@realestate.ae' },
-    update: {},
+    update: {
+      password: accountantPassword,
+      name: 'Demo Accountant',
+      nameAr: 'محاسب تجريبي',
+      nameBn: 'ডেমো হিসাবরক্ষক',
+      nameUr: 'ڈیمو اکاؤنٹنٹ',
+      role: 'accountant',
+      isActive: true,
+      deletedAt: null,
+      mustChangePassword: false,
+    },
     create: {
       email: 'demoa@realestate.ae',
       password: accountantPassword,
@@ -83,13 +115,23 @@ async function main() {
       nameUr: 'ڈیمو اکاؤنٹنٹ',
       role: 'accountant',
       companyId: company.id,
-      mustChangePassword: true,
+      mustChangePassword: false,
     },
   })
 
   const staff = await prisma.user.upsert({
     where: { email: 'demos@realestate.ae' },
-    update: {},
+    update: {
+      password: staffPassword,
+      name: 'Demo Staff',
+      nameAr: 'موظف تجريبي',
+      nameBn: 'ডেমো স্টাফ',
+      nameUr: 'ڈیمو اسٹاف',
+      role: 'staff',
+      isActive: true,
+      deletedAt: null,
+      mustChangePassword: false,
+    },
     create: {
       email: 'demos@realestate.ae',
       password: staffPassword,
@@ -99,11 +141,15 @@ async function main() {
       nameUr: 'ڈیمو اسٹاف',
       role: 'staff',
       companyId: company.id,
-      mustChangePassword: true,
+      mustChangePassword: false,
     },
   })
 
-  console.log('Users created:', admin.email, owner.email, accountant.email, staff.email)
+  // Clear any rate limit entries so users aren't locked out after re-seed
+  await prisma.rateLimitEntry.deleteMany({}).catch(() => {})
+  console.log('Rate limit entries cleared')
+
+  console.log('Users created/updated:', admin.email, owner.email, accountant.email, staff.email)
   console.log('Seed completed successfully!')
 }
 
