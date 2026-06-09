@@ -117,9 +117,9 @@ async function main() {
   const saltRounds = 12
   const usersData = [
     { email: 'admin@realestateemperor.ae', password: 'Emperor@Admin2024!', role: 'admin', name: 'Demo Admin' },
-    { email: 'demoO@realestate.ae', password: 'Emperor@Owner2024!', role: 'owner', name: 'Demo Owner' },
-    { email: 'demoA@realestate.ae', password: 'Emperor@Accountant2024!', role: 'accountant', name: 'Demo Accountant' },
-    { email: 'demoS@realestate.ae', password: 'Emperor@Staff2024!', role: 'staff', name: 'Demo Staff' },
+    { email: 'demoo@realestate.ae', password: 'Emperor@Owner2024!', role: 'owner', name: 'Demo Owner' },
+    { email: 'demoa@realestate.ae', password: 'Emperor@Accountant2024!', role: 'accountant', name: 'Demo Accountant' },
+    { email: 'demos@realestate.ae', password: 'Emperor@Staff2024!', role: 'staff', name: 'Demo Staff' },
   ]
 
   const users = []
@@ -637,9 +637,9 @@ async function main() {
   console.log('')
   console.log('  Login Credentials:')
   console.log('    Admin:      admin@realestateemperor.ae / Emperor@Admin2024!')
-  console.log('    Owner:      demoO@realestate.ae / Emperor@Owner2024!')
-  console.log('    Accountant: demoA@realestate.ae / Emperor@Accountant2024!')
-  console.log('    Staff:      demoS@realestate.ae / Emperor@Staff2024!')
+  console.log('    Owner:      demoo@realestate.ae / Emperor@Owner2024!')
+  console.log('    Accountant: demoa@realestate.ae / Emperor@Accountant2024!')
+  console.log('    Staff:      demos@realestate.ae / Emperor@Staff2024!')
   console.log('')
   console.log(`  Completed in ${elapsed}s`)
   console.log('══════════════════════════════════════════════════════════════')

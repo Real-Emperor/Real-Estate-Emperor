@@ -46,12 +46,12 @@ export async function POST(request: Request) {
     const adminName = body.adminName || 'Demo Admin'
     const adminNameAr = body.adminNameAr || 'مدير تجريبي'
 
-    const ownerEmail = body.ownerEmail || 'demoO@realestate.ae'
+    const ownerEmail = body.ownerEmail || 'demoo@realestate.ae'
     const ownerPassword = body.ownerPassword || 'Emperor@Owner2024!'
     const ownerName = body.ownerName || 'Demo Owner'
     const ownerNameAr = body.ownerNameAr || 'مالك تجريبي'
 
-    const staffEmail = body.staffEmail || 'demoS@realestate.ae'
+    const staffEmail = body.staffEmail || 'demos@realestate.ae'
     const staffPassword = body.staffPassword || 'Emperor@Staff2024!'
     const staffName = body.staffName || 'Demo Staff'
     const staffNameAr = body.staffNameAr || 'موظف تجريبي'

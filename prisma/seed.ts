@@ -56,10 +56,10 @@ async function main() {
   })
 
   const owner = await prisma.user.upsert({
-    where: { email: 'demoO@realestate.ae' },
+    where: { email: 'demoo@realestate.ae' },
     update: {},
     create: {
-      email: 'demoO@realestate.ae',
+      email: 'demoo@realestate.ae',
       password: ownerPassword,
       name: 'Demo Owner',
       nameAr: 'مالك تجريبي',
@@ -72,10 +72,10 @@ async function main() {
   })
 
   const accountant = await prisma.user.upsert({
-    where: { email: 'demoA@realestate.ae' },
+    where: { email: 'demoa@realestate.ae' },
     update: {},
     create: {
-      email: 'demoA@realestate.ae',
+      email: 'demoa@realestate.ae',
       password: accountantPassword,
       name: 'Demo Accountant',
       nameAr: 'محاسب تجريبي',
@@ -88,10 +88,10 @@ async function main() {
   })
 
   const staff = await prisma.user.upsert({
-    where: { email: 'demoS@realestate.ae' },
+    where: { email: 'demos@realestate.ae' },
     update: {},
     create: {
-      email: 'demoS@realestate.ae',
+      email: 'demos@realestate.ae',
       password: staffPassword,
       name: 'Demo Staff',
       nameAr: 'موظف تجريبي',
