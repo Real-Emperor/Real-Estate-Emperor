@@ -5,7 +5,7 @@
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient({
-  datasourceUrl: 'postgresql://neondb_owner:npg_wB1fOmTSF0ji@ep-still-sound-abnl454x.eu-west-2.aws.neon.tech/neondb?sslmode=require'
+  datasourceUrl: process.env.DATABASE_URL
 });
 
 const COMPANY_ID = 'company-1';

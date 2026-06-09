@@ -8,7 +8,7 @@
 
 const { PrismaClient } = require('@prisma/client');
 
-const DATABASE_URL = 'postgresql://neondb_owner:npg_wB1fOmTSF0ji@ep-still-sound-abnl454x.eu-west-2.aws.neon.tech/neondb?sslmode=require';
+const DATABASE_URL = process.env.DATABASE_URL;
 const prisma = new PrismaClient({ datasourceUrl: DATABASE_URL });
 
 const TARGET_DATE = '2026-05-31';
