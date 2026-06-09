@@ -326,3 +326,35 @@ export interface BillReminderData {
   sentVia: string | null
   createdAt: string
 }
+
+export interface RecurringBillWithCycles extends RecurringBillData {
+  cycles: BillCycleData[]
+  payments: RecurringBillPaymentData[]
+}
+
+export interface PaymentWithCycle extends RecurringBillPaymentData {
+  billCycle: BillCycleData | null
+  recurringBill: Pick<RecurringBillData, 'id' | 'providerName' | 'serviceType' | 'propertyId' | 'property'>
+}
+
+export interface FlatPaymentEntry {
+  id: string
+  recurringBillId: string
+  billCycleId: string | null
+  companyId: string
+  amount: number
+  paymentDate: string
+  method: string | null
+  reference: string | null
+  notes: string | null
+  outstandingAfterPayment: number
+  createdAt: string
+  // Enriched from join
+  providerName: string
+  serviceType: string
+  propertyId: string
+  propertyName: string
+  cyclePeriodStart: string | null
+  cyclePeriodEnd: string | null
+  cycleNumber: number | null
+}

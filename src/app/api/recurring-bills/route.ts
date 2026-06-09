@@ -12,6 +12,7 @@ import {
 } from '@/lib/api-utils'
 
 // GET /api/recurring-bills — List all recurring bills for the company
+// Status filter is derived from the LATEST cycle's status, not the bill's top-level status
 export async function GET(request: Request) {
   try {
     const user = await getAuthUser()
@@ -29,14 +30,14 @@ export async function GET(request: Request) {
     // Pagination
     const pagination = parsePaginationParams(searchParams)
 
-    // Build where clause
+    // Build where clause — do NOT filter by status at DB level
+    // because the bill's top-level status may be stale; we filter in JS after deriving from cycles
     const where: any = {
       companyId,
       isActive: true,
       deletedAt: null,
     }
 
-    if (status) where.status = status
     if (propertyId) where.propertyId = propertyId
     if (serviceType) where.serviceType = serviceType
     if (search) {
@@ -47,34 +48,52 @@ export async function GET(request: Request) {
       ]
     }
 
-    const [bills, total] = await Promise.all([
-      prisma.recurringBill.findMany({
-        where,
-        include: {
-          property: {
-            select: { id: true, name: true, nameAr: true, nameBn: true, nameUr: true },
-          },
-          payments: {
-            orderBy: { paymentDate: 'desc' },
-            take: 5,
-          },
-          cycles: {
-            orderBy: { createdAt: 'desc' },
-            take: 5,
-          },
+    // Fetch ALL matching bills (no status filter at DB level) with their latest cycle
+    // We'll apply status filter in JS after deriving from cycle
+    const allBills = await prisma.recurringBill.findMany({
+      where,
+      include: {
+        property: {
+          select: { id: true, name: true, nameAr: true, nameBn: true, nameUr: true },
         },
-        orderBy: { nextDueDate: 'asc' },
-        skip: pagination.skip,
-        take: pagination.limit,
-      }),
-      prisma.recurringBill.count({ where }),
-    ])
+        payments: {
+          orderBy: { paymentDate: 'desc' },
+          take: 5,
+        },
+        cycles: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+      },
+      orderBy: { nextDueDate: 'asc' },
+    })
 
-    return paginatedResponse(
-      bills.map(b => serialize(b)),
-      total,
-      pagination
+    // Derive effective status from latest cycle for each bill
+    const enrichedBills = allBills.map(bill => {
+      const latestCycle = bill.cycles?.[0] // cycles are ordered desc, so first is latest
+      const effectiveStatus = latestCycle?.status || bill.status
+      return {
+        ...serialize(bill),
+        effectiveStatus,
+        latestCycle: latestCycle ? serialize(latestCycle) : null,
+      }
+    })
+
+    // Apply status filter in JS using effectiveStatus
+    let filteredBills = enrichedBills
+    if (status) {
+      filteredBills = enrichedBills.filter(b => b.effectiveStatus === status)
+    }
+
+    const total = filteredBills.length
+
+    // Apply pagination in JS
+    const paginatedBills = filteredBills.slice(
+      pagination.skip,
+      pagination.skip + pagination.limit
     )
+
+    return paginatedResponse(paginatedBills, total, pagination)
   } catch (error) {
     console.error('Recurring bills list error:', error)
     return errorResponse('Failed to fetch recurring bills', 500)
@@ -122,7 +141,7 @@ export async function POST(request: Request) {
         totalAmountDue,
         nextDueDate: body.nextDueDate ? new Date(body.nextDueDate) : null,
         billingFrequency: body.billingFrequency || 'monthly',
-        status: body.status || 'active',
+        status: 'pending',
         autoRenew: body.autoRenew || false,
         gracePeriodDays: body.gracePeriodDays || 0,
         internalNotes: body.internalNotes || null,
@@ -130,7 +149,7 @@ export async function POST(request: Request) {
         cycles: {
           create: {
             companyId,
-            periodStart: new Date(), // Current date as start
+            periodStart: new Date(),
             periodEnd: body.nextDueDate ? new Date(body.nextDueDate) : new Date(),
             dueDate: body.nextDueDate ? new Date(body.nextDueDate) : new Date(),
             amount: monthlyExpectedAmount,

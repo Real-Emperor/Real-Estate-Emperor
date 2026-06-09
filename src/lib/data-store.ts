@@ -107,6 +107,9 @@ interface DataState {
   updateRecurringBill: (id: string, data: any) => Promise<void>
   deleteRecurringBill: (id: string) => Promise<void>
   payRecurringBill: (data: any) => Promise<void>
+  editBillPayment: (paymentId: string, data: any) => Promise<void>
+  deleteBillPayment: (paymentId: string) => Promise<void>
+  payRecurringBillCycle: (cycleId: string, data: any) => Promise<void>
 
   // Expenses CRUD
   addExpense: (data: Omit<ExpenseData, 'id' | 'companyId' | 'createdAt'>) => Promise<void>
@@ -673,6 +676,29 @@ export const useDataStore = create<DataState>()(
 
     payRecurringBill: async (data) => {
       await apiCall('/api/recurring-bills/pay', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+      await get().refreshAllData()
+    },
+
+    editBillPayment: async (paymentId, data) => {
+      await apiCall(`/api/recurring-bills/payments/${paymentId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      })
+      await get().refreshAllData()
+    },
+
+    deleteBillPayment: async (paymentId) => {
+      await apiCall(`/api/recurring-bills/payments/${paymentId}`, {
+        method: 'DELETE',
+      })
+      await get().refreshAllData()
+    },
+
+    payRecurringBillCycle: async (cycleId, data) => {
+      await apiCall(`/api/recurring-bills/cycles/${cycleId}/payments`, {
         method: 'POST',
         body: JSON.stringify(data),
       })

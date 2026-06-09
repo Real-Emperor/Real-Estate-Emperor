@@ -10,6 +10,7 @@ import {
 } from '@/lib/api-utils'
 
 // POST /api/recurring-bills/[id]/advance-cycle — Create a new billing cycle
+// After creating the new cycle, update the bill's status to match the new cycle's status (pending)
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -99,13 +100,15 @@ export async function POST(
         },
       })
 
-      // Update the bill's nextDueDate and monthlyExpectedAmount
+      // Update the bill's nextDueDate, monthlyExpectedAmount, and status
+      // Status must match the latest cycle's status (which is 'pending' for a new cycle)
       const updatedBill = await tx.recurringBill.update({
         where: { id: bill.id },
         data: {
           nextDueDate: dueDate,
           monthlyExpectedAmount: newAmount,
-          totalAmountDue: newAmount + Number(bill.currentOutstandingBalance),
+          totalAmountDue: safeDecimal(Number(newAmount) + Number(bill.currentOutstandingBalance)),
+          status: 'pending', // Match the new cycle's status
         },
         include: {
           property: {
@@ -135,6 +138,7 @@ export async function POST(
         periodStart: periodStart.toISOString(),
         periodEnd: periodEnd.toISOString(),
         dueDate: dueDate.toISOString(),
+        billStatusUpdated: 'pending',
       },
     })
 

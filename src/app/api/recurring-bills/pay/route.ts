@@ -9,7 +9,15 @@ import {
   safeDecimal,
 } from '@/lib/api-utils'
 
+// Helper: derive cycle status from paidAmount and amount
+function deriveCycleStatus(paidAmount: number, amount: number): string {
+  if (paidAmount <= 0) return 'pending'
+  if (paidAmount < amount) return 'partially_paid'
+  return 'paid'
+}
+
 // POST /api/recurring-bills/pay — Record a payment on a recurring bill
+// Uses the CYCLE's outstandingAmount as the source of truth
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser()
@@ -28,77 +36,134 @@ export async function POST(request: Request) {
       return errorResponse('Payment amount must be greater than zero')
     }
 
-    // Get the bill
+    // Get the bill with its cycles
     const bill = await prisma.recurringBill.findFirst({
       where: { id: body.recurringBillId, companyId, isActive: true, deletedAt: null },
+      include: {
+        cycles: {
+          orderBy: { cycleNumber: 'desc' },
+        },
+      },
     })
 
     if (!bill) {
       return errorResponse('Recurring bill not found', 404)
     }
 
-    const currentOutstanding = Number(bill.currentOutstandingBalance)
-    const monthlyExpected = Number(bill.monthlyExpectedAmount)
+    // Find the current active cycle (pending/partially_paid/overdue)
+    let currentCycle = bill.cycles.find(c =>
+      c.status === 'pending' || c.status === 'partially_paid' || c.status === 'overdue'
+    )
 
-    // Find the current active/pending/overdue cycle to link the payment to
-    const currentCycle = await prisma.billCycle.findFirst({
-      where: {
-        recurringBillId: bill.id,
-        status: { in: ['pending', 'partially_paid', 'overdue'] },
-      },
-      orderBy: { cycleNumber: 'desc' },
-    })
+    // If no active cycle exists, create one automatically
+    if (!currentCycle) {
+      const lastCycle = bill.cycles[0] // highest cycleNumber (desc order)
+      let periodStart = new Date()
+      let periodEnd = new Date()
+      let dueDate = new Date()
+      const nextCycleNumber = lastCycle ? lastCycle.cycleNumber + 1 : 1
 
-    // Calculate remaining outstanding
-    const remaining = currentOutstanding - paymentAmount
-    const previousOutstanding = currentOutstanding
+      if (lastCycle) {
+        periodStart = new Date(lastCycle.periodEnd)
+      } else if (bill.nextDueDate) {
+        periodStart = new Date(bill.nextDueDate)
+      }
 
-    // Determine new status
-    let newStatus: string
-    let newOutstanding: number
+      periodEnd = new Date(periodStart)
+      dueDate = new Date(periodStart)
 
-    if (remaining <= 0) {
-      newStatus = 'paid'
-      newOutstanding = 0
-    } else {
-      newStatus = 'partially_paid'
-      newOutstanding = remaining
-    }
-
-    // Calculate new totalAmountDue
-    const newTotalAmountDue = newOutstanding + monthlyExpected
-
-    // Advance nextDueDate based on billingFrequency
-    let nextDueDate: Date | null = null
-    if (bill.nextDueDate) {
-      const currentDue = new Date(bill.nextDueDate)
       switch (bill.billingFrequency) {
         case 'monthly':
-          currentDue.setMonth(currentDue.getMonth() + 1)
+          periodEnd.setMonth(periodEnd.getMonth() + 1)
+          dueDate.setMonth(dueDate.getMonth() + 1)
           break
         case 'quarterly':
-          currentDue.setMonth(currentDue.getMonth() + 3)
+          periodEnd.setMonth(periodEnd.getMonth() + 3)
+          dueDate.setMonth(dueDate.getMonth() + 3)
           break
         case 'annually':
-          currentDue.setFullYear(currentDue.getFullYear() + 1)
+          periodEnd.setFullYear(periodEnd.getFullYear() + 1)
+          dueDate.setFullYear(dueDate.getFullYear() + 1)
           break
       }
-      nextDueDate = currentDue
+
+      if (bill.gracePeriodDays > 0) {
+        dueDate.setDate(dueDate.getDate() + bill.gracePeriodDays)
+      }
+
+      // Create the cycle within the transaction below
+      currentCycle = await prisma.billCycle.create({
+        data: {
+          recurringBillId: bill.id,
+          companyId,
+          periodStart,
+          periodEnd,
+          dueDate,
+          amount: bill.monthlyExpectedAmount,
+          paidAmount: 0,
+          outstandingAmount: bill.monthlyExpectedAmount,
+          status: 'pending',
+          cycleNumber: nextCycleNumber,
+        },
+      })
+    }
+
+    // Calculate from the CYCLE's outstandingAmount — this is the source of truth
+    const cycleOutstanding = Number(currentCycle.outstandingAmount)
+    const cycleAmount = Number(currentCycle.amount)
+    const newCycleOutstanding = Math.max(0, cycleOutstanding - paymentAmount)
+    const newCyclePaid = Number(currentCycle.paidAmount) + paymentAmount
+
+    // Derive the new cycle status
+    const newCycleStatus = deriveCycleStatus(newCyclePaid, cycleAmount)
+
+    // Advance nextDueDate based on billingFrequency (only if fully paid)
+    let nextDueDate: Date | null = bill.nextDueDate ? new Date(bill.nextDueDate) : null
+    if (newCycleStatus === 'paid' && nextDueDate) {
+      switch (bill.billingFrequency) {
+        case 'monthly':
+          nextDueDate.setMonth(nextDueDate.getMonth() + 1)
+          break
+        case 'quarterly':
+          nextDueDate.setMonth(nextDueDate.getMonth() + 3)
+          break
+        case 'annually':
+          nextDueDate.setFullYear(nextDueDate.getFullYear() + 1)
+          break
+      }
     }
 
     // Use transaction for data integrity
     const result = await prisma.$transaction(async (tx) => {
+      // Update the cycle
+      const updatedCycle = await tx.billCycle.update({
+        where: { id: currentCycle!.id },
+        data: {
+          paidAmount: safeDecimal(newCyclePaid),
+          outstandingAmount: safeDecimal(newCycleOutstanding),
+          status: newCycleStatus,
+        },
+      })
+
+      // Derive bill status from the latest cycle
+      const latestCycle = await tx.billCycle.findFirst({
+        where: { recurringBillId: bill.id },
+        orderBy: { createdAt: 'desc' },
+      })
+      const billStatus = latestCycle?.status || newCycleStatus
+      const billOutstanding = latestCycle ? Number(latestCycle.outstandingAmount) : newCycleOutstanding
+
       // Update the bill
       const updatedBill = await tx.recurringBill.update({
         where: { id: bill.id },
         data: {
-          previousOutstandingBalance: safeDecimal(previousOutstanding),
-          currentOutstandingBalance: safeDecimal(newOutstanding),
-          totalAmountDue: safeDecimal(newTotalAmountDue),
+          previousOutstandingBalance: safeDecimal(cycleOutstanding),
+          currentOutstandingBalance: safeDecimal(billOutstanding),
+          totalAmountDue: safeDecimal(billOutstanding + Number(bill.monthlyExpectedAmount)),
           lastPaymentAmount: safeDecimal(paymentAmount),
           lastPaymentDate: new Date(body.paymentDate),
           nextDueDate,
-          status: newStatus,
+          status: billStatus,
         },
       })
 
@@ -106,38 +171,16 @@ export async function POST(request: Request) {
       const payment = await tx.recurringBillPayment.create({
         data: {
           recurringBillId: bill.id,
-          billCycleId: currentCycle?.id || null,
+          billCycleId: currentCycle!.id,
           companyId,
           amount: safeDecimal(paymentAmount),
           paymentDate: new Date(body.paymentDate),
           method: body.method || null,
           reference: body.reference || null,
           notes: body.notes || null,
-          outstandingAfterPayment: safeDecimal(newOutstanding),
+          outstandingAfterPayment: safeDecimal(newCycleOutstanding),
         },
       })
-
-      // Update the current cycle if it exists
-      if (currentCycle) {
-        const cyclePaidAmount = Number(currentCycle.paidAmount) + Number(paymentAmount)
-        const cycleOutstanding = Number(currentCycle.outstandingAmount) - Number(paymentAmount)
-        let cycleStatus: string
-        if (cycleOutstanding <= 0) {
-          cycleStatus = 'paid'
-        } else if (cyclePaidAmount > 0) {
-          cycleStatus = 'partially_paid'
-        } else {
-          cycleStatus = currentCycle.status
-        }
-        await tx.billCycle.update({
-          where: { id: currentCycle.id },
-          data: {
-            paidAmount: safeDecimal(Math.max(0, cyclePaidAmount)),
-            outstandingAmount: safeDecimal(Math.max(0, cycleOutstanding)),
-            status: cycleStatus,
-          },
-        })
-      }
 
       // Create an Expense record (category: 'utility')
       const expense = await tx.expense.create({
@@ -152,7 +195,7 @@ export async function POST(request: Request) {
         },
       })
 
-      return { updatedBill, payment, expense }
+      return { updatedBill, updatedCycle, payment, expense }
     })
 
     // Create audit log
@@ -166,15 +209,19 @@ export async function POST(request: Request) {
         providerName: bill.providerName,
         serviceType: bill.serviceType,
         paymentAmount: Number(paymentAmount),
-        previousOutstanding,
-        newOutstanding,
-        newStatus,
+        cycleId: currentCycle.id,
+        cycleNumber: currentCycle.cycleNumber,
+        previousOutstanding: cycleOutstanding,
+        newOutstanding: newCycleOutstanding,
+        newCycleStatus,
+        billStatus: result.updatedBill.status,
         expenseId: result.expense.id,
       },
     })
 
     return successResponse({
       bill: serialize(result.updatedBill),
+      cycle: serialize(result.updatedCycle),
       payment: serialize(result.payment),
       expense: serialize(result.expense),
     })
