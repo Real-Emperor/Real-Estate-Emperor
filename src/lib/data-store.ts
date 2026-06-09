@@ -179,9 +179,9 @@ async function apiCall(url: string, options?: RequestInit) {
     if (!isHandling401 && typeof window !== 'undefined') {
       isHandling401 = true
       try {
-        // Use NextAuth signOut to properly clear session
+        // Use NextAuth signOut WITHOUT redirect — the AppContent useEffect handles showing Login
         const { signOut } = await import('next-auth/react')
-        await signOut({ callbackUrl: '/' })
+        await signOut({ redirect: false })
       } finally {
         // Reset after a delay to allow future 401s if session expires again
         setTimeout(() => { isHandling401 = false }, 5000)

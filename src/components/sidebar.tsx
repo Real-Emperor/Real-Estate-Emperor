@@ -200,9 +200,10 @@ export default function Sidebar() {
                   </p>
                 </div>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     clearData() // Clear stale data from Zustand store
-                    signOut({ callbackUrl: '/' }) // Properly clear NextAuth session
+                    logout() // Immediately clear auth state in Zustand
+                    await signOut({ redirect: false }) // Clear NextAuth session WITHOUT page redirect
                   }}
                   className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all shrink-0"
                   title={t('logout', language)}

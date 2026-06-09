@@ -30,6 +30,8 @@ function AppContent() {
   const [isMobile, setIsMobile] = useState(false)
 
   // Sync NextAuth session with Zustand store
+  // CRITICAL: When status becomes 'unauthenticated', immediately clear auth state
+  // This ensures the login page is shown without any race condition
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
       const sessionUser = session.user as any
@@ -47,6 +49,7 @@ function AppContent() {
     } else if (status === 'unauthenticated') {
       logout()
     }
+    // When status is 'loading', don't change auth state — avoid flash
   }, [status, session, login, logout])
 
   // Fetch data when authenticated
@@ -177,7 +180,7 @@ function AccessDenied({ type = 'financial' }: { type?: 'financial' | 'admin' }) 
 
 export default function Home() {
   return (
-    <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={true}>
+    <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={false}>
       <AppContent />
     </SessionProvider>
   )
