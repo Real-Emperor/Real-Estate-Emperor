@@ -40,6 +40,15 @@ export async function POST(request: Request) {
     const currentOutstanding = Number(bill.currentOutstandingBalance)
     const monthlyExpected = Number(bill.monthlyExpectedAmount)
 
+    // Find the current active/pending/overdue cycle to link the payment to
+    const currentCycle = await prisma.billCycle.findFirst({
+      where: {
+        recurringBillId: bill.id,
+        status: { in: ['pending', 'partially_paid', 'overdue'] },
+      },
+      orderBy: { cycleNumber: 'desc' },
+    })
+
     // Calculate remaining outstanding
     const remaining = currentOutstanding - paymentAmount
     const previousOutstanding = currentOutstanding
@@ -97,6 +106,7 @@ export async function POST(request: Request) {
       const payment = await tx.recurringBillPayment.create({
         data: {
           recurringBillId: bill.id,
+          billCycleId: currentCycle?.id || null,
           companyId,
           amount: safeDecimal(paymentAmount),
           paymentDate: new Date(body.paymentDate),
@@ -106,6 +116,28 @@ export async function POST(request: Request) {
           outstandingAfterPayment: safeDecimal(newOutstanding),
         },
       })
+
+      // Update the current cycle if it exists
+      if (currentCycle) {
+        const cyclePaidAmount = Number(currentCycle.paidAmount) + Number(paymentAmount)
+        const cycleOutstanding = Number(currentCycle.outstandingAmount) - Number(paymentAmount)
+        let cycleStatus: string
+        if (cycleOutstanding <= 0) {
+          cycleStatus = 'paid'
+        } else if (cyclePaidAmount > 0) {
+          cycleStatus = 'partially_paid'
+        } else {
+          cycleStatus = currentCycle.status
+        }
+        await tx.billCycle.update({
+          where: { id: currentCycle.id },
+          data: {
+            paidAmount: safeDecimal(Math.max(0, cyclePaidAmount)),
+            outstandingAmount: safeDecimal(Math.max(0, cycleOutstanding)),
+            status: cycleStatus,
+          },
+        })
+      }
 
       // Create an Expense record (category: 'utility')
       const expense = await tx.expense.create({

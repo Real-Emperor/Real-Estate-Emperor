@@ -26,6 +26,14 @@ export async function GET(request: Request) {
         payments: {
           orderBy: { paymentDate: 'desc' },
         },
+        cycles: {
+          orderBy: { cycleNumber: 'desc' },
+          include: {
+            payments: {
+              orderBy: { paymentDate: 'desc' },
+            },
+          },
+        },
       },
       orderBy: { nextDueDate: 'asc' },
     })
@@ -180,6 +188,41 @@ export async function GET(request: Request) {
     }
     if (overdueList.length > 0) {
       XLSX.utils.book_append_sheet(wb, createBillSheet('Overdue', overdueList), 'Overdue')
+    }
+
+    // Billing Cycles sheet — per-cycle breakdown
+    const allCycles: any[] = []
+    for (const bill of serializedBills) {
+      if (bill.cycles && bill.cycles.length > 0) {
+        for (const cycle of bill.cycles) {
+          allCycles.push({
+            provider: bill.providerName,
+            serviceType: bill.serviceType,
+            property: bill.property?.name || '',
+            cycleNumber: cycle.cycleNumber,
+            periodStart: cycle.periodStart ? new Date(cycle.periodStart).toLocaleDateString() : '',
+            periodEnd: cycle.periodEnd ? new Date(cycle.periodEnd).toLocaleDateString() : '',
+            dueDate: cycle.dueDate ? new Date(cycle.dueDate).toLocaleDateString() : '',
+            amount: Number(cycle.amount || 0),
+            paidAmount: Number(cycle.paidAmount || 0),
+            outstandingAmount: Number(cycle.outstandingAmount || 0),
+            status: cycle.status,
+            paymentCount: cycle.payments?.length || 0,
+          })
+        }
+      }
+    }
+
+    if (allCycles.length > 0) {
+      const cycleHeader = ['Provider', 'Service Type', 'Property', 'Cycle #', 'Period Start', 'Period End', 'Due Date', 'Amount (AED)', 'Paid (AED)', 'Outstanding (AED)', 'Status', 'Payments']
+      const cycleRows = allCycles.map(c => [
+        c.provider, c.serviceType, c.property, c.cycleNumber,
+        c.periodStart, c.periodEnd, c.dueDate,
+        c.amount, c.paidAmount, c.outstandingAmount,
+        c.status, c.paymentCount,
+      ])
+      const cycleWs = XLSX.utils.aoa_to_sheet([cycleHeader, ...cycleRows])
+      XLSX.utils.book_append_sheet(wb, cycleWs, 'Billing Cycles')
     }
 
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })

@@ -58,6 +58,10 @@ export async function GET(request: Request) {
             orderBy: { paymentDate: 'desc' },
             take: 5,
           },
+          cycles: {
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+          },
         },
         orderBy: { nextDueDate: 'asc' },
         skip: pagination.skip,
@@ -122,10 +126,28 @@ export async function POST(request: Request) {
         autoRenew: body.autoRenew || false,
         gracePeriodDays: body.gracePeriodDays || 0,
         internalNotes: body.internalNotes || null,
+        // Auto-create the first billing cycle
+        cycles: {
+          create: {
+            companyId,
+            periodStart: new Date(), // Current date as start
+            periodEnd: body.nextDueDate ? new Date(body.nextDueDate) : new Date(),
+            dueDate: body.nextDueDate ? new Date(body.nextDueDate) : new Date(),
+            amount: monthlyExpectedAmount,
+            paidAmount: 0,
+            outstandingAmount: monthlyExpectedAmount,
+            status: 'pending',
+            cycleNumber: 1,
+          },
+        },
       },
       include: {
         property: {
           select: { id: true, name: true },
+        },
+        cycles: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
         },
       },
     })

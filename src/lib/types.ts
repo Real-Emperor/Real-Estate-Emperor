@@ -281,11 +281,13 @@ export interface RecurringBillData {
   updatedAt: string
   property?: { id: string; name: string; nameAr: string | null; nameBn: string | null; nameUr: string | null }
   payments?: RecurringBillPaymentData[]
+  cycles?: BillCycleData[]
 }
 
 export interface RecurringBillPaymentData {
   id: string
   recurringBillId: string
+  billCycleId: string | null
   companyId: string
   amount: number
   paymentDate: string
@@ -294,6 +296,23 @@ export interface RecurringBillPaymentData {
   notes: string | null
   outstandingAfterPayment: number
   createdAt: string
+}
+
+export interface BillCycleData {
+  id: string
+  recurringBillId: string
+  companyId: string
+  periodStart: string
+  periodEnd: string
+  dueDate: string
+  amount: number
+  paidAmount: number
+  outstandingAmount: number
+  status: string // pending, partially_paid, paid, overdue
+  cycleNumber: number
+  createdAt: string
+  updatedAt: string
+  payments?: RecurringBillPaymentData[]
 }
 
 export interface BillReminderData {

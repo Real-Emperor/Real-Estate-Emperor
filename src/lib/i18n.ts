@@ -593,6 +593,25 @@ export const translations = {
   deleteBill: { en: 'Delete this recurring bill?', ar: 'حذف هذه الفاتورة المتكررة؟', bn: 'এই পুনরাবৃত্তি বিল মুছে ফেলবেন?', ur: 'کیا یہ بار بار آنے والا بل حذف کریں؟' },
   quarterly: { en: 'Quarterly', ar: 'ربع سنوي', bn: 'ত্রৈমাসিক', ur: 'سہ ماہی' },
   annually: { en: 'Annually', ar: 'سنوي', bn: 'বার্ষিক', ur: 'سالانہ' },
+
+  // BillCycle (17 new keys)
+  billingCycles: { en: 'Billing Cycles', ar: 'دورات الفوترة', bn: 'বিলিং সাইকেল', ur: 'بلنگ سائیکلز' },
+  advanceCycle: { en: 'Advance Cycle', ar: 'تقديم الدورة', bn: 'সাইকেল অগ্রসর করুন', ur: 'سائیکل آگے بڑھائیں' },
+  advanceCycleDesc: { en: 'Create a new billing cycle. Previous cycles are preserved with their original amounts.', ar: 'إنشاء دورة فوترة جديدة. يتم الاحتفاظ بالدورات السابقة بمبالغها الأصلية.', bn: 'একটি নতুন বিলিং সাইকেল তৈরি করুন। পূর্ববর্তী সাইকেলগুলো তাদের মূল পরিমাণ সহ সংরক্ষিত থাকবে।', ur: 'نیا بلنگ سائیکل بنائیں۔ پچھلے سائیکلز اپنی اصل رقموں کے ساتھ محفوظ رہیں گے۔' },
+  cycleAmount: { en: 'New Cycle Amount (AED)', ar: 'مبلغ الدورة الجديدة (درهم)', bn: 'নতুন সাইকেলের পরিমাণ (দিরহাম)', ur: 'نیا سائیکل رقم (درہم)' },
+  cycleNumber: { en: 'Cycle #', ar: 'الدورة #', bn: 'সাইকেল #', ur: 'سائیکل #' },
+  cyclePeriod: { en: 'Period', ar: 'الفترة', bn: 'সময়কাল', ur: 'مدت' },
+  cycleDueDate: { en: 'Due Date', ar: 'تاريخ الاستحقاق', bn: 'দেয় তারিখ', ur: 'واجب الادا تاریخ' },
+  cycleAmount2: { en: 'Amount', ar: 'المبلغ', bn: 'পরিমাণ', ur: 'رقم' },
+  cyclePaid: { en: 'Paid', ar: 'مدفوع', bn: 'পরিশোধিত', ur: 'ادا شدہ' },
+  cycleOutstanding: { en: 'Outstanding', ar: 'المستحق', bn: 'বকেয়', ur: 'واجب الادا' },
+  cycleStatus: { en: 'Cycle Status', ar: 'حالة الدورة', bn: 'সাইকেলের অবস্থা', ur: 'سائیکل کی حالت' },
+  cycleHistory: { en: 'Cycle History', ar: 'سجل الدورات', bn: 'সাইকেল ইতিহাস', ur: 'سائیکل کی تاریخ' },
+  noCycles: { en: 'No billing cycles yet', ar: 'لا توجد دورات فوترة بعد', bn: 'এখনো কোনো বিলিং সাইকেল নেই', ur: 'ابھی تک کوئی بلنگ سائیکل نہیں' },
+  cycleCreated: { en: 'New billing cycle created successfully', ar: 'تم إنشاء دورة فوترة جديدة بنجاح', bn: 'নতুন বিলিং সাইকেল সফলভাবে তৈরি হয়েছে', ur: 'نیا بلنگ سائیکل کامیابی سے بن گیا' },
+  pendingCycle: { en: 'Pending', ar: 'قيد الانتظار', bn: 'অপেক্ষমাণ', ur: 'زیر انتظار' },
+  periodStart: { en: 'Period Start', ar: 'بداية الفترة', bn: 'সময়কাল শুরু', ur: 'مدت کا آغاز' },
+  periodEnd: { en: 'Period End', ar: 'نهاية الفترة', bn: 'সময়কাল শেষ', ur: 'مدت کا اختتام' },
 } as const
 
 export type TranslationKey = keyof typeof translations

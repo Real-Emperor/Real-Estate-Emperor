@@ -34,6 +34,14 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
           take: 10,
         },
+        cycles: {
+          orderBy: { cycleNumber: 'desc' },
+          include: {
+            payments: {
+              orderBy: { paymentDate: 'desc' },
+            },
+          },
+        },
       },
     })
 

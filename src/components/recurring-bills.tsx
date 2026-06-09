@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Zap, Plus, Pencil, Trash2, Loader2, Download, Eye, Banknote, FileSpreadsheet, FileText, AlertTriangle, CheckCircle2, Clock, XCircle } from 'lucide-react'
+import { Zap, Plus, Pencil, Trash2, Loader2, Download, Eye, Banknote, FileSpreadsheet, FileText, AlertTriangle, CheckCircle2, Clock, XCircle, RotateCcw, History } from 'lucide-react'
 
 const SERVICE_TYPES = ['electricity', 'water', 'gas', 'internet', 'cooling', 'chiller', 'parking', 'waste', 'other'] as const
 const BILLING_FREQUENCIES = ['monthly', 'quarterly', 'annually'] as const
@@ -48,6 +48,8 @@ function getStatusBadge(status: string) {
       return <Badge className="bg-blue-500 text-white text-xs"><Zap className="w-3 h-3 mr-1" />Active</Badge>
     case 'cancelled':
       return <Badge className="bg-gray-400 text-white text-xs"><XCircle className="w-3 h-3 mr-1" />Cancelled</Badge>
+    case 'pending':
+      return <Badge className="bg-slate-400 text-white text-xs"><Clock className="w-3 h-3 mr-1" />Pending</Badge>
     default:
       return <Badge variant="secondary" className="text-xs">{status}</Badge>
   }
@@ -65,8 +67,11 @@ export default function RecurringBills() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
+  const [advanceCycleDialogOpen, setAdvanceCycleDialogOpen] = useState(false)
   const [editing, setEditing] = useState<RecurringBillData | null>(null)
   const [selectedBill, setSelectedBill] = useState<RecurringBillData | null>(null)
+  const [advanceCycleBill, setAdvanceCycleBill] = useState<RecurringBillData | null>(null)
+  const [advanceCycleAmount, setAdvanceCycleAmount] = useState(0)
 
   const [form, setForm] = useState({
     propertyId: '',
@@ -276,6 +281,33 @@ export default function RecurringBills() {
     }
   }
 
+  const openAdvanceCycle = (bill: RecurringBillData) => {
+    setAdvanceCycleBill(bill)
+    setAdvanceCycleAmount(Number(bill.monthlyExpectedAmount))
+    setAdvanceCycleDialogOpen(true)
+  }
+
+  const handleAdvanceCycle = async () => {
+    if (!advanceCycleBill) return
+    try {
+      const res = await fetch(`/api/recurring-bills/${advanceCycleBill.id}/advance-cycle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: advanceCycleAmount }),
+      })
+      if (res.ok) {
+        setAdvanceCycleDialogOpen(false)
+        fetchBills()
+      } else {
+        const data = await res.json().catch(() => ({}))
+        alert(data.error || 'Failed to advance cycle')
+      }
+    } catch (error) {
+      console.error('Advance cycle failed:', error)
+      alert('Failed to advance cycle. Please try again.')
+    }
+  }
+
   // Mask financial amounts for staff
   const maskedAmount = (amount: number) => isStaff ? '—' : formatAED(amount)
 
@@ -425,6 +457,9 @@ export default function RecurringBills() {
                         </button>
                         {canModify && (
                           <>
+                            <button onClick={() => openAdvanceCycle(bill)} className="p-1.5 rounded hover:bg-blue-50 text-muted-foreground hover:text-blue-600" title="Advance Cycle">
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            </button>
                             <button onClick={() => openPay(bill)} className="p-1.5 rounded hover:bg-emerald-50 text-muted-foreground hover:text-emerald-600" title="Record Payment">
                               <Banknote className="w-3.5 h-3.5" />
                             </button>
@@ -700,8 +735,86 @@ export default function RecurringBills() {
                   </Table>
                 </div>
               )}
+
+              {/* Billing Cycles History */}
+              {selectedBill.cycles && selectedBill.cycles.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <History className="w-4 h-4" /> Billing Cycles
+                  </h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Cycle #</TableHead>
+                        <TableHead>Period</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Paid</TableHead>
+                        <TableHead>Outstanding</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedBill.cycles.map((cycle: any) => (
+                        <TableRow key={cycle.id}>
+                          <TableCell className="text-sm font-medium">#{cycle.cycleNumber}</TableCell>
+                          <TableCell className="text-xs">
+                            {formatDate(cycle.periodStart)} — {formatDate(cycle.periodEnd)}
+                          </TableCell>
+                          <TableCell className="text-sm">{formatDate(cycle.dueDate)}</TableCell>
+                          <TableCell className="text-sm font-semibold">{maskedAmount(Number(cycle.amount))}</TableCell>
+                          <TableCell className="text-sm text-emerald-600">{maskedAmount(Number(cycle.paidAmount))}</TableCell>
+                          <TableCell className="text-sm text-terracotta font-medium">{maskedAmount(Number(cycle.outstandingAmount))}</TableCell>
+                          <TableCell>{getStatusBadge(cycle.status)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Advance Cycle Dialog */}
+      <Dialog open={advanceCycleDialogOpen} onOpenChange={setAdvanceCycleDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="w-5 h-5 text-blue-500" /> Advance Billing Cycle
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Create a new billing cycle for {advanceCycleBill?.providerName}. Previous cycles are preserved with their original amounts.
+            </p>
+            {advanceCycleBill && (
+              <div className="bg-muted p-3 rounded-lg text-sm">
+                <p><span className="text-muted-foreground">Current Amount:</span> <span className="font-semibold">{maskedAmount(Number(advanceCycleBill.monthlyExpectedAmount))}</span></p>
+                <p><span className="text-muted-foreground">Frequency:</span> <span className="font-medium">{advanceCycleBill.billingFrequency}</span></p>
+                <p><span className="text-muted-foreground">Next Due:</span> <span className="font-medium">{advanceCycleBill.nextDueDate ? formatDate(advanceCycleBill.nextDueDate) : '—'}</span></p>
+              </div>
+            )}
+            <div>
+              <Label>New Cycle Amount (AED)</Label>
+              <Input
+                type="number"
+                value={advanceCycleAmount}
+                onChange={e => setAdvanceCycleAmount(Number(e.target.value))}
+                placeholder="Enter new cycle amount"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                This can differ from the previous cycle amount — each cycle has its own amount.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdvanceCycleDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAdvanceCycle} className="bg-blue-600 hover:bg-blue-700 text-white" disabled={advanceCycleAmount <= 0}>
+              <RotateCcw className="w-4 h-4 mr-2" /> Advance Cycle
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
