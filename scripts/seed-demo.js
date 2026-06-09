@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Standalone Demo Seed Script for Al-Reef Dashboard
+ * Standalone Demo Seed Script for Real Estate Emperor Dashboard
  * 
  * Populates the Neon PostgreSQL database with full demo data using Prisma Client directly.
  * 

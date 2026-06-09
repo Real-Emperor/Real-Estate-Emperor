@@ -26,7 +26,7 @@ use_palette_explicit("elegant")
 YELLOW_FILL = PatternFill("solid", fgColor="FFFDE7")
 YELLOW_INPUT_FONT = Font(name=FONT_NAME, size=11, color=NEUTRAL_900)
 
-FOOTER_TEXT = "Prepared by Ahmed Ali | Data Analysis Services | ahmed-ali-ops.vercel.app"
+FOOTER_TEXT = "Real Estate Emperor Property Management L.L.C."
 AED_FMT = "#,##0"
 AED_FMT2 = "#,##0.00"
 PCT_FMT = "0.0%"

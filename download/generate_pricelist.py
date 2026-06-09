@@ -87,7 +87,7 @@ bullet_style = ParagraphStyle(
 story = []
 
 # Header
-story.append(Paragraph('<b>Ahmed Ali</b>', title_style))
+story.append(Paragraph('<b>Real Estate Emperor</b>', title_style))
 story.append(Paragraph('DATA ANALYSIS SERVICES', subtitle_style))
 story.append(Paragraph('Turning Your Numbers Into Clear Business Decisions', tagline_style))
 story.append(HRFlowable(width="100%", thickness=2, color=ACCENT, spaceAfter=16))
@@ -285,8 +285,8 @@ contact_style = ParagraphStyle(
     name='Contact', fontName='DejaVuSans', fontSize=10, leading=14,
     textColor=TEXT_PRIMARY, alignment=TA_CENTER, spaceAfter=4
 )
-story.append(Paragraph('<b>Ahmed Ali | Data Analysis Services</b>', contact_style))
-story.append(Paragraph('ahmed-ali-ops.vercel.app', ParagraphStyle(
+story.append(Paragraph('<b>Real Estate Emperor | Data Analysis Services</b>', contact_style))
+story.append(Paragraph('real-estate-emperor.vercel.app', ParagraphStyle(
     name='Web', fontName='DejaVuSans', fontSize=9, leading=13,
     textColor=ACCENT, alignment=TA_CENTER, spaceAfter=4
 )))

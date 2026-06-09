@@ -22,7 +22,7 @@ npx tsx prisma/seed.ts
 echo ""
 echo "✅ Local database ready!"
 echo "🔐 Login credentials:"
-echo "   Admin:  admin@realestateemperor.ae / admin2024"
+echo "   Admin:  admin@realestateemperor.ae / Emperor@Admin2024!"
 echo "   Owner:  demoO@realestate.ae / owner123"
 echo "   Staff:  demoS@realestate.ae / staff123"
 echo ""

@@ -87,7 +87,7 @@ story.append(Paragraph(
 ))
 story.append(Spacer(1, 6))
 story.append(Paragraph(
-    '<b>Ahmed Ali</b> (hereinafter referred to as the "Analyst"), providing data analysis and reporting services, and',
+    '<b>Real Estate Emperor</b> (hereinafter referred to as the "Analyst"), providing data analysis and reporting services, and',
     body_en
 ))
 story.append(Paragraph(
@@ -205,7 +205,7 @@ story.append(Spacer(1, 12))
 
 sig_data = [
     [Paragraph('<b>ANALYST</b>', sig_head), Paragraph('<b>CLIENT</b>', sig_head)],
-    [Paragraph('Name: Ahmed Ali', sig_style), Paragraph('Name: ________________________', sig_style)],
+    [Paragraph('Name: Real Estate Emperor', sig_style), Paragraph('Name: ________________________', sig_style)],
     [Paragraph('Title: Data Analyst', sig_style), Paragraph('Title: ________________________', sig_style)],
     [Paragraph('Signature: ________________________', sig_style), Paragraph('Signature: ________________________', sig_style)],
     [Paragraph('Date: ________________________', sig_style), Paragraph('Date: ________________________', sig_style)],
@@ -223,7 +223,7 @@ story.append(sig_table)
 
 story.append(Spacer(1, 20))
 story.append(Paragraph(
-    'Ahmed Ali | Data Analysis Services | ahmed-ali-ops.vercel.app',
+    'Real Estate Emperor | Data Analysis Services | real-estate-emperor.vercel.app',
     small_style
 ))
 

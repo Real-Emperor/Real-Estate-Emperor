@@ -571,7 +571,7 @@ c.font = font_title()
 c.alignment = align_title()
 
 ws5.merge_cells("B3:H3")
-c = ws5.cell(row=3, column=2, value="Al Quoz Industrial Area 3, Dubai, UAE  |  Tel: +971 4 123 4567  |  info@almadina.ae")
+c = ws5.cell(row=3, column=2, value="Business Bay, Dubai, UAE  |  Tel: +971 4 555 0100  |  info@realestateemperor.ae")
 c.font = font_caption()
 c.alignment = align_text()
 

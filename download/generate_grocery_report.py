@@ -21,7 +21,7 @@ wb = Workbook()
 FMT_CURRENCY = '#,##0'
 FMT_PERCENT  = '0.0%'
 
-FOOTER_TEXT = "Prepared by Ahmed Ali | Data Analysis Services | ahmed-ali-ops.vercel.app"
+FOOTER_TEXT = "Real Estate Emperor Property Management L.L.C."
 
 
 # ============================================================

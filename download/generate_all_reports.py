@@ -5,8 +5,8 @@ Generate 3 Professional Excel Data Analysis Reports
 2. Al Madina Grocery (professional palette)
 3. Luxe Beauty Salon (elegant palette)
 
-Author: Ahmed Ali — Data Analysis Services
-Website: ahmed-ali-ops.vercel.app
+Author: Real Estate Emperor Property Management
+Website: real-estate-emperor.vercel.app
 """
 
 import sys, os
@@ -28,7 +28,7 @@ import datetime
 # UTILITY FUNCTIONS
 # ============================================================
 
-FOOTER_TEXT = "Prepared by Ahmed Ali | Data Analysis Services | ahmed-ali-ops.vercel.app"
+FOOTER_TEXT = "Prepared by Ahmed Ali | Data Analysis Services | real-estate-emperor.vercel.app"
 
 def add_footer(ws, row, col_start, col_end):
     """Add footer row to a sheet."""

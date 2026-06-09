@@ -42,17 +42,17 @@ export async function POST(request: Request) {
     const companyAddress = body.companyAddress || 'Business Bay, Dubai, UAE'
 
     const adminEmail = body.adminEmail || 'admin@realestateemperor.ae'
-    const adminPassword = body.adminPassword || 'admin2024'
+    const adminPassword = body.adminPassword || 'Emperor@Admin2024!'
     const adminName = body.adminName || 'Demo Admin'
     const adminNameAr = body.adminNameAr || 'مدير تجريبي'
 
     const ownerEmail = body.ownerEmail || 'demoO@realestate.ae'
-    const ownerPassword = body.ownerPassword || 'owner123'
+    const ownerPassword = body.ownerPassword || 'Emperor@Owner2024!'
     const ownerName = body.ownerName || 'Demo Owner'
     const ownerNameAr = body.ownerNameAr || 'مالك تجريبي'
 
     const staffEmail = body.staffEmail || 'demoS@realestate.ae'
-    const staffPassword = body.staffPassword || 'staff123'
+    const staffPassword = body.staffPassword || 'Emperor@Staff2024!'
     const staffName = body.staffName || 'Demo Staff'
     const staffNameAr = body.staffNameAr || 'موظف تجريبي'
 

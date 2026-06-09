@@ -176,7 +176,7 @@ if os.path.exists('/home/z/my-project/download/qr_code.png'):
 # Prepared for
 add_green_line(doc)
 add_styled_paragraph(doc, "Prepared for:", font_size=10, bold=False, color=GRAY, alignment=WD_ALIGN_PARAGRAPH.CENTER, space_after=Pt(2), space_before=Pt(10))
-add_styled_paragraph(doc, "Shafiul Azam Alhaj Abdul Sukkur", font_size=16, bold=True, color=GREEN_DARK, alignment=WD_ALIGN_PARAGRAPH.CENTER, space_after=Pt(2))
+add_styled_paragraph(doc, "Real Estate Emperor Property Management", font_size=16, bold=True, color=GREEN_DARK, alignment=WD_ALIGN_PARAGRAPH.CENTER, space_after=Pt(2))
 add_styled_paragraph(doc, "শফিউল আজম আলহাজ আব্দুল সুক্কুর", font_size=14, bold=True, color=GOLD_DARK, alignment=WD_ALIGN_PARAGRAPH.CENTER, space_after=Pt(10))
 
 # Page break after cover
@@ -205,7 +205,7 @@ run.font.name = 'Calibri'
 doc.add_paragraph().paragraph_format.space_after = Pt(6)
 
 # Greeting
-add_styled_paragraph(doc, "Dear Shafiul Azam Alhaj Abdul Sukkur,", font_size=12, bold=False, color=BLACK, space_after=Pt(10))
+add_styled_paragraph(doc, "Dear Real Estate Emperor Property Management,", font_size=12, bold=False, color=BLACK, space_after=Pt(10))
 
 add_styled_paragraph(doc, 
     "You built this company from nothing in a foreign land. Every dirham in your portfolio was earned through sacrifice, discipline, and trust in Allah. Now you manage dozens of tenants across multiple properties — and the rent tracking is still in notebooks, WhatsApp groups, and your memory. That works until it doesn't. One missed payment, one forgotten follow-up, one miscommunication — and you lose money that was rightfully yours.",

@@ -177,7 +177,7 @@ function buildCover() {
   children.push(new Paragraph({
     alignment: AlignmentType.LEFT,
     indent: { left: 800 },
-    children: [new TextRun({ text: "Prepared for: ", size: 20, color: P.coverFooter, font: { ascii: "Times New Roman" } }), new TextRun({ text: "Shafiul Azam Alhaj Abdul Sukkur", size: 22, bold: true, color: P.coverTitle, font: { ascii: "Times New Roman", eastAsia: "Noto Sans SC" } })],
+    children: [new TextRun({ text: "Prepared for: ", size: 20, color: P.coverFooter, font: { ascii: "Times New Roman" } }), new TextRun({ text: "Real Estate Emperor", size: 22, bold: true, color: P.coverTitle, font: { ascii: "Times New Roman", eastAsia: "Noto Sans SC" } })],
   }));
 
   // Date
@@ -323,7 +323,7 @@ function buildEnglishSection() {
   content.push(spacer(200));
   content.push(accentLine());
 
-  content.push(bodyBoldEN("Contact: ", "Ahmed Ali"));
+  content.push(bodyBoldEN("Contact: ", "Real Estate Emperor"));
   content.push(bodyBoldEN("Dashboard: ", "https://real-estate-emperor.vercel.app"));
   content.push(bodyBoldEN("Login: ", "demoO@realestate.ae / owner123"));
 

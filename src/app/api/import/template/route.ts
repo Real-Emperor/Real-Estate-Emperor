@@ -48,14 +48,14 @@ export async function GET(request: Request) {
     if (type === 'all' || type === 'tenants') {
       const tenantsData = [
         {
-          name: 'Ahmed Ali',
-          name_ar: 'أحمد علي',
+          name: 'Mohammed Al Farsi',
+          name_ar: 'محمد الفارسي',
           phone: '+971501234567',
           whatsapp: '+971501234567',
-          email: 'ahmed@example.com',
+          email: 'mohammed@example.com',
           emirates_id: '784-1990-1234567-1',
           nationality: 'UAE',
-          employer: 'ABC Corp',
+          employer: 'Emirates Group',
           emergency_contact: '+971509876543',
           unit_number: '101',
           unit_type: '1bedroom',

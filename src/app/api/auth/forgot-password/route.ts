@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     })
 
     // Build the reset link
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://real-estate-emperor.vercel.app'
+    const baseUrl = process.env.NEXTAUTH_URL || `${request.headers.get('x-forwarded-proto') || 'https'}://${request.headers.get('host')}`
     const resetLink = `${baseUrl}?view=reset-password&token=${token}`
 
     // Send the reset email

@@ -23,7 +23,7 @@ wb.properties.creator = "Z.ai"
 def write_footer(ws, row, col_start, col_end):
     ws.merge_cells(start_row=row, start_column=col_start, end_row=row, end_column=col_end)
     cell = ws.cell(row=row, column=col_start,
-                   value="Prepared by Ahmed Ali | Data Analysis Services | ahmed-ali-ops.vercel.app")
+                   value="Real Estate Emperor Property Management L.L.C.")
     cell.font = font_caption()
     cell.alignment = Alignment(horizontal="left", vertical="center")
 
