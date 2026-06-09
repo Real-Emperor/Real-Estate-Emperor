@@ -191,6 +191,45 @@ export async function GET(request: Request) {
       take: 500,
     })
 
+    // ─── 8. Recurring bills data for reports ───
+    const [
+      utilityBreakdown,
+      outstandingUtilitiesAggregate,
+      recentBillPayments,
+    ] = await Promise.all([
+      prisma.recurringBill.groupBy({
+        by: ['serviceType'],
+        where: {
+          companyId,
+          isActive: true,
+          deletedAt: null,
+        },
+        _sum: { monthlyExpectedAmount: true, currentOutstandingBalance: true },
+      }),
+      prisma.recurringBill.aggregate({
+        where: {
+          companyId,
+          isActive: true,
+          deletedAt: null,
+          status: { in: ['active', 'overdue', 'partially_paid'] },
+        },
+        _sum: { currentOutstandingBalance: true, totalAmountDue: true },
+      }),
+      prisma.recurringBillPayment.findMany({
+        where: {
+          companyId,
+          paymentDate: { gte: startOfMonth, lte: endOfMonth },
+        },
+        include: {
+          recurringBill: {
+            select: { providerName: true, serviceType: true },
+          },
+        },
+        orderBy: { paymentDate: 'desc' },
+        take: 100,
+      }),
+    ])
+
     const data = {
       month: targetMonth,
       year: targetYear,
@@ -214,6 +253,17 @@ export async function GET(request: Request) {
       grossProfit,
       costOfOperations,
       netIncome,
+      // Recurring bills data
+      utilityExpensesBreakdown: utilityBreakdown.map(u => ({
+        serviceType: u.serviceType,
+        monthlyExpected: safeNumber(u._sum.monthlyExpectedAmount),
+        outstanding: safeNumber(u._sum.currentOutstandingBalance),
+      })),
+      outstandingUtilities: {
+        totalOutstanding: safeNumber(outstandingUtilitiesAggregate._sum.currentOutstandingBalance),
+        totalDue: safeNumber(outstandingUtilitiesAggregate._sum.totalAmountDue),
+      },
+      billPaymentHistory: recentBillPayments.map(p => serialize(p)),
     }
 
     return successResponse(data)

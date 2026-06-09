@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const adminName = body.adminName || 'Demo Admin'
     const adminNameAr = body.adminNameAr || 'مدير تجريبي'
 
-    const ownerEmail = body.ownerEmail || 'demoo@realestate.ae'
+    const ownerEmail = body.ownerEmail || 'demoO@realestate.ae'
     const ownerPassword = body.ownerPassword || 'Emperor@Owner2024!'
     const ownerName = body.ownerName || 'Demo Owner'
     const ownerNameAr = body.ownerNameAr || 'مالك تجريبي'
@@ -55,6 +55,11 @@ export async function POST(request: Request) {
     const staffPassword = body.staffPassword || 'Emperor@Staff2024!'
     const staffName = body.staffName || 'Demo Staff'
     const staffNameAr = body.staffNameAr || 'موظف تجريبي'
+
+    const accountantEmail = body.accountantEmail || 'demoA@realestate.ae'
+    const accountantPassword = body.accountantPassword || 'Emperor@Accountant2024!'
+    const accountantName = body.accountantName || 'Demo Accountant'
+    const accountantNameAr = body.accountantNameAr || 'محاسب تجريبي'
 
     // Create company
     const company = await prisma.company.create({
@@ -69,14 +74,15 @@ export async function POST(request: Request) {
     })
 
     // Hash passwords
-    const [hashedAdminPwd, hashedOwnerPwd, hashedStaffPwd] = await Promise.all([
+    const [hashedAdminPwd, hashedOwnerPwd, hashedStaffPwd, hashedAccountantPwd] = await Promise.all([
       bcrypt.hash(adminPassword, 12),
       bcrypt.hash(ownerPassword, 12),
       bcrypt.hash(staffPassword, 12),
+      bcrypt.hash(accountantPassword, 12),
     ])
 
     // Create users
-    const [admin, owner, staff] = await Promise.all([
+    const [admin, owner, staff, accountant] = await Promise.all([
       prisma.user.create({
         data: {
           email: adminEmail,
@@ -107,6 +113,16 @@ export async function POST(request: Request) {
           companyId: company.id,
         },
       }),
+      prisma.user.create({
+        data: {
+          email: accountantEmail,
+          password: hashedAccountantPwd,
+          name: accountantName,
+          nameAr: accountantNameAr,
+          role: 'accountant',
+          companyId: company.id,
+        },
+      }),
     ])
 
     // Create initial audit log
@@ -119,7 +135,7 @@ export async function POST(request: Request) {
         companyId: company.id,
         details: JSON.stringify({
           company: companyName,
-          users: [adminEmail, ownerEmail, staffEmail],
+          users: [adminEmail, ownerEmail, staffEmail, accountantEmail],
         }),
       },
     })
@@ -135,6 +151,7 @@ export async function POST(request: Request) {
         { email: adminEmail, role: 'admin', name: adminName },
         { email: ownerEmail, role: 'owner', name: ownerName },
         { email: staffEmail, role: 'staff', name: staffName },
+        { email: accountantEmail, role: 'accountant', name: accountantName },
       ],
     })
   } catch (error: any) {

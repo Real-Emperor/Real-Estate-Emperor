@@ -26,6 +26,7 @@ import {
   User,
   Settings,
   CalendarCheck,
+  Zap,
 } from 'lucide-react'
 
 const navItems: { page: PageType; icon: React.ElementType; key: string; financialOnly?: boolean; adminOnly?: boolean }[] = [
@@ -36,6 +37,7 @@ const navItems: { page: PageType; icon: React.ElementType; key: string; financia
   { page: 'rent', icon: Banknote, key: 'rentCollection' },
   { page: 'maintenance', icon: Wrench, key: 'maintenance' },
   { page: 'expenses', icon: Receipt, key: 'expenses' },
+  { page: 'recurring-bills', icon: Zap, key: 'recurringBills' },
   { page: 'daily-report', icon: FileText, key: 'dailyReport', financialOnly: true },
   { page: 'reports', icon: BarChart3, key: 'reports', financialOnly: true },
   { page: 'contracts', icon: FileText, key: 'contracts' },

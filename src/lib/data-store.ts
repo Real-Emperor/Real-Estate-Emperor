@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { PropertyData, TenantData, PaymentData, ExpenseData, MaintenanceData, ReservationData, RentAdjustmentData } from '@/lib/types'
+import type { PropertyData, TenantData, PaymentData, ExpenseData, MaintenanceData, ReservationData, RentAdjustmentData, RecurringBillData, RecurringBillPaymentData } from '@/lib/types'
 import { isFinanciallyActive } from '@/lib/utils'
 
 // Company info
@@ -51,6 +51,8 @@ interface DataState {
   maintenanceItems: MaintenanceData[]
   reservations: ReservationData[]
   adjustments: RentAdjustmentData[]
+  recurringBills: RecurringBillData[]
+  billPayments: RecurringBillPaymentData[]
   isSeeded: boolean
   isLoading: boolean
   isInitialized: boolean
@@ -99,6 +101,12 @@ interface DataState {
   addAdjustment: (data: Omit<RentAdjustmentData, 'id' | 'companyId' | 'createdAt' | 'updatedAt' | 'tenant' | 'property'>) => Promise<void>
   updateAdjustment: (id: string, data: Partial<RentAdjustmentData>) => Promise<void>
   cancelAdjustment: (id: string, reason?: string) => Promise<void>
+
+  // Recurring Bills CRUD
+  addRecurringBill: (data: any) => Promise<void>
+  updateRecurringBill: (id: string, data: any) => Promise<void>
+  deleteRecurringBill: (id: string) => Promise<void>
+  payRecurringBill: (data: any) => Promise<void>
 
   // Expenses CRUD
   addExpense: (data: Omit<ExpenseData, 'id' | 'companyId' | 'createdAt'>) => Promise<void>
@@ -210,6 +218,8 @@ export const useDataStore = create<DataState>()(
     maintenanceItems: [],
     reservations: [],
     adjustments: [],
+    recurringBills: [],
+    billPayments: [],
     isSeeded: false,
     isLoading: false,
     isInitialized: false,
@@ -222,7 +232,7 @@ export const useDataStore = create<DataState>()(
       try {
         // Fetch all data in parallel
         // Staff can now view payments (amounts masked) and users (still blocked via 403 catch)
-        const [companyData, propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, usersData, resetData, reservationsData, adjustmentsData] = await Promise.all([
+        const [companyData, propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, usersData, resetData, reservationsData, adjustmentsData, recurringBillsData] = await Promise.all([
           apiCall('/api/company').catch(() => null),
           apiCall('/api/properties?includeArchived=true&limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/tenants?limit=1000').catch(() => ({ data: [] })),
@@ -233,6 +243,7 @@ export const useDataStore = create<DataState>()(
           apiCall('/api/reset-requests').catch(() => []),
           apiCall('/api/reservations?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/adjustments?limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/recurring-bills?limit=1000').catch(() => ({ data: [] })),
         ])
 
         // Helper to extract data from paginated or plain responses
@@ -254,6 +265,7 @@ export const useDataStore = create<DataState>()(
           resetRequests: extractData(resetData),
           reservations: extractData(reservationsData),
           adjustments: extractData(adjustmentsData),
+          recurringBills: extractData(recurringBillsData),
           isSeeded: true, // If data was fetched, it's seeded
           isInitialized: true,
           isLoading: false,
@@ -267,7 +279,7 @@ export const useDataStore = create<DataState>()(
     // Refresh all data after mutations — forces re-fetch to ensure consistency
     refreshAllData: async () => {
       try {
-        const [propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, reservationsData, adjustmentsData] = await Promise.all([
+        const [propertiesData, tenantsData, paymentsData, expensesData, maintenanceData, reservationsData, adjustmentsData, recurringBillsData] = await Promise.all([
           apiCall('/api/properties?includeArchived=true&limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/tenants?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/payments?limit=1000').catch(() => ({ data: [] })),
@@ -275,6 +287,7 @@ export const useDataStore = create<DataState>()(
           apiCall('/api/maintenance?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/reservations?limit=1000').catch(() => ({ data: [] })),
           apiCall('/api/adjustments?limit=1000').catch(() => ({ data: [] })),
+          apiCall('/api/recurring-bills?limit=1000').catch(() => ({ data: [] })),
         ])
 
         const extractData = (resp: any): any[] => {
@@ -292,6 +305,7 @@ export const useDataStore = create<DataState>()(
           maintenanceItems: extractData(maintenanceData),
           reservations: extractData(reservationsData),
           adjustments: extractData(adjustmentsData),
+          recurringBills: extractData(recurringBillsData),
         })
       } catch (error) {
         console.error('Failed to refresh data:', error)
@@ -632,6 +646,39 @@ export const useDataStore = create<DataState>()(
       await get().fetchAllData()
     },
 
+    // Recurring Bills CRUD
+    addRecurringBill: async (data) => {
+      await apiCall('/api/recurring-bills', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+      await get().refreshAllData()
+    },
+
+    updateRecurringBill: async (id, data) => {
+      await apiCall(`/api/recurring-bills/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      })
+      await get().refreshAllData()
+    },
+
+    deleteRecurringBill: async (id) => {
+      await apiCall(`/api/recurring-bills/${id}`, { method: 'DELETE' })
+      set(s => ({
+        recurringBills: s.recurringBills.filter(b => b.id !== id),
+      }))
+      await get().refreshAllData()
+    },
+
+    payRecurringBill: async (data) => {
+      await apiCall('/api/recurring-bills/pay', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+      await get().refreshAllData()
+    },
+
     clearData: () => {
       set({
         company: DEFAULT_COMPANY,
@@ -644,6 +691,8 @@ export const useDataStore = create<DataState>()(
         maintenanceItems: [],
         reservations: [],
         adjustments: [],
+        recurringBills: [],
+        billPayments: [],
         isSeeded: false,
         isLoading: false,
         isInitialized: false, // CRITICAL: Reset so next login triggers fetchAllData

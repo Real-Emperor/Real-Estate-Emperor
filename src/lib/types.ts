@@ -1,4 +1,4 @@
-export type PageType = 'dashboard' | 'properties' | 'tenants' | 'rent' | 'maintenance' | 'expenses' | 'daily-report' | 'reports' | 'contracts' | 'reservations' | 'settings'
+export type PageType = 'dashboard' | 'properties' | 'tenants' | 'rent' | 'maintenance' | 'expenses' | 'recurring-bills' | 'daily-report' | 'reports' | 'contracts' | 'reservations' | 'settings'
 
 export interface DashboardData {
   company: {
@@ -252,4 +252,58 @@ export interface ReservationData {
   notes: string | null
   createdAt: string
   property?: { id: string; name: string; nameAr: string | null; nameBn: string | null; nameUr: string | null }
+}
+
+export interface RecurringBillData {
+  id: string
+  companyId: string
+  propertyId: string
+  providerName: string
+  serviceType: string
+  accountNumber: string | null
+  customerNumber: string | null
+  contractNumber: string | null
+  monthlyExpectedAmount: number
+  currentOutstandingBalance: number
+  previousOutstandingBalance: number
+  totalAmountDue: number
+  lastPaymentAmount: number | null
+  lastPaymentDate: string | null
+  nextDueDate: string | null
+  billingFrequency: string
+  status: string
+  autoRenew: boolean
+  gracePeriodDays: number
+  internalNotes: string | null
+  isActive: boolean
+  deletedAt: string | null
+  createdAt: string
+  updatedAt: string
+  property?: { id: string; name: string; nameAr: string | null; nameBn: string | null; nameUr: string | null }
+  payments?: RecurringBillPaymentData[]
+}
+
+export interface RecurringBillPaymentData {
+  id: string
+  recurringBillId: string
+  companyId: string
+  amount: number
+  paymentDate: string
+  method: string | null
+  reference: string | null
+  notes: string | null
+  outstandingAfterPayment: number
+  createdAt: string
+}
+
+export interface BillReminderData {
+  id: string
+  recurringBillId: string
+  companyId: string
+  type: string
+  message: string
+  isRead: boolean
+  isSent: boolean
+  sentVia: string | null
+  createdAt: string
 }

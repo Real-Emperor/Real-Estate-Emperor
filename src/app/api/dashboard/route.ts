@@ -368,6 +368,49 @@ export async function GET() {
       }),
     ])
 
+    // ─── 13. Recurring Bills summary ───
+    const [
+      totalRecurringBillsCount,
+      outstandingBillsAggregate,
+      overdueBillsCount,
+      upcomingBillsCount,
+      paidBillsThisMonthCount,
+    ] = await Promise.all([
+      prisma.recurringBill.count({
+        where: { companyId, isActive: true, deletedAt: null },
+      }),
+      prisma.recurringBill.aggregate({
+        where: { companyId, isActive: true, deletedAt: null },
+        _sum: { currentOutstandingBalance: true },
+      }),
+      prisma.recurringBill.count({
+        where: { companyId, isActive: true, deletedAt: null, status: 'overdue' },
+      }),
+      prisma.recurringBill.count({
+        where: {
+          companyId,
+          isActive: true,
+          deletedAt: null,
+          nextDueDate: {
+            gte: now,
+            lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+          },
+        },
+      }),
+      prisma.recurringBill.count({
+        where: {
+          companyId,
+          isActive: true,
+          deletedAt: null,
+          status: 'paid',
+          lastPaymentDate: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+      }),
+    ])
+
     // ─── Build response ───
     const financialMask = (obj: any, fields: string[]) => {
       if (financialAccess) return serialize(obj)
@@ -431,6 +474,13 @@ export async function GET() {
         cancelledCount: cancelledReservationsCount,
         totalDepositsCollected: financialAccess ? safeNumber(totalDepositsCollectedAggregate._sum.depositAmount) : 0,
         upcomingMoveIns: upcomingMoveInsCount,
+      },
+      recurringBillsSummary: {
+        totalRecurringBills: totalRecurringBillsCount,
+        outstandingBillsBalance: financialAccess ? safeNumber(outstandingBillsAggregate._sum.currentOutstandingBalance) : 0,
+        overdueBillsCount,
+        upcomingBillsCount,
+        paidBillsThisMonth: paidBillsThisMonthCount,
       },
     }
 

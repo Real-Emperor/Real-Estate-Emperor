@@ -23,7 +23,7 @@ export async function GET() {
     const companyId = user.companyId
 
     // Fetch all company data
-    const [company, properties, tenants, expenses, maintenance, users, auditLogs] = await Promise.all([
+    const [company, properties, tenants, expenses, maintenance, users, auditLogs, recurringBills, recurringBillPayments, billReminders] = await Promise.all([
       prisma.company.findUnique({ where: { id: companyId } }),
       prisma.property.findMany({ where: { companyId, deletedAt: null } }),
       prisma.tenant.findMany({
@@ -52,6 +52,16 @@ export async function GET() {
         orderBy: { createdAt: 'desc' },
         take: 1000, // Limit to last 1000 entries
       }),
+      prisma.recurringBill.findMany({
+        where: { companyId, deletedAt: null },
+        include: { payments: true },
+      }),
+      prisma.recurringBillPayment.findMany({
+        where: { companyId },
+      }),
+      prisma.billReminder.findMany({
+        where: { companyId },
+      }),
     ])
 
     // Also fetch soft-deleted records for complete backup
@@ -77,6 +87,9 @@ export async function GET() {
         maintenance,
         users,
         auditLogs,
+        recurringBills,
+        recurringBillPayments,
+        billReminders,
       },
       deleted: {
         properties: deletedProperties,
@@ -88,7 +101,7 @@ export async function GET() {
 
     const backupJson = JSON.stringify(backup, null, 2)
     const backupSize = Buffer.byteLength(backupJson, 'utf-8')
-    const recordCount = properties.length + tenants.length + expenses.length + maintenance.length + users.length
+    const recordCount = properties.length + tenants.length + expenses.length + maintenance.length + users.length + recurringBills.length
 
     // Compute SHA-256 data hash for integrity verification
     const dataHash = crypto.createHash('sha256').update(backupJson).digest('hex')
@@ -119,6 +132,7 @@ export async function GET() {
         expenses: expenses.length,
         maintenance: maintenance.length,
         users: users.length,
+        recurringBills: recurringBills.length,
         dataHash,
       },
     })
@@ -529,6 +543,114 @@ export async function POST(request: Request) {
           },
         })
         summary.deletedMaintenance++
+      }
+    }
+
+    // Restore recurring bills
+    if (body.data?.recurringBills) {
+      for (const bill of body.data.recurringBills) {
+        await prisma.recurringBill.upsert({
+          where: { id: bill.id },
+          update: {
+            providerName: bill.providerName,
+            serviceType: bill.serviceType,
+            monthlyExpectedAmount: bill.monthlyExpectedAmount,
+            status: bill.status,
+          },
+          create: {
+            id: bill.id,
+            companyId,
+            propertyId: bill.propertyId,
+            providerName: bill.providerName,
+            serviceType: bill.serviceType,
+            accountNumber: bill.accountNumber,
+            customerNumber: bill.customerNumber,
+            contractNumber: bill.contractNumber,
+            monthlyExpectedAmount: bill.monthlyExpectedAmount,
+            currentOutstandingBalance: bill.currentOutstandingBalance || 0,
+            previousOutstandingBalance: bill.previousOutstandingBalance || 0,
+            totalAmountDue: bill.totalAmountDue || 0,
+            lastPaymentAmount: bill.lastPaymentAmount,
+            lastPaymentDate: bill.lastPaymentDate ? new Date(bill.lastPaymentDate) : null,
+            nextDueDate: bill.nextDueDate ? new Date(bill.nextDueDate) : null,
+            billingFrequency: bill.billingFrequency || 'monthly',
+            status: bill.status || 'active',
+            autoRenew: bill.autoRenew || false,
+            gracePeriodDays: bill.gracePeriodDays || 0,
+            internalNotes: bill.internalNotes,
+          },
+        })
+
+        // Restore payments for this bill
+        if (bill.payments) {
+          for (const payment of bill.payments) {
+            await prisma.recurringBillPayment.upsert({
+              where: { id: payment.id },
+              update: {
+                amount: payment.amount,
+                paymentDate: new Date(payment.paymentDate),
+              },
+              create: {
+                id: payment.id,
+                recurringBillId: bill.id,
+                companyId,
+                amount: payment.amount,
+                paymentDate: new Date(payment.paymentDate),
+                method: payment.method,
+                reference: payment.reference,
+                notes: payment.notes,
+                outstandingAfterPayment: payment.outstandingAfterPayment || 0,
+              },
+            })
+          }
+        }
+      }
+    }
+
+    // Restore recurring bill payments (standalone)
+    if (body.data?.recurringBillPayments) {
+      for (const payment of body.data.recurringBillPayments) {
+        await prisma.recurringBillPayment.upsert({
+          where: { id: payment.id },
+          update: {
+            amount: payment.amount,
+            paymentDate: new Date(payment.paymentDate),
+          },
+          create: {
+            id: payment.id,
+            recurringBillId: payment.recurringBillId,
+            companyId,
+            amount: payment.amount,
+            paymentDate: new Date(payment.paymentDate),
+            method: payment.method,
+            reference: payment.reference,
+            notes: payment.notes,
+            outstandingAfterPayment: payment.outstandingAfterPayment || 0,
+          },
+        })
+      }
+    }
+
+    // Restore bill reminders
+    if (body.data?.billReminders) {
+      for (const reminder of body.data.billReminders) {
+        await prisma.billReminder.upsert({
+          where: { id: reminder.id },
+          update: {
+            message: reminder.message,
+            isRead: reminder.isRead,
+          },
+          create: {
+            id: reminder.id,
+            recurringBillId: reminder.recurringBillId,
+            companyId,
+            type: reminder.type,
+            message: reminder.message,
+            isRead: reminder.isRead || false,
+            isSent: reminder.isSent || false,
+            sentVia: reminder.sentVia,
+          },
+        })
       }
     }
 
