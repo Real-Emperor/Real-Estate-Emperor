@@ -36,7 +36,17 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError(t('loginError', language))
+        // Differentiate error types for better user feedback
+        // NextAuth v5 returns different error codes
+        const errorCode = result.error
+        if (errorCode === 'AccessDenied' || errorCode === 'Verification') {
+          // Could be rate-limited or account deactivated
+          setError(language === 'en'
+            ? 'Access denied. Your account may be temporarily locked due to too many failed attempts. Please wait 15 minutes or contact your administrator.'
+            : t('loginError', language))
+        } else {
+          setError(t('loginError', language))
+        }
       }
       // If successful, the session will be updated and AppContent will handle the redirect
     } catch {

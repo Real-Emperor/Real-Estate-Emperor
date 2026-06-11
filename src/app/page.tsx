@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { SessionProvider, useSession, signOut } from 'next-auth/react'
 import { useAppStore, isOwnerOrAdmin, isAdminOnly } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
@@ -21,7 +21,7 @@ import Reservations from '@/components/reservations'
 import UserManagement from '@/components/user-management'
 import SystemManagement from '@/components/system-management'
 import SettingsPage from '@/components/settings-page'
-import { Loader2 } from 'lucide-react'
+import { Loader2, KeyRound, CheckCircle2 } from 'lucide-react'
 
 function AppContent() {
   const { data: session, status } = useSession()
@@ -110,6 +110,11 @@ function AppContent() {
     )
   }
 
+  // Must change password — show change password dialog before allowing dashboard access
+  if (authUser?.mustChangePassword) {
+    return <ChangePasswordDialog />
+  }
+
   const isFinancialUser = isOwnerOrAdmin(authUser.role)
   const isSystemAdmin = isAdminOnly(authUser.role)
 
@@ -174,6 +179,158 @@ function AccessDenied({ type = 'financial' }: { type?: 'financial' | 'admin' }) 
           : t('financialDataProtected', language)
         }
       </p>
+    </div>
+  )
+}
+
+// Change Password Dialog — shown when mustChangePassword is true
+function ChangePasswordDialog() {
+  const { authUser, language, login, logout } = useAppStore()
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (newPassword !== confirmPassword) {
+      setError(language === 'en' ? 'Passwords do not match' : 'Passwords do not match')
+      return
+    }
+    if (newPassword.length < 8) {
+      setError(language === 'en' ? 'Password must be at least 8 characters' : 'Password must be at least 8 characters')
+      return
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      setError(language === 'en' ? 'Password must contain at least one uppercase letter' : 'Password must contain at least one uppercase letter')
+      return
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      setError(language === 'en' ? 'Password must contain at least one number' : 'Password must contain at least one number')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to change password')
+        return
+      }
+
+      setSuccess(true)
+      // Update authUser to clear mustChangePassword after short delay
+      setTimeout(() => {
+        if (authUser) {
+          login({ ...authUser, mustChangePassword: false })
+        }
+      }, 1500)
+    } catch {
+      setError('Failed to change password. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [currentPassword, newPassword, confirmPassword, language, authUser, login])
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-8 h-8 text-green-600" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground mb-2">Password Changed Successfully</h2>
+          <p className="text-muted-foreground">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-cream flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-border p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+            <KeyRound className="w-6 h-6 text-amber-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold">Change Your Password</h2>
+            <p className="text-muted-foreground text-sm mt-0.5">
+              Your administrator requires you to set a new password before continuing.
+            </p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Current Password</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-input rounded-lg bg-background text-sm"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">New Password</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-input rounded-lg bg-background text-sm"
+              required
+              minLength={8}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Min 8 characters, at least 1 uppercase letter and 1 number
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Confirm New Password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-input rounded-lg bg-background text-sm"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading || !currentPassword || !newPassword || !confirmPassword}
+            className="w-full bg-deep-teal hover:bg-deep-teal/90 text-white h-11 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Change Password'}
+          </button>
+        </form>
+
+        <div className="mt-4 pt-4 border-t text-center">
+          <button
+            type="button"
+            onClick={() => { logout(); signOut({ redirect: false }) }}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Sign out instead
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
