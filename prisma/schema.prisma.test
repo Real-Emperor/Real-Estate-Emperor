@@ -1,0 +1,325 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id                 String         @id @default(cuid())
+  name               String
+  nameAr             String?
+  nameBn             String?
+  nameUr             String?
+  phone              String?
+  email              String?
+  address            String?
+  logoUrl            String?
+  plan               String         @default("free")
+  maxProperties      Int            @default(5)
+  maxUsers           Int            @default(3)
+  stripeCustomerId   String?
+  subscriptionStatus String?
+  subscriptionEnd    DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  properties         Property[]
+  tenants            Tenant[]
+  expenses           Expense[]
+  maintenance        Maintenance[]
+  users              User[]
+  backups            BackupRecord[]
+  notifications      Notification[]
+  receipts           Receipt[]
+
+  @@map("companies")
+}
+
+model User {
+  id                   String         @id @default(cuid())
+  email                String         @unique
+  password             String
+  name                 String
+  nameAr               String?
+  nameBn               String?
+  nameUr               String?
+  role                 String         @default("staff")
+  mustChangePassword   Boolean        @default(false)
+  passwordChangedAt    DateTime?
+  companyId            String
+  company              Company        @relation(fields: [companyId], references: [id])
+  isActive             Boolean        @default(true)
+  twoFactorSecret      String?
+  twoFactorEnabled     Boolean        @default(false)
+  twoFactorBackupCodes String?
+  deletedAt            DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  resetRequests        ResetRequest[] @relation("ResolvedBy")
+  auditLogs            AuditLog[]
+  notifications        Notification[]
+
+  @@index([companyId])
+  @@index([email])
+  @@map("users")
+}
+
+model Property {
+  id          String      @id @default(cuid())
+  companyId   String
+  company     Company     @relation(fields: [companyId], references: [id])
+  name        String
+  nameAr      String?
+  nameBn      String?
+  nameUr      String?
+  type        String
+  address     String?
+  totalUnits  Int         @default(1)
+  floors      Int         @default(1)
+  archived    Boolean     @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  tenants     Tenant[]
+  maintenance Maintenance[]
+
+  @@index([companyId])
+  @@index([archived])
+  @@map("properties")
+}
+
+model Tenant {
+  id                String     @id @default(cuid())
+  companyId         String
+  company           Company    @relation(fields: [companyId], references: [id])
+  propertyId        String
+  property          Property   @relation(fields: [propertyId], references: [id])
+  name              String
+  nameAr            String?
+  nameBn            String?
+  nameUr            String?
+  phone             String
+  whatsapp          String?
+  email             String?
+  emiratesId        String?
+  nationality       String?
+  employer          String?
+  emergencyContact  String?
+  unitNumber        String?
+  unitType          String?
+  floor             Int?
+  sizeSqft          Float?
+  rentAmount        Float
+  municipalityFee   Float?
+  securityDeposit   Float?
+  paymentMethod     String?
+  leaseStart        DateTime?
+  leaseEnd          DateTime?
+  contractDuration  Int?
+  renewalStatus     String?
+  newRent           Float?
+  status            String     @default("active")
+  latePaymentCount  Int        @default(0)
+  tenantScore       Int        @default(100)
+  notes             String?
+  deletedAt         DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  payments          Payment[]
+  receipts          Receipt[]
+
+  @@index([companyId])
+  @@index([propertyId])
+  @@index([status])
+  @@map("tenants")
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  amount        Float
+  date          DateTime
+  month         Int
+  year          Int
+  method        String?
+  reference     String?
+  receiptNumber String?
+  notes         String?
+  isLate        Boolean  @default(false)
+  daysLate      Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([month, year])
+  @@index([date])
+  @@map("payments")
+}
+
+model Expense {
+  id            String    @id @default(cuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  category      String
+  description   String
+  amount        Float
+  date          DateTime
+  vendor        String?
+  invoiceNumber String?
+  recurring     Boolean   @default(false)
+  building      String?
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([category])
+  @@index([date])
+  @@map("expenses")
+}
+
+model Maintenance {
+  id            String    @id @default(cuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  propertyId    String?
+  property      Property? @relation(fields: [propertyId], references: [id])
+  title         String
+  description   String
+  category      String?
+  vendor        String?
+  priority      String    @default("medium")
+  status        String    @default("pending")
+  estimatedCost Float?
+  actualCost    Float?
+  completedAt   DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([status])
+  @@index([propertyId])
+  @@map("maintenance")
+}
+
+model ResetRequest {
+  id         String   @id @default(cuid())
+  email      String
+  name       String
+  message    String
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+  resolvedAt DateTime?
+  resolvedBy String?
+  updatedAt  DateTime @updatedAt
+  companyId  String?
+  resolver   User?    @relation("ResolvedBy", fields: [resolvedBy], references: [id])
+
+  @@index([status])
+  @@map("reset_requests")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  companyId String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@index([companyId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model BackupRecord {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  type        String
+  size        Int
+  recordCount Int
+  status      String   @default("completed")
+  createdAt   DateTime @default(now())
+
+  @@index([companyId])
+  @@index([createdAt])
+  @@map("backup_records")
+}
+
+model RateLimit {
+  id          String    @id @default(cuid())
+  identifier  String    @unique
+  count       Int       @default(1)
+  resetAt     DateTime?
+  lockedUntil DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([lockedUntil])
+  @@map("rate_limit_entries")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  companyId String
+  company   Company   @relation(fields: [companyId], references: [id])
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id])
+  type      String
+  title     String
+  message   String
+  data      String?
+  read      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model Receipt {
+  id            String   @id @default(cuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  paymentId     String?
+  receiptNumber String   @unique
+  amount        Float
+  date          DateTime
+  month         Int
+  year          Int
+  description   String?
+  createdBy     String
+  createdAt     DateTime @default(now())
+
+  @@index([companyId])
+  @@index([tenantId])
+  @@index([receiptNumber])
+  @@map("receipts")
+}

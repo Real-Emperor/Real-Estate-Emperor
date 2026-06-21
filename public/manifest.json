@@ -1,0 +1,29 @@
+{
+  "name": "Real Estate Emperor - Property Dashboard",
+  "short_name": "Emperor",
+  "description": "Property Management Dashboard - Real Estate Emperor - Property Management & Investment",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF8F0",
+  "theme_color": "#0F766E",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "finance", "productivity"],
+  "lang": "en",
+  "dir": "auto",
+  "screenshots": [],
+  "prefer_related_applications": false
+}

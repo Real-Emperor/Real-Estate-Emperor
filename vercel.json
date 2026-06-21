@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/backup/auto?cron_secret=901fd08fd671ccf2d4e1a404dd5d92eb07bffcc6e396dc9e326b1d86ee149da7",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/daily-report",
+      "schedule": "0 20 * * *"
+    }
+  ]
+}

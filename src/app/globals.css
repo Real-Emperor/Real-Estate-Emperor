@@ -1,0 +1,445 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Islamic Bengali Color Palette */
+  --color-emerald: #0D7C3D;
+  --color-gold: #C5A028;
+  --color-cream: #FFF8E7;
+  --color-deep-teal: #0A5C4E;
+  --color-terracotta: #C4653A;
+  --color-bengali-green: #006A4E;
+  --color-bengali-red: #C1272D;
+  --color-islamic-gold: #D4AF37;
+  --color-deep-maroon: #800020;
+  --color-warm-saffron: #F4C430;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #FFF8E7;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+  --primary: #0D7C3D;
+  --primary-foreground: #ffffff;
+  --secondary: #f0ebe0;
+  --secondary-foreground: #1a1a1a;
+  --muted: #f5f0e5;
+  --muted-foreground: #6b7280;
+  --accent: #C5A028;
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --border: #e5e0d5;
+  --input: #e5e0d5;
+  --ring: #0D7C3D;
+  --chart-1: #0D7C3D;
+  --chart-2: #C5A028;
+  --chart-3: #0A5C4E;
+  --chart-4: #C4653A;
+  --chart-5: #800020;
+  --sidebar: #0A5C4E;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #C5A028;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #0D7C3D;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255,255,255,0.1);
+  --sidebar-ring: #C5A028;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Islamic geometric pattern for sidebar - enhanced with Bengali influences */
+.islamic-pattern {
+  background-color: #0A5C4E;
+  background-image:
+    /* 8-pointed star pattern - Islamic geometric motif */
+    radial-gradient(circle at 50% 50%, rgba(197,160,40,0.08) 0%, transparent 50%),
+    /* Diagonal lattice - Arabesque */
+    linear-gradient(30deg, rgba(197,160,40,0.06) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.06) 87.5%, rgba(197,160,40,0.06)),
+    linear-gradient(150deg, rgba(197,160,40,0.06) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.06) 87.5%, rgba(197,160,40,0.06)),
+    linear-gradient(30deg, rgba(197,160,40,0.06) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.06) 87.5%, rgba(197,160,40,0.06)),
+    linear-gradient(150deg, rgba(197,160,40,0.06) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.06) 87.5%, rgba(197,160,40,0.06)),
+    /* Bengali nakshi kantha inspired diagonal lines */
+    linear-gradient(60deg, rgba(255,255,255,0.03) 25%, transparent 25.5%, transparent 75%, rgba(255,255,255,0.03) 75%, rgba(255,255,255,0.03)),
+    linear-gradient(60deg, rgba(255,255,255,0.03) 25%, transparent 25.5%, transparent 75%, rgba(255,255,255,0.03) 75%, rgba(255,255,255,0.03));
+  background-size: 80px 140px, 40px 70px, 40px 70px, 40px 70px, 40px 70px, 40px 70px, 40px 70px;
+  background-position: 0 0, 0 0, 20px 35px, 20px 35px, 0 0, 20px 35px;
+}
+
+/* Full-page Islamic pattern for login */
+.islamic-pattern-full {
+  background-color: #0A5C4E;
+  background-image:
+    /* Central medallion effect */
+    radial-gradient(ellipse at 50% 50%, rgba(197,160,40,0.12) 0%, transparent 60%),
+    /* Geometric star grid */
+    radial-gradient(circle at 25% 25%, rgba(197,160,40,0.06) 0%, transparent 30%),
+    radial-gradient(circle at 75% 75%, rgba(197,160,40,0.06) 0%, transparent 30%),
+    radial-gradient(circle at 75% 25%, rgba(212,175,55,0.04) 0%, transparent 25%),
+    radial-gradient(circle at 25% 75%, rgba(212,175,55,0.04) 0%, transparent 25%),
+    /* Arabesque lattice */
+    linear-gradient(30deg, rgba(197,160,40,0.05) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.05) 87.5%),
+    linear-gradient(150deg, rgba(197,160,40,0.05) 12%, transparent 12.5%, transparent 87%, rgba(197,160,40,0.05) 87.5%),
+    /* Nakshi kantha embroidery inspired pattern */
+    linear-gradient(60deg, rgba(255,255,255,0.02) 25%, transparent 25.5%, transparent 75%, rgba(255,255,255,0.02) 75%),
+    linear-gradient(-60deg, rgba(128,0,32,0.03) 25%, transparent 25.5%, transparent 75%, rgba(128,0,32,0.03) 75%);
+  background-size: 100% 100%, 120px 120px, 120px 120px, 80px 80px, 80px 80px, 50px 90px, 50px 90px, 50px 90px, 50px 90px;
+}
+
+/* Pulse animation for overdue alerts */
+@keyframes overdue-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.overdue-pulse {
+  animation: overdue-pulse 1.5s ease-in-out infinite;
+}
+
+/* Fade in up animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+/* Stagger children animation */
+.stagger-children > * {
+  opacity: 0;
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.35s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.4s; }
+.stagger-children > *:nth-child(9) { animation-delay: 0.45s; }
+.stagger-children > *:nth-child(10) { animation-delay: 0.5s; }
+.stagger-children > *:nth-child(n+11) { animation-delay: 0.55s; }
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.25);
+}
+
+/* RTL support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Status card glow */
+.status-paid {
+  box-shadow: 0 0 0 2px #0D7C3D, 0 0 12px rgba(13,124,61,0.2);
+}
+
+.status-overdue {
+  box-shadow: 0 0 0 2px #dc2626, 0 0 12px rgba(220,38,38,0.3);
+}
+
+.status-partial {
+  box-shadow: 0 0 0 2px #f59e0b, 0 0 12px rgba(245,158,11,0.2);
+}
+
+/* Tenant score indicator */
+.score-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: currentColor;
+  border-right-color: currentColor;
+}
+
+/* Print styles for reports */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  body { background: white !important; }
+  .card-hover:hover { transform: none !important; box-shadow: none !important; }
+  table { break-inside: auto; font-size: 10px; }
+  tr { break-inside: avoid; break-after: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  td, th { break-inside: avoid; overflow: hidden; text-overflow: ellipsis; }
+  .overflow-x-auto, .overflow-y-auto { overflow: visible !important; max-height: none !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+
+/* Islamic decorative border */
+.islamic-border-top {
+  border-top: 3px solid transparent;
+  border-image: repeating-linear-gradient(
+    90deg,
+    #C5A028 0px,
+    #C5A028 8px,
+    transparent 8px,
+    transparent 12px,
+    #0A5C4E 12px,
+    #0A5C4E 20px,
+    transparent 20px,
+    transparent 24px
+  ) 3;
+}
+
+/* Bengali cultural accent - subtle red-green border inspired by Bangladesh flag */
+.bengali-accent {
+  border-left: 3px solid;
+  border-image: linear-gradient(to bottom, #006A4E, #C1272D) 1;
+}
+
+/* Geometric divider */
+.geometric-divider {
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    #C5A028 0px,
+    #C5A028 6px,
+    transparent 6px,
+    transparent 10px,
+    #0A5C4E 10px,
+    #0A5C4E 16px,
+    transparent 16px,
+    transparent 20px
+  );
+}
+
+/* ===== Real Estate Business Animations ===== */
+
+/* Floating building skyline - subtle background animation */
+@keyframes skylineFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-skyline-float {
+  animation: skylineFloat 6s ease-in-out infinite;
+}
+
+/* Gold shimmer effect for important elements */
+@keyframes goldShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-gold-shimmer {
+  background: linear-gradient(90deg, #C5A028 0%, #D4AF37 25%, #F4C430 50%, #D4AF37 75%, #C5A028 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: goldShimmer 3s ease-in-out infinite;
+}
+
+/* Building rise animation - for cards appearing */
+@keyframes buildingRise {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-building-rise {
+  animation: buildingRise 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Door open effect for dialogs */
+@keyframes doorOpen {
+  0% {
+    opacity: 0;
+    transform: perspective(800px) rotateY(-8deg) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(800px) rotateY(0deg) scale(1);
+  }
+}
+
+.animate-door-open {
+  animation: doorOpen 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Key turn animation for login */
+@keyframes keyTurn {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-15deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(15deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-key-turn {
+  animation: keyTurn 2s ease-in-out infinite;
+}
+
+/* Smooth slide in from left for sidebar */
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Property card hover with building lift effect */
+.property-card-hover {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.property-card-hover:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(10, 92, 78, 0.15), 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Stat counter animation */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-count-up {
+  animation: countUp 0.6s ease-out forwards;
+}
+
+/* Subtle pulse for notification badges */
+@keyframes notifyPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.animate-notify-pulse {
+  animation: notifyPulse 2s ease-in-out infinite;
+}
+
+/* Smooth page transition */
+@keyframes pageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-page-slide {
+  animation: pageSlideIn 0.3s ease-out forwards;
+}
+
+/* Income flow animation for revenue numbers */
+@keyframes incomeFlow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-income-flow {
+  animation: incomeFlow 2s ease-in-out infinite;
+}
