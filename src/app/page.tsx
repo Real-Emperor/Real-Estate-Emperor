@@ -147,7 +147,7 @@ function AppContent() {
       <DemoDisclaimerPopup />
       <Sidebar />
       <main
-        className="transition-all duration-300 min-h-screen"
+        className="transition-all duration-300 min-h-screen pb-12"
         style={{
           marginLeft: !isMobile && sidebarOpen ? '256px' : isMobile ? '0' : '0',
         }}
@@ -155,18 +155,16 @@ function AppContent() {
         <div className="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto">
           {renderPage()}
         </div>
-        {/* Phronesis Studio credit */}
-        <footer className="border-t border-border mt-8 py-4 px-4 md:px-6 lg:px-8">
-          <div className="max-w-[1400px] mx-auto flex items-center justify-center gap-2 text-xs text-muted-foreground">
-            <img
-              src="/phronesis-logo.png"
-              alt="Phronesis Studio"
-              className="h-5 w-5 object-contain opacity-80"
-            />
-            <span>Website crafted by <a href="https://phronesis-studio.com/en" target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-[#c9a84c] transition-colors">Phronesis Studio</a></span>
-          </div>
-        </footer>
       </main>
+      {/* Phronesis Studio credit — fixed bottom bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-sm border-t border-border py-2 px-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+        <img
+          src="/phronesis-logo.png"
+          alt="Phronesis Studio"
+          className="h-4 w-4 object-contain opacity-80"
+        />
+        <span>Website crafted by <a href="https://phronesis-studio.com/en" target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-[#c9a84c] transition-colors">Phronesis Studio</a></span>
+      </div>
     </div>
   )
 }
