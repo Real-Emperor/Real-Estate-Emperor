@@ -392,6 +392,16 @@ export default function LoginPage() {
             </div>
           )}
         </div>
+
+        {/* Phronesis Studio credit */}
+        <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <img
+            src="/phronesis-logo.png"
+            alt="Phronesis Studio"
+            className="h-5 w-5 object-contain opacity-80"
+          />
+          <span>Website crafted by <a href="https://phronesis-studio.com/en" target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-[#c9a84c] transition-colors">Phronesis Studio</a></span>
+        </div>
       </div>
     </div>
   )

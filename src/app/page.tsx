@@ -195,6 +195,7 @@ function AccessDenied({ type = 'financial' }: { type?: 'financial' | 'admin' }) 
 export default function Home() {
   return (
     <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={true}>
+      <DemoDisclaimerPopup />
       <AppContent />
     </SessionProvider>
   )
